@@ -6,7 +6,8 @@
    <div class="row mb-2">
    <div class="col-sm-6" style="display: flex;
     justify-content: space-between;">
-   <h1 class="m-0" style="font-weight: 500 !important; ">Salaire du mois : {{ Salaire }} dh</h1>
+   <h1 class="m-0" style="font-weight: 500 !important; ">Salaire du mois</h1>
+
   <Field
   style="width: 30% !important;"
   name="MoisPorAfficher"
@@ -21,6 +22,7 @@
 />
 
    </div>
+
    <div class="col-sm-6">
    <ol class="breadcrumb float-sm-right">
    <!-- <li class="breadcrumb-item"><a href="#">Home</a></li>
@@ -34,8 +36,11 @@
 
    <div class="content">
    <div class="container-fluid">
-
-
+    <div style="display:flex;">
+    <!-- <h3 style="color:#007bff; font-weight: bold;">Salaire attendu : {{ Salaire }} dh </h3> -->
+    <h3 style="color:green; font-weight: 700px;">Salaire actuel : {{ users.length > 0 ? users[users.length-1].SalaireActuelle + ' dh' : 'N/A' }}</h3>
+</div>
+<br>
 
   <div class="container" style="overflow : auto !important; height:  calc(100vh - 176px) !important; max-width: 2040px !important;">
 
@@ -43,13 +48,14 @@
           <thead>
             <tr>
               <!-- <th>#</th> -->
-              <th>Nom étudiant</th>
-              <th>Prenom étudiant</th>
-              <th>État de paiement</th>
-              <th>Somme à payé</th>
-              <th>Montant payé</th>
-              <th>Reste a payé</th>
-              <th>Date de paiment</th>
+              <th>Etudiant</th>
+              <!-- <th>Prenom étudiant</th> -->
+              <th>État</th>
+              <!-- <th>Niveau</th>
+              <th>Filière</th>
+              <th>Matière</th> -->
+              <th>Montant</th>
+              <!-- <th>Date de paiment</th> -->
 
 
 
@@ -59,15 +65,18 @@
             <tr v-for="(user, index) in users" :key="user.id">
               <!-- <td>{{ index + 1 }}</td> -->
               <td>{{ user.Nom }}</td>
-              <td>{{ user.Prenom}}</td>
+              <!-- <td>{{ user.Prenom}}</td> -->
               <td v-if="user.Etat === 'Non payé'" style="color: red; font-weight: bold;">{{ user.Etat }}</td>
               <td v-else-if="user.Etat === 'Payé'" style="color: green; font-weight: bold;">{{ user.Etat }}</td>
               <td v-else-if="user.Etat === 'Payé et plus'" style="color: green; font-weight: bold;">{{ user.Etat }}</td>
               <td v-else style="color: orangered; font-weight: bold;">{{ user.Etat }}</td>
+              <!-- <td>{{ user.Montant }}</td>
+              <td>{{ user.Reste }}</td>
+              <td>{{ user.Matiere }}</td> -->
               <td>{{ user.SommeApaye }} dh</td>
-              <td>{{ user.Montant }} dh</td>
-              <td>{{ user.Reste }} dh</td>
-              <td>{{ user.DatePaiment }}</td>
+
+
+              <!-- <td>{{ user.DatePaiment }}</td> -->
               <!-- <td>
                 <a href="#" @click.prevent="editUser(user)" class="btn btn-primary btn-sm">
   <i class="fa fa-edit"></i>
@@ -231,12 +240,13 @@ const initDataTable = () => {
     lengthChange: true, // Force l'affichage des options de changement de longueur
     columns: [
       { data: 'Nom' },
-      { data: 'Prenom' },
+    //   { data: 'Prenom' },
       { data: 'Etat' },
+    //   { data: 'Montant' },
+    //   { data: 'Reste' },
+    //   { data: 'Matiere' },
       { data: 'SommeApaye' },
-      { data: 'Montant' },
-      { data: 'Reste' },
-      { data: 'DatePaiment' },
+    //   { data: 'DatePaiment' },
       {
   data: null,
   render: function (data, type, row) {
@@ -253,7 +263,7 @@ const initDataTable = () => {
     ],
     columnDefs: [
       {
-        targets: 2, // Indice de la colonne 'État de paiement'
+        targets: 1, // Indice de la colonne 'État de paiement'
         render: function (data, type, row) {
           if (data === 'Non payé') {
             return '<span style="color: red; font-weight: bold;">' + data + '</span>';

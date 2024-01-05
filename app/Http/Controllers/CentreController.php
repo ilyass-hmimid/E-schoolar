@@ -78,6 +78,8 @@ return $prof->SommeApaye;
 
     public function getUsersForProf(Request $request)
     {
+        $i=0;
+        $SalaireActuelle=0;
 
         // dd($request->input('id'));
         $datePourAfficher = $request->input('date'); // Récupération du mois sélectionné depuis la requête
@@ -85,11 +87,13 @@ return $prof->SommeApaye;
 
         $EtusEnsParProf = Inscription::where('IdProf', $request->input('id'))->get();
         $users = collect(); // Initialiser une collection pour stocker les étudiants
+        $mats = collect();
 
         foreach ($EtusEnsParProf as $etu) {
             $user = Etudiant::find($etu->IdEtu); // Récupérer l'étudiant par son ID dans chaque inscription
             if ($user) {
                 $users->push($user); // Ajouter l'étudiant à la collection
+                $mats->push($etu->IdMat);
             }
         }
 
@@ -113,29 +117,55 @@ return $prof->SommeApaye;
                 ->whereRaw('YEAR(Date_Paiment) = ?', [$annee])
                 ->first();
 
-            if (!$Paiment) {
-                // Si aucun paiement trouvé, ajouter les détails par défaut
-                $result[] = [
-                    'id' => $user->id,
-                    'Nom' => $user->Nom,
-                    'Prenom' => $user->Prenom,
-                    'SommeApaye' => $user->SommeApaye,
-                    'Etat' => 'Non payé',
-                    'Montant' => '0',
-                    'Reste' => $user->SommeApaye,
-                    'DatePaiment' => '',
-                ];
-            } else {
+            $ens = Enseignement::where('IdProf',$request->input('id'))
+                                ->where('IdMat',$mats[$i])
+                                ->where('IdNiv',$user->IdNiv)
+                                ->where('IdFil',$user->IdFil)
+                                ->first();
+
+
+            $mati = Matiere::find($mats[$i]);
+            $nive= Niveau::find($user->IdNiv);
+            $fili= Filiere::find($user->IdFil);
+
+            $i=$i+1;
+
+            if($Paiment && $Paiment->Etat == 'Payé'){
+            $SalaireActuelle = $SalaireActuelle + $ens->SalaireParEtu;
+            }
+
+
+
+
+
+            // if (!$Paiment) {
+            //     // Si aucun paiement trouvé, ajouter les détails par défaut
+            //     $result[] = [
+            //         'id' => $user->id,
+            //         'Nom' => $user->Nom,
+            //         'Prenom' => $user->Prenom,
+            //         'SommeApaye' => $ens->SalaireParEtu,
+            //         'Etat' => 'Non payé',
+            //         'Montant' => $nive->Nom,
+            //         'Reste' => $fili->Intitule,
+            //         'Matiere' => $mati->Libelle,
+            //         'DatePaiment' => '',
+            //         'SalaireActuelle' => $SalaireActuelle,
+            //     ];
+            // }
+            if($Paiment && $Paiment->Etat == 'Payé') {
                 // Si un paiement est trouvé, ajouter les détails du paiement
                 $result[] = [
                     'id' => $user->id,
-                    'Nom' => $user->Nom,
+                    'Nom' => $user->Nom . ' ' . $user->Prenom,
                     'Prenom' => $user->Prenom,
-                    'SommeApaye' => $user->SommeApaye,
+                    'SommeApaye' => $ens->SalaireParEtu,
                     'Etat' => $Paiment->Etat,
-                    'Montant' => $Paiment->Montant,
-                    'Reste' => $Paiment->Reste,
+                    'Montant' => $nive->Nom,
+                    'Reste' => $fili->Intitule,
+                    'Matiere' => $mati->Libelle,
                     'DatePaiment' => $Paiment->Date_Paiment,
+                    'SalaireActuelle' => $SalaireActuelle,
                 ];
             }
         }

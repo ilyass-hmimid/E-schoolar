@@ -306,7 +306,7 @@ Dashboard
                                         </li>
                                         @endif
 
-
+                                        @if(Auth::check() && Auth::user()->role != 'professeur')
                                     <li class="nav-item">
                                         <router-link to="/niveaux" active-class="active" class="nav-link">
                                         <i class="nav-icon fas fa-layer-group"></i>
@@ -315,7 +315,9 @@ Dashboard
                                         </p>
                                         </router-link>
                                         </li>
+                                        @endif
 
+                                        @if(Auth::check() && Auth::user()->role != 'professeur')
                                         <li class="nav-item">
                                             <router-link to="/filieres" active-class="active" class="nav-link">
                                             <i class="nav-icon fas fa-book"></i>
@@ -324,14 +326,17 @@ Dashboard
                                             </p>
                                             </router-link>
                                             </li>
+                                            @endif
 
-
+                                            @if(Auth::check() && Auth::user()->role != 'professeur')
                                             <li class="nav-item">
                                                 <router-link to="/matieres" active-class="active" class="nav-link">
                                                     <i class="nav-icon fas fa-file-signature"></i>
                                                     <p>Matières</p>
                                                 </router-link>
                                             </li>
+                                            @endif
+
 
 
 

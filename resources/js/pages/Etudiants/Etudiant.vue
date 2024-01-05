@@ -41,11 +41,9 @@
               <th>Niveau</th>
               <th>Filière</th>
               <th>Matières</th>
-              <th>Professeurs</th>
+              <th>Professeur</th>
               <th>Date d'inscription</th>
               <th>Date de début</th>
-
-
 
             </tr>
           </thead>

@@ -412,24 +412,45 @@ const generateReceiptPDF = (data) => {
 
 
   // Ajout du logo en bas à gauche de la page
-  const logoWidth = 50;
-  const logoHeight = 50;
+  const logoWidth = 40;
+  const logoHeight = 40;
   const logoX = width / 2 - logoWidth / 2;
-  const logoY = 5;
+  const logoY = 2;
 
   doc.addImage('./imgs/logo.png', 'PNG', logoX, logoY, logoWidth, logoHeight);
   doc.setFontSize(22);
-  doc.text('Reçu de paiement', logoX -7 , 70);
+  doc.text('Reçu de paiement', logoX -13 , 50);
   // Ajout des détails du paiement
   doc.setFontSize(14);
-  doc.text(`Nom et Prénom : ${data.Nom} ${data.Prenom}`,logoX -3, 100);
-  doc.text(`Niveau Scolaire : ${data.Niveau}`, logoX -3, 120);
-  doc.text(`Matières : ${data.Matieres}`, logoX -3, 140);
-  doc.text(`Somme à payer : ${data.SommeApaye} dh`, logoX -3, 160);
-  doc.text(`Montant payé : ${data.Montant} dh`, logoX -3, 180);
-  doc.text(`Reste à payer : ${data.Reste} dh`, logoX -3, 200);
-  doc.text(`Date de paiement : ${data.DatePaiment}`, logoX -3+50, 245);
-  doc.text(`Signature de la derection`, logoX -3-63, 245);
+  doc.text(`Nom et Prénom : ${data.Nom} ${data.Prenom}`,18 , 70);
+  doc.text(`Niveau Scolaire : ${data.Niveau}`, 140, 70);
+  doc.text(`Matières : ${data.Matieres}`, 18, 85);
+  doc.text(`Somme à payer : ${data.SommeApaye} dh`, 140, 85);
+  doc.text(`Montant payé : ${data.Montant} dh`, 18, 100);
+  doc.text(`Reste à payer : ${data.Reste} dh`, 140, 100);
+  doc.text(`Signature de la derection`, 26, 120);
+  doc.text(`Date de paiement : ${data.DatePaiment}`, 126, 120);
+
+  doc.setFontSize(30);
+  doc.text(`- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - `, 7, 175);
+
+  doc.addImage('./imgs/logo.png', 'PNG', logoX, 178, logoWidth, logoHeight);
+  doc.setFontSize(22);
+  doc.text('Reçu de paiement', logoX -13 , 226);
+  // Ajout des détails du paiement
+  doc.setFontSize(14);
+  doc.text(`Nom et Prénom : ${data.Nom} ${data.Prenom}`,18 , 241);
+  doc.text(`Niveau Scolaire : ${data.Niveau}`, 140, 241);
+  doc.text(`Matières : ${data.Matieres}`, 18, 256);
+  doc.text(`Somme à payer : ${data.SommeApaye} dh`, 140, 256);
+  doc.text(`Montant payé : ${data.Montant} dh`, 18, 271);
+  doc.text(`Reste à payer : ${data.Reste} dh`, 140, 271);
+
+  doc.text(`Date de paiement : ${data.DatePaiment}`, logoX -13, 288);
+
+
+
+
 
 
 
