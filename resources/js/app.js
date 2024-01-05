@@ -1,9 +1,27 @@
-require('./bootstrap');
+import './bootstrap';
+import 'admin-lte/plugins/jquery/jquery.min.js';
+import 'admin-lte/plugins/bootstrap/js/bootstrap.bundle.min.js';
+import 'admin-lte/dist/js/adminlte.min.js';
+import Alpine from 'alpinejs';
 
-window.Vue = require('vue').default;
+import { createApp } from 'vue/dist/vue.esm-bundler.js';
+import { createRouter, createWebHistory } from 'vue-router';
+import Routes from './routes.js';
 
-Vue.component('example-component', require('./components/ExampleComponent.vue').default);
+const app = createApp({});
 
-const app = new Vue({
-    el: '#app',
-});
+
+
+    const router = createRouter({
+        routes: Routes, // Modifier cette ligne
+        history: createWebHistory(),
+    });
+
+
+    app.use(router);
+
+    app.mount('#app');
+
+// window.Alpine = Alpine;
+
+// Alpine.start();

@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Mon application Laravel et Vue.js</title>
+    <title>App_Centre_Orientation</title>
     <link href="{{ mix('css/app.css') }}" rel="stylesheet">
 </head>
 <body>
     <div id="app">
-        <h1>Bienvenue dans mon application Laravel et Vue.js</h1>
+        <h1>Bienvenue dans l'application de Centre d'Orientation</h1>
         <example-component></example-component>
     </div>
 
