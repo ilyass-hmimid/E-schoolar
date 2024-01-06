@@ -1,50 +1,42 @@
 
 <template>
-
-    <div class="content-header">
-   <div class="container-fluid">
-   <div class="row mb-2">
-   <div class="col-sm-6" style="display: flex;
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6" style="display: flex;
     justify-content: space-between;">
-   <h1 class="m-0" style="font-weight: 500 !important; ">Salaire du mois</h1>
+          <h1 class="m-0" style="font-weight: 500 !important; ">Salaire du mois</h1>
 
-  <Field
-  style="width: 30% !important;"
-  name="MoisPorAfficher"
-  type="month"
-  class="form-control"
-  id="selectedMonth"
-  placeholder="Entrer la date de début"
-  required
-  :value="getDefaultMonth()"
-  v-model="selectedMonth"
-  @change="getRole"
-/>
+          <Field style="width: 30% !important;" name="MoisPorAfficher" type="month" class="form-control"
+            id="selectedMonth" placeholder="Entrer la date de début" required :value="getDefaultMonth()"
+            v-model="selectedMonth" @change="getRole" />
 
-   </div>
+        </div>
 
-   <div class="col-sm-6">
-   <ol class="breadcrumb float-sm-right">
-   <!-- <li class="breadcrumb-item"><a href="#">Home</a></li>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <!-- <li class="breadcrumb-item"><a href="#">Home</a></li>
    <li class="breadcrumb-item active">Etudiants</li> -->
-   </ol>
-   </div>
-   </div>
-   </div>
-   </div>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
 
 
-   <div class="content">
-   <div class="container-fluid">
-    <div style="display:flex;">
-    <!-- <h3 style="color:#007bff; font-weight: bold;">Salaire attendu : {{ Salaire }} dh </h3> -->
-    <h3 style="color:green; font-weight: 700px;">Salaire actuel : {{ users.length > 0 ? users[users.length-1].SalaireActuelle + ' dh' : 'N/A' }}</h3>
-</div>
-<br>
+  <div class="content">
+    <div class="container-fluid">
+      <div style="display:flex;">
+        <!-- <h3 style="color:#007bff; font-weight: bold;">Salaire attendu : {{ Salaire }} dh </h3> -->
+        <h3 style="color:green; font-weight: 700px;">Salaire actuel : {{ users.length > 0 ?
+          users[users.length - 1].SalaireActuelle + ' dh' : 'N/A' }}</h3>
+      </div>
+      <br>
 
-  <div class="container" style="overflow : auto !important; height:  calc(100vh - 176px) !important; max-width: 2040px !important;">
+      <div class="container"
+        style="overflow : auto !important; height:  calc(100vh - 176px) !important; max-width: 2040px !important;">
 
-    <table id="myTable" class="table table-striped table-bordered">
+        <table id="myTable" class="table table-striped table-bordered">
           <thead>
             <tr>
               <!-- <th>#</th> -->
@@ -88,88 +80,75 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+
+
+
+    </div>
   </div>
 
 
+  <!-- Modal pour ajouter un nouvel Etudiant -->
+  <div class="modal fade" id="userFormModal" tabindex="-1" role="dialog" aria-labelledby="userFormModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content" style="margin-top: -28px !important;">
+        <div class="modal-header">
+          <h5 class="modal-title" id="userFormModalLabel">
+            <span>Effectuer un paiement</span>
+
+          </h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
 
 
-   </div>
-   </div>
-
-
-   <!-- Modal pour ajouter un nouvel Etudiant -->
-    <div class="modal fade" id="userFormModal" tabindex="-1" role="dialog" aria-labelledby="userFormModalLabel" aria-hidden="true">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content" style="margin-top: -28px !important;">
-          <div class="modal-header">
-            <h5 class="modal-title" id="userFormModalLabel">
-            <span >Effectuer un paiement</span>
-
-            </h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-
-
-<!--The form is here => -->
-          <Form ref="form" @submit="handleSubmit" :validation-schema="createUserSchema"
-          v-slot="{errors}" :initial-values="formValues">
+        <!--The form is here => -->
+        <Form ref="form" @submit="handleSubmit" :validation-schema="createUserSchema" v-slot="{ errors }"
+          :initial-values="formValues">
           <div class="modal-body">
             <!-- Formulaire pour ajouter un nouvel Etudiant -->
 
-              <div class="form-group">
-                <label for="SommeApaye">Somme a payé</label>
-                <Field name="SommeApaye" type="number" class="form-control"
-                :class="{'is-invalid': errors.SommeApaye }"
+            <div class="form-group">
+              <label for="SommeApaye">Somme a payé</label>
+              <Field name="SommeApaye" type="number" class="form-control" :class="{ 'is-invalid': errors.SommeApaye }"
                 id="SommeApaye" placeholder="Entrer somme a payé par mois" required />
-                <span class="invalid-feedback">{{ errors.SommeApaye }}</span>
-              </div>
-              <div class="form-group">
-                <label for="Montant">Somme payé</label>
-                <Field name="Montant" type="number" class="form-control"
-                :class="{'is-invalid': errors.Montant }"
+              <span class="invalid-feedback">{{ errors.SommeApaye }}</span>
+            </div>
+            <div class="form-group">
+              <label for="Montant">Somme payé</label>
+              <Field name="Montant" type="number" class="form-control" :class="{ 'is-invalid': errors.Montant }"
                 id="Montant" placeholder="Entrer la somme payé" required />
-                <span class="invalid-feedback">{{ errors.Montant }}</span>
-              </div>
+              <span class="invalid-feedback">{{ errors.Montant }}</span>
+            </div>
 
 
 
 
-        <div class="form-group">
-    <label for="DatePaiment">Date de paiement (mm/jj/aaaa)</label>
-    <Field
-      name="DatePaiment"
-      type="date"
-      class="form-control"
-      :class="{'is-invalid': errors.DatePaiment }"
-      id="DatePaiment"
-      placeholder="Entrer la date de paiment"
-      required
-      v-bind:value="getDefaultDate()"
-    />
-    <span class="invalid-feedback">{{ errors.DatePaiment }}</span>
-  </div>
+            <div class="form-group">
+              <label for="DatePaiment">Date de paiement (mm/jj/aaaa)</label>
+              <Field name="DatePaiment" type="date" class="form-control" :class="{ 'is-invalid': errors.DatePaiment }"
+                id="DatePaiment" placeholder="Entrer la date de paiment" required v-bind:value="getDefaultDate()" />
+              <span class="invalid-feedback">{{ errors.DatePaiment }}</span>
+            </div>
 
 
 
           </div>
           <div class="modal-footer">
             <div class="modal-footer">
-    <button type="button" class="btn btn-secondary" data-dismiss="modal" @click="cancelEdit">Annuler</button>
-    <button type="submit"   class="btn btn-primary">Enregistrer</button>
-</div>
+              <button type="button" class="btn btn-secondary" data-dismiss="modal" @click="cancelEdit">Annuler</button>
+              <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
 
           </div>
         </form>
-        </div>
       </div>
     </div>
-
-
-
-
-   </template>
+  </div>
+</template>
 
 
 
@@ -202,15 +181,15 @@ const selectedMonth = ref(''); // Initialisez selectedMonth comme une référenc
 
 
 const cancelEdit = () => {
-    resetFormValues(); // Réinitialiser le formulaire
-    // Autres actions si nécessaire lors de l'annulation de la modification
+  resetFormValues(); // Réinitialiser le formulaire
+  // Autres actions si nécessaire lors de l'annulation de la modification
 };
 
 const resetFormValues = () => {
-    form.value.resetForm(); // Utilisez la méthode resetForm() fournie par VeeValidate pour réinitialiser le formulaire
-    // Remettre à zéro les valeurs sélectionnées et autres états si nécessaire
+  form.value.resetForm(); // Utilisez la méthode resetForm() fournie par VeeValidate pour réinitialiser le formulaire
+  // Remettre à zéro les valeurs sélectionnées et autres états si nécessaire
 
-    // Autres remises à zéro si nécessaire
+  // Autres remises à zéro si nécessaire
 };
 
 
@@ -240,25 +219,25 @@ const initDataTable = () => {
     lengthChange: true, // Force l'affichage des options de changement de longueur
     columns: [
       { data: 'Nom' },
-    //   { data: 'Prenom' },
+      //   { data: 'Prenom' },
       { data: 'Etat' },
-    //   { data: 'Montant' },
-    //   { data: 'Reste' },
-    //   { data: 'Matiere' },
+      //   { data: 'Montant' },
+      //   { data: 'Reste' },
+      //   { data: 'Matiere' },
       { data: 'SommeApaye' },
-    //   { data: 'DatePaiment' },
+      //   { data: 'DatePaiment' },
       {
-  data: null,
-  render: function (data, type, row) {
-    const editBtn = document.createElement('button');
-    editBtn.classList.add('btn', 'btn-primary', 'btn-sm', 'edit-btn', 'hide-btn'); // Ajoutez la classe 'hide-btn'
-    editBtn.innerHTML = '<i class="fa fa-edit"></i>';
-    editBtn.addEventListener('click', function () {
-      editUser(row);
-    });
-    return editBtn.outerHTML;
-  }
-},
+        data: null,
+        render: function (data, type, row) {
+          const editBtn = document.createElement('button');
+          editBtn.classList.add('btn', 'btn-primary', 'btn-sm', 'edit-btn', 'hide-btn'); // Ajoutez la classe 'hide-btn'
+          editBtn.innerHTML = '<i class="fa fa-edit"></i>';
+          editBtn.addEventListener('click', function () {
+            editUser(row);
+          });
+          return editBtn.outerHTML;
+        }
+      },
 
     ],
     columnDefs: [
@@ -296,11 +275,11 @@ const getDefaultMonth = () => {
 };
 
 const getRole = () => {
-    axios.get('/api/getIdProf')
+  axios.get('/api/getIdProf')
     .then((response) => {
-        getUsers(response.data);
-        getSalaire(response.data);
-      }
+      getUsers(response.data);
+      getSalaire(response.data);
+    }
     )
     .catch((error) => {
       console.error('Erreur lors de la récupération de role:', error);
@@ -312,19 +291,19 @@ const Salaire = ref('');
 
 const getSalaire = (id) => {
 
-axios.get('/api/salaireProf', { params: { id: id } })
-.then((response) => {
-  Salaire.value = response.data;
+  axios.get('/api/salaireProf', { params: { id: id } })
+    .then((response) => {
+      Salaire.value = response.data;
 
-})
-.catch((error) => {
-  console.error('Erreur lors de la récupération de salaire :', error);
-});
+    })
+    .catch((error) => {
+      console.error('Erreur lors de la récupération de salaire :', error);
+    });
 };
 
 const getUsers = (id) => {
 
-    axios.get('/api/etudiantsForProf', { params: { date: selectedMonth.value , id : id} })
+  axios.get('/api/etudiantsForProf', { params: { date: selectedMonth.value, id: id } })
     .then((response) => {
       users.value = response.data;
 
@@ -368,9 +347,9 @@ const updateValuesPeriodically = () => {
 const createUserSchema = yup.object({
 
 
-    SommeApaye: yup.string().required(),
-    Montant: yup.string().required(),
-    DatePaiment: yup.date().required(),
+  SommeApaye: yup.string().required(),
+  Montant: yup.string().required(),
+  DatePaiment: yup.date().required(),
 
 
 
@@ -380,37 +359,37 @@ const createUserSchema = yup.object({
 
 const editUserSchema = yup.object({
 
-    SommeApaye: yup.string().required(),
-    Montant: yup.string().required(),
-    DatePaiment: yup.date().required(),
+  SommeApaye: yup.string().required(),
+  Montant: yup.string().required(),
+  DatePaiment: yup.date().required(),
 });
 
 
 
 const addUser = () => {
-    resetFormValues();
-    $('#userFormModal').modal('show');
+  resetFormValues();
+  $('#userFormModal').modal('show');
 };
 
 
 
 const editUser = (user) => {
-    form.value.resetForm();
-    $('#userFormModal').modal('show');
+  form.value.resetForm();
+  $('#userFormModal').modal('show');
 
-    // Initialiser les valeurs pour Nom, Prenom, Etat, SommeApaye
-    formValues.value = {
-        id: user.id,
-        nom: user.Nom,
-        prenom: user.Prenom,
-        Etat: user.Etat,
-        SommeApaye: user.SommeApaye,
-        Montant: user.Montant,
-        Reste: user.Reste,
-        DatePaiment: user.DatePaiment ? user.DatePaiment : getDefaultDate(),
+  // Initialiser les valeurs pour Nom, Prenom, Etat, SommeApaye
+  formValues.value = {
+    id: user.id,
+    nom: user.Nom,
+    prenom: user.Prenom,
+    Etat: user.Etat,
+    SommeApaye: user.SommeApaye,
+    Montant: user.Montant,
+    Reste: user.Reste,
+    DatePaiment: user.DatePaiment ? user.DatePaiment : getDefaultDate(),
 
 
-    };
+  };
 
 
 };
@@ -429,7 +408,7 @@ const updatePaiement = (values, { setErrors }) => {
       }, 10);
       toastr.success('Paiement mis à jour avec succès !');
       getUsers(); // Mettre à jour la DataTable après la mise à jour
-    //   location.reload(); // Rechargement de la page après la suppression
+      //   location.reload(); // Rechargement de la page après la suppression
     }).catch((error) => {
       setErrors(error.response.data.errors);
       console.log(error);
@@ -439,7 +418,7 @@ const updatePaiement = (values, { setErrors }) => {
 const handleSubmit = (values, actions) => {
 
 
-        updatePaiement(values, actions);
+  updatePaiement(values, actions);
 
 
 };
@@ -517,8 +496,8 @@ onMounted(() => {
 
 
     // Appelez la fonction pour récupérer les données et initialiser la DataTable
-     selectedMonth.value = getDefaultMonth();
-     getRole();
+    selectedMonth.value = getDefaultMonth();
+    getRole();
 
     // getUsers(id); // Utilisez l'ID retourné pour obtenir les utilisateurs
 
@@ -536,7 +515,8 @@ onMounted(() => {
 /* Ajoutez ce style dans votre composant Vue */
 
 .hide-btn {
-  display: none; /* Masque les boutons ayant cette classe */
+  display: none;
+  /* Masque les boutons ayant cette classe */
 }
 </style>
 

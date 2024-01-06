@@ -1,44 +1,44 @@
 
 <template>
-
-    <div class="content-header">
-   <div class="container-fluid">
-   <div class="row mb-2">
-   <div class="col-sm-6" style="display: flex;
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6" style="display: flex;
     justify-content: space-between;
     flex-direction: row-reverse; ">
-   <h1 class="m-0" style="font-weight: 500 !important; ">Les utilisateurs</h1>
-   <button @click="addUser" type="button" class="mb-2 btn btn-primary" style="font-weight: bold;" >
-        Ajouter nouveau Utilisateur
-    </button>
-   </div>
-   <div class="col-sm-6">
-   <ol class="breadcrumb float-sm-right">
-   <!-- <li class="breadcrumb-item"><a href="#">Home</a></li>
+          <h1 class="m-0" style="font-weight: 500 !important; ">Les utilisateurs</h1>
+          <button @click="addUser" type="button" class="mb-2 btn btn-primary" style="font-weight: bold;">
+            Ajouter nouveau Utilisateur
+          </button>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <!-- <li class="breadcrumb-item"><a href="#">Home</a></li>
    <li class="breadcrumb-item active">Utilisateurs</li> -->
-   </ol>
-   </div>
-   </div>
-   </div>
-   </div>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
 
 
-   <div class="content">
-   <div class="container-fluid">
+  <div class="content">
+    <div class="container-fluid">
 
 
 
-  <div class="container" style="overflow : auto !important; height:  calc(100vh - 176px) !important; max-width: 2040px !important;">
+      <div class="container"
+        style="overflow : auto !important; height:  calc(100vh - 176px) !important; max-width: 2040px !important;">
 
-    <table id="myTable" class="table table-striped table-bordered">
+        <table id="myTable" class="table table-striped table-bordered">
           <thead>
             <tr>
               <!-- <th>#</th> -->
               <!-- <th>#</th> -->
-                <th>Nom</th>
-                <th>Email</th>
-                <th>Date de création</th>
-                <th>Role</th>
+              <th>Nom</th>
+              <th>Email</th>
+              <th>Date de création</th>
+              <th>Role</th>
 
 
 
@@ -46,92 +46,94 @@
           </thead>
           <tbody>
             <tr v-for="(user, index) in users" :key="user.id">
-                <!-- <td>{{ index + 1 }}</td> -->
-          <td>{{ user.name }}</td>
-          <td>{{ user.email }}</td>
-          <td>{{ user.created_at }}</td>
-          <td>{{ user.role }}</td>
+              <!-- <td>{{ index + 1 }}</td> -->
+              <td>{{ user.name }}</td>
+              <td>{{ user.email }}</td>
+              <td>{{ user.created_at }}</td>
+              <td>{{ user.role }}</td>
               <td>
                 <a href="#" @click.prevent="editUser(user)" class="btn btn-primary btn-sm">
-  <i class="fa fa-edit"></i>
-</a>  </td>
+                  <i class="fa fa-edit"></i>
+                </a>
+              </td>
 
-<td> <a href="#" @click.prevent="confirmUserDeletion(user)" class="btn btn-danger btn-sm ml-4">
-  <i class="fa fa-trash"></i>
-</a></td>
+              <td> <a href="#" @click.prevent="confirmUserDeletion(user)" class="btn btn-danger btn-sm ml-4">
+                  <i class="fa fa-trash"></i>
+                </a></td>
 
 
             </tr>
           </tbody>
         </table>
+      </div>
+
+
+
+
+    </div>
   </div>
 
 
-
-
-   </div>
-   </div>
-
-
-   <!-- Modal pour ajouter un nouvel Utilisateur -->
-    <div class="modal fade" id="userFormModal" tabindex="-1" role="dialog" aria-labelledby="userFormModalLabel" aria-hidden="true">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content" style="margin-top: -28px !important;">
-          <div class="modal-header">
-            <h5 class="modal-title" id="userFormModalLabel">
+  <!-- Modal pour ajouter un nouvel Utilisateur -->
+  <div class="modal fade" id="userFormModal" tabindex="-1" role="dialog" aria-labelledby="userFormModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content" style="margin-top: -28px !important;">
+        <div class="modal-header">
+          <h5 class="modal-title" id="userFormModalLabel">
             <span v-if="editing">Modifier l'utilisateur</span>
             <span v-else>Ajouter nouveau utilisateur</span>
-            </h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
+          </h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
 
 
-<!--The form is here => -->
-          <Form ref="form" @submit="handleSubmit" :validation-schema="editing ? editUserSchema : createUserSchema"
-          v-slot="{errors}" :initial-values="formValues">
+        <!--The form is here => -->
+        <Form ref="form" @submit="handleSubmit" :validation-schema="editing ? editUserSchema : createUserSchema"
+          v-slot="{ errors }" :initial-values="formValues">
           <div class="modal-body">
-           <!-- Formulaire pour ajouter un nouvel utilisateur -->
+            <!-- Formulaire pour ajouter un nouvel utilisateur -->
 
 
 
 
-           <div v-if="!editing" class="form-group">
-    <label for="role">Role</label>
-    <Field name="role" as="select" class="form-control"
-        :class="{'is-invalid': errors.role }" id="role" :value="'user'"
-        @change="handleRoleChange($event.target.value)">
-        <option value="admin">Admin</option>
-        <option value="user">User</option>
-        <option value="professeur">Professeur</option>
-    </Field>
-    <span class="invalid-feedback">{{ errors.role }}</span>
-</div>
+            <div v-if="!editing" class="form-group">
+              <label for="role">Role</label>
+              <Field name="role" as="select" class="form-control" :class="{ 'is-invalid': errors.role }" id="role"
+                :value="'user'" @change="handleRoleChange($event.target.value)">
+                <option value="admin">Admin</option>
+                <option value="user">User</option>
+                <option value="professeur">Professeur</option>
+              </Field>
+              <span class="invalid-feedback">{{ errors.role }}</span>
+            </div>
 
 
-              <div v-if="!showListProfs" class="form-group">
-                <label for="name">Nom</label>
-                <Field name="name" type="text" class="form-control"
-                :class="{'is-invalid': errors.name }"
-                id="name" placeholder="Enter full name" required />
-                <span class="invalid-feedback">{{ errors.name }}</span>
-              </div>
+            <div v-if="!showListProfs" class="form-group">
+              <label for="name">Nom</label>
+              <Field name="name" type="text" class="form-control" :class="{ 'is-invalid': errors.name }" id="name"
+                placeholder="Enter full name" required />
+              <span class="invalid-feedback">{{ errors.name }}</span>
+            </div>
 
 
-              <div v-else class="form-group">
-    <label for="name">Professeurs</label>
-    <Field name="name" as="select" class="form-control" :class="{'is-invalid': errors.name }" id="name">
-        <option v-if="!editing" value="">Sélectionner un professeur</option>
-        <option v-for="prof in profs" :key="prof.id" :value="JSON.stringify({ id: prof.id, Prenom: prof.Prenom, Nom: prof.Nom })" style="color: black !important;">
-            {{ prof.Prenom }} {{ prof.Nom }}
-        </option>
-    </Field>
-    <span class="invalid-feedback">{{ errors.name }}</span>
-</div>
+            <div v-else class="form-group">
+              <label for="name">Professeurs</label>
+              <Field name="name" as="select" class="form-control" :class="{ 'is-invalid': errors.name }" id="name">
+                <option v-if="!editing" value="">Sélectionner un professeur</option>
+                <option v-for="prof in profs" :key="prof.id"
+                  :value="JSON.stringify({ id: prof.id, Prenom: prof.Prenom, Nom: prof.Nom })"
+                  style="color: black !important;">
+                  {{ prof.Prenom }} {{ prof.Nom }}
+                </option>
+              </Field>
+              <span class="invalid-feedback">{{ errors.name }}</span>
+            </div>
 
 
-              <!-- <div class="form-group">
+            <!-- <div class="form-group">
     <label for="name">Professeurs</label>
     <select v-model="selectedProf" class="form-control" name="name" id="name" required style="color: black !important;">
         <option v-if="!editing" value="">Sélectionner un professeur</option>
@@ -143,66 +145,64 @@
 
 
 
-              <div class="form-group">
-                <label for="email">Email</label>
-                <Field name="email"  type="email" class="form-control"
-                :class="{'is-invalid': errors.email }"
-                 id="email" placeholder="Enter email" required />
-                 <span class="invalid-feedback">{{ errors.email }}</span>
-              </div>
-              <div class="form-group">
-                <label for="password">Mot de passe</label>
-                <Field name="password"  type="password" class="form-control"
-                :class="{'is-invalid': errors.password }"
-                 id="password" placeholder="Password" required />
-                 <span class="invalid-feedback">{{ errors.password }}</span>
-              </div>
+            <div class="form-group">
+              <label for="email">Email</label>
+              <Field name="email" type="email" class="form-control" :class="{ 'is-invalid': errors.email }" id="email"
+                placeholder="Enter email" required />
+              <span class="invalid-feedback">{{ errors.email }}</span>
+            </div>
+            <div class="form-group">
+              <label for="password">Mot de passe</label>
+              <Field name="password" type="password" class="form-control" :class="{ 'is-invalid': errors.password }"
+                id="password" placeholder="Password" required />
+              <span class="invalid-feedback">{{ errors.password }}</span>
+            </div>
 
 
 
           </div>
           <div class="modal-footer">
             <div class="modal-footer">
-    <button type="button" class="btn btn-secondary" data-dismiss="modal" @click="cancelEdit">Annuler</button>
-    <button type="submit" class="btn btn-primary">Enregistrer</button>
-</div>
+              <button type="button" class="btn btn-secondary" data-dismiss="modal" @click="cancelEdit">Annuler</button>
+              <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
 
           </div>
         </form>
-        </div>
       </div>
     </div>
+  </div>
 
 
-   <!-- Modal pour ajouter un nouvel Utilisateur -->
-   <div class="modal fade" id="deleteUserModal" tabindex="-1" role="dialog" aria-labelledby="userFormModalLabel" aria-hidden="true">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="userFormModalLabel">
+  <!-- Modal pour ajouter un nouvel Utilisateur -->
+  <div class="modal fade" id="deleteUserModal" tabindex="-1" role="dialog" aria-labelledby="userFormModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="userFormModalLabel">
             <span>Supprimer utilisateur</span>
-            </h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
+          </h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
 
-<div class="modal-body">
-    <h5>Êtes-vous sûr de vouloir supprimer cet utilisateur</h5>
-</div>
+        <div class="modal-body">
+          <h5>Êtes-vous sûr de vouloir supprimer cet utilisateur</h5>
+        </div>
 
-<div class="modal-footer">
+        <div class="modal-footer">
 
-    <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
-    <button @click.prevent="deleteUser" type="button" class="btn btn-primary">Supprimer</button>
-
-</div>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
+          <button @click.prevent="deleteUser" type="button" class="btn btn-primary">Supprimer</button>
 
         </div>
+
       </div>
     </div>
-
-   </template>
+  </div>
+</template>
 
 
 
@@ -245,25 +245,25 @@ const professeurs = ref([]);
 
 
 let showFiliere = false;
-let showProfesseurs= false;
+let showProfesseurs = false;
 
-let showMat=false;
+let showMat = false;
 
 const cancelEdit = () => {
-    editing.value = false;
-    resetFormValues(); // Réinitialiser le formulaire
-    // Autres actions si nécessaire lors de l'annulation de la modification
+  editing.value = false;
+  resetFormValues(); // Réinitialiser le formulaire
+  // Autres actions si nécessaire lors de l'annulation de la modification
 };
 
 const resetFormValues = () => {
-    form.value.resetForm(); // Utilisez la méthode resetForm() fournie par VeeValidate pour réinitialiser le formulaire
-    // Remettre à zéro les valeurs sélectionnées et autres états si nécessaire
-    selectedProf.value = '';
-    selectedFiliere.value = '';
-    selectedMatieres.value = [];
-    selectedProfesseurs.value = [];
+  form.value.resetForm(); // Utilisez la méthode resetForm() fournie par VeeValidate pour réinitialiser le formulaire
+  // Remettre à zéro les valeurs sélectionnées et autres états si nécessaire
+  selectedProf.value = '';
+  selectedFiliere.value = '';
+  selectedMatieres.value = [];
+  selectedProfesseurs.value = [];
 
-    // Autres remises à zéro si nécessaire
+  // Autres remises à zéro si nécessaire
 };
 
 
@@ -308,7 +308,7 @@ const initDataTable = () => {
   $('#myTable').DataTable({
     ddom: 'Bfrtip',
     sSwfPath: "http://datatables.net/release-datatables/extras/TableTools/media/swf/copy_csv_xls_pdf.swf",
-    buttons: [ 'excel', 'pdf',],
+    buttons: ['excel', 'pdf',],
     paging: true,
     lengthChange: true,
     columns: [
@@ -359,8 +359,8 @@ const initDataTable = () => {
 
 
 const getUsers = () => {
-    axios.get('/api/users')
-        .then((response) => {
+  axios.get('/api/users')
+    .then((response) => {
       users.value = response.data;
 
       if ($.fn.DataTable.isDataTable('#myTable')) {
@@ -383,20 +383,20 @@ const updateValuesPeriodically = () => {
 };
 
 const handleRoleChange = (newVal) => {
-    console.log(newVal);
-    if (newVal === 'professeur') {
-        showListProfs = true; // Si le rôle est professeur, afficher la liste des professeurs
-    } else {
-        showListProfs = false; // Sinon, afficher le champ pour le nom
-    }
+  console.log(newVal);
+  if (newVal === 'professeur') {
+    showListProfs = true; // Si le rôle est professeur, afficher la liste des professeurs
+  } else {
+    showListProfs = false; // Sinon, afficher le champ pour le nom
+  }
 };
 
 const IdProf = ref('');
 
 const handleProfChange = (selectedProfString) => {
-    const selectedProf = JSON.parse(selectedProfString);
-    IdProf.value = selectedProf.id;
-    console.log(IdProf.value);
+  const selectedProf = JSON.parse(selectedProfString);
+  IdProf.value = selectedProf.id;
+  console.log(IdProf.value);
 };
 
 
@@ -405,7 +405,7 @@ const handleProfChange = (selectedProfString) => {
 
 
 const getNiveux = () => {
- axios.get('/api/niveaux') // Remplacez '/api/niveaux' par votre endpoint pour récupérer les niveaux depuis la base de données
+  axios.get('/api/niveaux') // Remplacez '/api/niveaux' par votre endpoint pour récupérer les niveaux depuis la base de données
     .then(response => {
       niveaux.value = response.data; // Assurez-vous que response.data contient les données des niveaux
     })
@@ -415,7 +415,7 @@ const getNiveux = () => {
 };
 
 const getProfs = () => {
- axios.get('/api/profs') // Remplacez '/api/niveaux' par votre endpoint pour récupérer les niveaux depuis la base de données
+  axios.get('/api/profs') // Remplacez '/api/niveaux' par votre endpoint pour récupérer les niveaux depuis la base de données
     .then(response => {
       profs.value = response.data; // Assurez-vous que response.data contient les données des niveaux
     })
@@ -453,9 +453,9 @@ const getMatieres = () => {
 };
 
 
-const getProfesseurs = (selectedProfesseurs,selectedNiveau,selectedFiliere) => {
+const getProfesseurs = (selectedProfesseurs, selectedNiveau, selectedFiliere) => {
 
-    axios.get(`/api/selectedProfesseurs/${selectedProfesseurs}/${selectedNiveau}/${selectedFiliere}`)
+  axios.get(`/api/selectedProfesseurs/${selectedProfesseurs}/${selectedNiveau}/${selectedFiliere}`)
     .then(response => {
       professeurs.value = response.data;
       // Mise à jour manuelle de showFiliere en fonction des filières récupérées
@@ -468,35 +468,35 @@ const getProfesseurs = (selectedProfesseurs,selectedNiveau,selectedFiliere) => {
 
 
 const handleNiveauChange = (newVal) => {
-    selectedNiveau.value = newVal; // Mettre à jour la valeur de selectedNiveau avec l'ID du niveau sélectionné
-    // console.log(selectedNiveau.value);
-    if (newVal) {
-        getFilieres(newVal);
-    } else {
-        showFiliere = false;
-        filieres.value = [];
-    }
+  selectedNiveau.value = newVal; // Mettre à jour la valeur de selectedNiveau avec l'ID du niveau sélectionné
+  // console.log(selectedNiveau.value);
+  if (newVal) {
+    getFilieres(newVal);
+  } else {
+    showFiliere = false;
+    filieres.value = [];
+  }
 };
 
 
-const handleMatiereChange = (selectedValue,selectedNiveau,selectedFiliere) => {
-    // Mettre à jour les valeurs sélectionnées des matières
-    selectedMatieres.value = selectedValue;
+const handleMatiereChange = (selectedValue, selectedNiveau, selectedFiliere) => {
+  // Mettre à jour les valeurs sélectionnées des matières
+  selectedMatieres.value = selectedValue;
 
-    // Autres actions à effectuer en fonction des matières sélectionnées
-    if (selectedValue.length > 0) {
-        getProfesseurs(selectedValue,selectedNiveau,selectedFiliere); // Appel de la fonction avec les valeurs sélectionnées
-    } else {
-        showProfesseurs = false;
-        professeurs.value = [];
-    }
+  // Autres actions à effectuer en fonction des matières sélectionnées
+  if (selectedValue.length > 0) {
+    getProfesseurs(selectedValue, selectedNiveau, selectedFiliere); // Appel de la fonction avec les valeurs sélectionnées
+  } else {
+    showProfesseurs = false;
+    professeurs.value = [];
+  }
 };
 
 
 const handleFiliereChange = (newVal) => {
-    selectedFiliere.value = newVal;
+  selectedFiliere.value = newVal;
 
-    // showMat = true;
+  // showMat = true;
 
 };
 
@@ -509,21 +509,21 @@ const handleFiliereChange = (newVal) => {
 
 const createUserSchema = yup.object({
 
-name: yup.string().required(),
-role: yup.string().required(),
-email: yup.string().email().required(),
-password: yup.string().required().min(8),
+  name: yup.string().required(),
+  role: yup.string().required(),
+  email: yup.string().email().required(),
+  password: yup.string().required().min(8),
 });
 
 const editUserSchema = yup.object({
 
-name: yup.string().required(),
-// role: yup.string().required(),
-email: yup.string().email().required(),
-password : yup.string().when((password, schema) => {
+  name: yup.string().required(),
+  // role: yup.string().required(),
+  email: yup.string().email().required(),
+  password: yup.string().when((password, schema) => {
 
-return password ? schema.min(8) : schema;
-}),
+    return password ? schema.min(8) : schema;
+  }),
 });
 // axios.post('/api/etudiants', {
 //     ...values,
@@ -534,7 +534,7 @@ return password ? schema.min(8) : schema;
 
 // })
 const createUser = (values, { resetForm, setErrors }) => {
-    axios.post('/api/users', values)
+  axios.post('/api/users', values)
     .then((response) => {
       users.value.unshift(response.data);
       setTimeout(() => {
@@ -543,7 +543,7 @@ const createUser = (values, { resetForm, setErrors }) => {
       resetForm();
       toastr.success('Utilisateur créé avec succès !');
       getUsers(); // Mettre à jour la DataTable après la création
-    //   location.reload(); // Rechargement de la page après la suppression
+      //   location.reload(); // Rechargement de la page après la suppression
     })
     .catch((error) => {
       if (error.response.data.errors) {
@@ -553,27 +553,27 @@ const createUser = (values, { resetForm, setErrors }) => {
 };
 
 const addUser = () => {
-    editing.value = false;
-    resetFormValues();
-    $('#userFormModal').modal('show');
+  editing.value = false;
+  resetFormValues();
+  $('#userFormModal').modal('show');
 };
 
 
 
 const editUser = (user) => {
-    editing.value = true;
-    form.value.resetForm();
+  editing.value = true;
+  form.value.resetForm();
 
 
-    $('#userFormModal').modal('show');
+  $('#userFormModal').modal('show');
 
-    // Initialiser les valeurs pour Nom, Prenom, Telephone, Adresse
-    formValues.value = {
-        id : user.id,
-        name : user.name,
-        role : user.role,
-        email : user.email,
-    };
+  // Initialiser les valeurs pour Nom, Prenom, Telephone, Adresse
+  formValues.value = {
+    id: user.id,
+    name: user.name,
+    role: user.role,
+    email: user.email,
+  };
 
 
 };
@@ -583,7 +583,7 @@ const editUser = (user) => {
 
 
 const updateUser = (values, { setErrors }) => {
-    axios.put('/api/users/' + formValues.value.id, values)
+  axios.put('/api/users/' + formValues.value.id, values)
     .then((response) => {
       const index = users.value.findIndex(user => user.id === response.data.id);
       users.value[index] = response.data;
@@ -592,7 +592,7 @@ const updateUser = (values, { setErrors }) => {
       }, 10);
       toastr.success('Utilisateur mis à jour avec succès !');
       getUsers(); // Mettre à jour la DataTable après la mise à jour
-    //   location.reload(); // Rechargement de la page après la suppression
+      //   location.reload(); // Rechargement de la page après la suppression
     }).catch((error) => {
       setErrors(error.response.data.errors);
       console.log(error);
@@ -601,29 +601,29 @@ const updateUser = (values, { setErrors }) => {
 
 const handleSubmit = (values, actions) => {
 
-    if(editing.value){
-        updateUser(values, actions);
-    }else{
-        createUser(values, actions);
-    }
+  if (editing.value) {
+    updateUser(values, actions);
+  } else {
+    createUser(values, actions);
+  }
 };
 
 
 
 const confirmUserDeletion = (user) => {
-    userIdBeingDeleted.value = user.id;
-    $('#deleteUserModal').modal('show');
+  userIdBeingDeleted.value = user.id;
+  $('#deleteUserModal').modal('show');
 };
 
 const deleteUser = () => {
-    axios.delete(`/api/users/${userIdBeingDeleted.value}`)
-        .then(() => {
+  axios.delete(`/api/users/${userIdBeingDeleted.value}`)
+    .then(() => {
       $('#deleteUserModal').modal('hide');
       toastr.success('Utilisateur supprimé avec succès !');
       users.value = users.value.filter(user => user.id !== userIdBeingDeleted.value);
       userIdBeingDeleted.value = null;
       getUsers(); // Mettre à jour la DataTable après la suppression
-    //   location.reload(); // Rechargement de la page après la suppression
+      //   location.reload(); // Rechargement de la page après la suppression
     })
     .catch((error) => {
       console.error('Erreur lors de la suppression de l\'utilisateur :', error);

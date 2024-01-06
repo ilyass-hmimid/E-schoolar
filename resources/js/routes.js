@@ -1,5 +1,4 @@
 // routes.js
-import Dashboard from './components/Dashboard.vue';
 import ListAppointments from "./pages/appointments/ListAppointments.vue";
 import ListUsers from "./pages/users/ListUsers.vue";
 import Etudiant from "./pages/Etudiants/Etudiant.vue";
@@ -17,19 +16,7 @@ import Filieres from "./pages/Filieres/Filiere.vue";
 import Home from "./pages/Home/Home.vue";
 import EspaceProfesseur from "./pages/EspaceProfesseur/EspaceProfesseur.vue";
 
-
-
-
-
-
-
-
 const routes = [
-    {
-        path: '/dashboard',
-        name: 'dashboard',
-        component: Dashboard,
-    },
     {
         path: '/home',
         name: 'home',

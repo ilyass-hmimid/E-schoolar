@@ -1,36 +1,36 @@
 
 <template>
-
-    <div class="content-header">
-   <div class="container-fluid">
-   <div class="row mb-2">
-   <div class="col-sm-6" style="display: flex;
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6" style="display: flex;
     justify-content: space-between;
     flex-direction: row-reverse; ">
-   <h1 class="m-0" style="font-weight: 500 !important; ">Les étudiants</h1>
-   <button @click="addUser" type="button" class="mb-2 btn btn-primary" style="font-weight: bold;" >
-        Ajouter nouveau Etudiant
-    </button>
-   </div>
-   <div class="col-sm-6">
-   <ol class="breadcrumb float-sm-right">
-   <!-- <li class="breadcrumb-item"><a href="#">Home</a></li>
+          <h1 class="m-0" style="font-weight: 500 !important; ">Les étudiants</h1>
+          <button @click="addUser" type="button" class="mb-2 btn btn-primary" style="font-weight: bold;">
+            Ajouter nouveau Etudiant
+          </button>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <!-- <li class="breadcrumb-item"><a href="#">Home</a></li>
    <li class="breadcrumb-item active">Etudiants</li> -->
-   </ol>
-   </div>
-   </div>
-   </div>
-   </div>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
 
 
-   <div class="content">
-   <div class="container-fluid">
+  <div class="content">
+    <div class="container-fluid">
 
 
 
-  <div class="container" style="overflow : auto !important; height:  calc(100vh - 176px) !important; max-width: 2040px !important;">
+      <div class="container"
+        style="overflow : auto !important; height:  calc(100vh - 176px) !important; max-width: 2040px !important;">
 
-    <table id="myTable" class="table table-striped table-bordered">
+        <table id="myTable" class="table table-striped table-bordered">
           <thead>
             <tr>
               <!-- <th>#</th> -->
@@ -51,229 +51,228 @@
             <tr v-for="(user, index) in users" :key="user.id">
               <!-- <td>{{ index + 1 }}</td> -->
               <td>{{ user.Nom }}</td>
-              <td>{{ user.Prenom}}</td>
+              <td>{{ user.Prenom }}</td>
               <td>{{ user.Tele }}</td>
               <td>{{ user.Adresse }}</td>
               <td>{{ user.IdNiv }}</td>
               <td>{{ user.IdFil }}</td>
 
               <td>
-                    <ul>
-                        <li v-for="matiere in user.Matieres" :key="matiere">
-                            {{ matiere }}
-                        </li>
-                    </ul>
-                </td>
+                <ul>
+                  <li v-for="matiere in user.Matieres" :key="matiere">
+                    {{ matiere }}
+                  </li>
+                </ul>
+              </td>
 
-                <td>
-                    <ul>
-                        <li v-for="professeur in user.Professeurs" :key="professeur">
-                            {{ professeur }}
-                        </li>
-                    </ul>
-                </td>
+              <td>
+                <ul>
+                  <li v-for="professeur in user.Professeurs" :key="professeur">
+                    {{ professeur }}
+                  </li>
+                </ul>
+              </td>
 
               <td>{{ user.created_at }}</td>
-              <td v-if="user.Date_debut==''"></td>
+              <td v-if="user.Date_debut == ''"></td>
               <td v-else>{{ user.Date_debut }}</td>
               <td>
                 <a href="#" @click.prevent="editUser(user)" class="btn btn-primary btn-sm">
-  <i class="fa fa-edit"></i>
-</a>  </td>
+                  <i class="fa fa-edit"></i>
+                </a>
+              </td>
 
-<td> <a href="#" @click.prevent="confirmUserDeletion(user)" class="btn btn-danger btn-sm ml-4">
-  <i class="fa fa-trash"></i>
-</a></td>
+              <td> <a href="#" @click.prevent="confirmUserDeletion(user)" class="btn btn-danger btn-sm ml-4">
+                  <i class="fa fa-trash"></i>
+                </a></td>
 
 
             </tr>
           </tbody>
         </table>
+      </div>
+
+
+
+
+    </div>
   </div>
 
 
-
-
-   </div>
-   </div>
-
-
-   <!-- Modal pour ajouter un nouvel Etudiant -->
-    <div class="modal fade" id="userFormModal" tabindex="-1" role="dialog" aria-labelledby="userFormModalLabel" aria-hidden="true">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content" style="margin-top: -28px !important;">
-          <div class="modal-header">
-            <h5 class="modal-title" id="userFormModalLabel">
+  <!-- Modal pour ajouter un nouvel Etudiant -->
+  <div class="modal fade" id="userFormModal" tabindex="-1" role="dialog" aria-labelledby="userFormModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content" style="margin-top: -28px !important;">
+        <div class="modal-header">
+          <h5 class="modal-title" id="userFormModalLabel">
             <span v-if="editing">Modifier l'étudiant</span>
             <span v-else>Ajouter nouveau étudiant</span>
-            </h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
+          </h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
 
 
-<!--The form is here => -->
-          <Form ref="form" @submit="handleSubmit" :validation-schema="editing ? editUserSchema : createUserSchema"
-          v-slot="{errors}" :initial-values="formValues">
+        <!--The form is here => -->
+        <Form ref="form" @submit="handleSubmit" :validation-schema="editing ? editUserSchema : createUserSchema"
+          v-slot="{ errors }" :initial-values="formValues">
           <div class="modal-body">
             <!-- Formulaire pour ajouter un nouvel Etudiant -->
 
-              <div class="form-group">
-                <label for="name">Nom</label>
-                <Field name="nom" type="text" class="form-control"
-                :class="{'is-invalid': errors.nom }"
-                id="nom" placeholder="Entrer nom" required />
-                <span class="invalid-feedback">{{ errors.nom }}</span>
-              </div>
-              <div class="form-group">
-                <label for="prenom">Prenom</label>
-                <Field name="prenom" type="text" class="form-control"
-                :class="{'is-invalid': errors.prenom }"
-                id="prenom" placeholder="Entrer prenom" required />
-                <span class="invalid-feedback">{{ errors.prenom }}</span>
-              </div>
-              <div class="form-group">
-                <label for="tele">Telephone</label>
-                <Field name="tele"  type="text" class="form-control"
-                :class="{'is-invalid': errors.tele }"
-                 id="tele" placeholder="Entrer telephone" required />
-                 <span class="invalid-feedback">{{ errors.tele }}</span>
-              </div>
-              <div class="form-group">
-                <label for="adresse">Adresse</label>
-                <Field name="adresse"  type="text" class="form-control"
-                :class="{'is-invalid': errors.adresse }"
-                 id="adresse" placeholder="Entrer adresse" required />
-                 <span class="invalid-feedback">{{ errors.adresse }}</span>
-              </div>
-
-
-              <div class="form-group">
-    <label for="niv">Niveau</label>
-    <select v-model="selectedNiveau" @change="handleNiveauChange($event.target.value)" class="form-control" id="niv" required style="color: black !important;">
-        <option v-if="!editing" value="">Sélectionner un niveau</option>
-        <option v-for="niveau in niveaux" :key="niveau.id" :value="niveau" style="color: black !important;">{{ niveau }}</option>
-    </select>
-    <!-- <span class="invalid-feedback">{{ errors.niv }}</span> -->
-    <span v-if="selectedNiveau === ''" style="font-size: 80%; color: #dc3545;">Veuillez sélectionner un niveau !!</span>
-</div>
-
-
-
-
-
-
-<div class="form-group">
-  <label for="fil">Filière</label>
-  <select v-model="selectedFiliere" @change="handleFiliereChange($event.target.value)" class="form-control" id="fil" required style="color: black !important;">
-    <option v-if="!editing" value="">Sélectionner une filière</option>
-    <option v-for="filiere in filieres" :key="filiere.id" :value="filiere" style="color: black !important;">{{ filiere }}</option>
-  </select>
-  <span v-if="selectedFiliere === ''" style="font-size: 80%; color: #dc3545;">Veuillez sélectionner une filière!!</span>
-  <span v-else>
-    <!-- Mettre à jour la valeur de showMat -->
-    <template>
-      <span v-show="showMat = true"></span>
-    </template>
-  </span>
-</div>
-
-
-
-
-            <div v-if="showMat" class="form-group" >
-            <label for="mat" >Matières</label>
-            <div  class="d-flex flex-wrap">
-                <div  v-for="(matiere, index) in matieres" :key="matiere.id" class="mr-3 mb-2">
-    <input  type="checkbox" :id="'matiere_' + matiere.id" :value="matiere" v-model="selectedMatieres" @change="handleMatiereChange(selectedMatieres,selectedNiveau,selectedFiliere)" >
-    <label :for="'matiere_' + matiere.id" style="font-weight: 400;">{{ matiere }}</label>
-</div>
-
+            <div class="form-group">
+              <label for="name">Nom</label>
+              <Field name="nom" type="text" class="form-control" :class="{ 'is-invalid': errors.nom }" id="nom"
+                placeholder="Entrer nom" required />
+              <span class="invalid-feedback">{{ errors.nom }}</span>
             </div>
-            <!-- <span class="invalid-feedback">{{ errors.mat }}</span> -->
-            <span v-if="selectedMatieres.length == 0" style="   font-size: 80%;
+            <div class="form-group">
+              <label for="prenom">Prenom</label>
+              <Field name="prenom" type="text" class="form-control" :class="{ 'is-invalid': errors.prenom }" id="prenom"
+                placeholder="Entrer prenom" required />
+              <span class="invalid-feedback">{{ errors.prenom }}</span>
+            </div>
+            <div class="form-group">
+              <label for="tele">Telephone</label>
+              <Field name="tele" type="text" class="form-control" :class="{ 'is-invalid': errors.tele }" id="tele"
+                placeholder="Entrer telephone" required />
+              <span class="invalid-feedback">{{ errors.tele }}</span>
+            </div>
+            <div class="form-group">
+              <label for="adresse">Adresse</label>
+              <Field name="adresse" type="text" class="form-control" :class="{ 'is-invalid': errors.adresse }" id="adresse"
+                placeholder="Entrer adresse" required />
+              <span class="invalid-feedback">{{ errors.adresse }}</span>
+            </div>
+
+
+            <div class="form-group">
+              <label for="niv">Niveau</label>
+              <select v-model="selectedNiveau" @change="handleNiveauChange($event.target.value)" class="form-control"
+                id="niv" required style="color: black !important;">
+                <option v-if="!editing" value="">Sélectionner un niveau</option>
+                <option v-for="niveau in niveaux" :key="niveau.id" :value="niveau" style="color: black !important;">{{
+                  niveau }}</option>
+              </select>
+              <!-- <span class="invalid-feedback">{{ errors.niv }}</span> -->
+              <span v-if="selectedNiveau === ''" style="font-size: 80%; color: #dc3545;">Veuillez sélectionner un niveau
+                !!</span>
+            </div>
+
+
+
+
+
+
+            <div class="form-group">
+              <label for="fil">Filière</label>
+              <select v-model="selectedFiliere" @change="handleFiliereChange($event.target.value)" class="form-control"
+                id="fil" required style="color: black !important;">
+                <option v-if="!editing" value="">Sélectionner une filière</option>
+                <option v-for="filiere in filieres" :key="filiere.id" :value="filiere" style="color: black !important;">{{
+                  filiere }}</option>
+              </select>
+              <span v-if="selectedFiliere === ''" style="font-size: 80%; color: #dc3545;">Veuillez sélectionner une
+                filière!!</span>
+              <span v-else>
+                <!-- Mettre à jour la valeur de showMat -->
+                <template>
+                  <span v-show="showMat = true"></span>
+                </template>
+              </span>
+            </div>
+
+
+
+
+            <div v-if="showMat" class="form-group">
+              <label for="mat">Matières</label>
+              <div class="d-flex flex-wrap">
+                <div v-for="(matiere, index) in matieres" :key="matiere.id" class="mr-3 mb-2">
+                  <input type="checkbox" :id="'matiere_' + matiere.id" :value="matiere" v-model="selectedMatieres"
+                    @change="handleMatiereChange(selectedMatieres, selectedNiveau, selectedFiliere)">
+                  <label :for="'matiere_' + matiere.id" style="font-weight: 400;">{{ matiere }}</label>
+                </div>
+
+              </div>
+              <!-- <span class="invalid-feedback">{{ errors.mat }}</span> -->
+              <span v-if="selectedMatieres.length == 0" style="   font-size: 80%;
     color: #dc3545;">Veuillez sélectionner ou moins une matière!!</span>
 
-        </div>
-
-
-
-        <div v-if="showMat" class="form-group" >
-            <label for="prof" >Sera Enseigné par le(s) professeur(s)</label>
-            <div class="d-flex flex-wrap">
-                <div v-for="(professeur, index) in professeurs" :key="professeur.id" class="mr-3 mb-2">
-    <input type="checkbox" :id="'professeur_' + professeur.id" :value="professeur" v-model="selectedProfesseurs">
-    <label :for="'professeur_' + professeur.id" style="font-weight: 400;">{{ professeur }}</label>
-</div>
-
             </div>
-            <span v-if="selectedProfesseurs.length == 0" style="   font-size: 80%;
+
+
+
+            <div v-if="showMat" class="form-group">
+              <label for="prof">Sera Enseigné par le(s) professeur(s)</label>
+              <div class="d-flex flex-wrap">
+                <div v-for="(professeur, index) in professeurs" :key="professeur.id" class="mr-3 mb-2">
+                  <input type="checkbox" :id="'professeur_' + professeur.id" :value="professeur"
+                    v-model="selectedProfesseurs">
+                  <label :for="'professeur_' + professeur.id" style="font-weight: 400;">{{ professeur }}</label>
+                </div>
+
+              </div>
+              <span v-if="selectedProfesseurs.length == 0" style="   font-size: 80%;
     color: #dc3545;">Veuillez sélectionner ou moins un professeur!!</span>
 
-        </div>
+            </div>
 
-        <div class="form-group">
-  <label for="Date_Debut">Date de début(mm/jj/aaaa)</label>
-  <Field
-  name="Date_debut"
-  type="date"
-  class="form-control"
-  :class="{'is-invalid': errors.Date_debut }"
-  id="Date_Debut"
-  placeholder="Entrer la date de début"
-  required
-  v-bind:value="formValues && formValues.Date_debut ? formValues.Date_debut : getDefaultDate()"
-/>
-<span class="invalid-feedback">{{ errors.Date_debut }}</span>
+            <div class="form-group">
+              <label for="Date_Debut">Date de début(mm/jj/aaaa)</label>
+              <Field name="Date_debut" type="date" class="form-control" :class="{ 'is-invalid': errors.Date_debut }"
+                id="Date_Debut" placeholder="Entrer la date de début" required
+                v-bind:value="formValues && formValues.Date_debut ? formValues.Date_debut : getDefaultDate()" />
+              <span class="invalid-feedback">{{ errors.Date_debut }}</span>
 
-</div>
+            </div>
 
 
 
           </div>
           <div class="modal-footer">
             <div class="modal-footer">
-    <button type="button" class="btn btn-secondary" data-dismiss="modal" @click="cancelEdit">Annuler</button>
-    <button type="submit" class="btn btn-primary">Enregistrer</button>
-</div>
+              <button type="button" class="btn btn-secondary" data-dismiss="modal" @click="cancelEdit">Annuler</button>
+              <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
 
           </div>
         </form>
-        </div>
       </div>
     </div>
+  </div>
 
 
-   <!-- Modal pour ajouter un nouvel Etudiant -->
-   <div class="modal fade" id="deleteUserModal" tabindex="-1" role="dialog" aria-labelledby="userFormModalLabel" aria-hidden="true">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="userFormModalLabel">
+  <!-- Modal pour ajouter un nouvel Etudiant -->
+  <div class="modal fade" id="deleteUserModal" tabindex="-1" role="dialog" aria-labelledby="userFormModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="userFormModalLabel">
             <span>Supprimer étudiant</span>
-            </h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
+          </h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
 
-<div class="modal-body">
-    <h5>Êtes-vous sûr de vouloir supprimer cet étudiant</h5>
-</div>
+        <div class="modal-body">
+          <h5>Êtes-vous sûr de vouloir supprimer cet étudiant</h5>
+        </div>
 
-<div class="modal-footer">
+        <div class="modal-footer">
 
-    <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
-    <button @click.prevent="deleteUser" type="button" class="btn btn-primary">Supprimer</button>
-
-</div>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
+          <button @click.prevent="deleteUser" type="button" class="btn btn-primary">Supprimer</button>
 
         </div>
+
       </div>
     </div>
-
-   </template>
+  </div>
+</template>
 
 
 
@@ -310,27 +309,27 @@ const professeurs = ref([]);
 
 
 let showFiliere = false;
-let showProfesseurs= false;
+let showProfesseurs = false;
 
-let showMat=false;
+let showMat = false;
 
 const cancelEdit = () => {
-    editing.value = false;
-    form.value.resetForm();
-    resetForm();
-    resetFormValues(); // Réinitialiser le formulaire
-    // Autres actions si nécessaire lors de l'annulation de la modification
+  editing.value = false;
+  form.value.resetForm();
+  resetForm();
+  resetFormValues(); // Réinitialiser le formulaire
+  // Autres actions si nécessaire lors de l'annulation de la modification
 };
 
 const resetFormValues = () => {
-    form.value.resetForm(); // Utilisez la méthode resetForm() fournie par VeeValidate pour réinitialiser le formulaire
-    // Remettre à zéro les valeurs sélectionnées et autres états si nécessaire
-    selectedNiveau.value = '';
-    selectedFiliere.value = '';
-    selectedMatieres.value = [];
-    selectedProfesseurs.value = [];
+  form.value.resetForm(); // Utilisez la méthode resetForm() fournie par VeeValidate pour réinitialiser le formulaire
+  // Remettre à zéro les valeurs sélectionnées et autres états si nécessaire
+  selectedNiveau.value = '';
+  selectedFiliere.value = '';
+  selectedMatieres.value = [];
+  selectedProfesseurs.value = [];
 
-    // Autres remises à zéro si nécessaire
+  // Autres remises à zéro si nécessaire
 };
 
 
@@ -375,8 +374,8 @@ const formatMonth = (date) => {
 const initDataTable = () => {
   $('#myTable').DataTable({
     ddom: 'Bfrtip',
-   sSwfPath: "http://datatables.net/release-datatables/extras/TableTools/media/swf/copy_csv_xls_pdf.swf",
-    buttons: [ 'excel', 'pdf',],
+    sSwfPath: "http://datatables.net/release-datatables/extras/TableTools/media/swf/copy_csv_xls_pdf.swf",
+    buttons: ['excel', 'pdf',],
     paging: true,
     lengthChange: true, // Force l'affichage des options de changement de longueur
     columns: [
@@ -392,37 +391,37 @@ const initDataTable = () => {
       { data: 'Date_debut' },
 
       {
-  data: null,
-  render: function () {
-    return '<button class="btn btn-primary btn-sm edit-btn"><i class="fa fa-edit"></i></button>';
-  },
-  createdCell: function (cell, cellData, rowData) {
-    const editBtn = document.createElement('button');
-    editBtn.classList.add('btn', 'btn-primary', 'btn-sm', 'edit-btn');
-    editBtn.innerHTML = '<i class="fa fa-edit"></i>';
-    editBtn.addEventListener('click', function () {
-      editUser(rowData);
-    });
-    cell.innerHTML = '';
-    cell.appendChild(editBtn);
-  }
-},
-{
-  data: null,
-  render: function () {
-    return '<button class="btn btn-danger btn-sm delete-btn"><i class="fa fa-trash"></i></button>';
-  },
-  createdCell: function (cell, cellData, rowData) {
-    const deleteBtn = document.createElement('button');
-    deleteBtn.classList.add('btn', 'btn-danger', 'btn-sm', 'delete-btn');
-    deleteBtn.innerHTML = '<i class="fa fa-trash"></i>';
-    deleteBtn.addEventListener('click', function () {
-      confirmUserDeletion(rowData);
-    });
-    cell.innerHTML = '';
-    cell.appendChild(deleteBtn);
-  }
-}
+        data: null,
+        render: function () {
+          return '<button class="btn btn-primary btn-sm edit-btn"><i class="fa fa-edit"></i></button>';
+        },
+        createdCell: function (cell, cellData, rowData) {
+          const editBtn = document.createElement('button');
+          editBtn.classList.add('btn', 'btn-primary', 'btn-sm', 'edit-btn');
+          editBtn.innerHTML = '<i class="fa fa-edit"></i>';
+          editBtn.addEventListener('click', function () {
+            editUser(rowData);
+          });
+          cell.innerHTML = '';
+          cell.appendChild(editBtn);
+        }
+      },
+      {
+        data: null,
+        render: function () {
+          return '<button class="btn btn-danger btn-sm delete-btn"><i class="fa fa-trash"></i></button>';
+        },
+        createdCell: function (cell, cellData, rowData) {
+          const deleteBtn = document.createElement('button');
+          deleteBtn.classList.add('btn', 'btn-danger', 'btn-sm', 'delete-btn');
+          deleteBtn.innerHTML = '<i class="fa fa-trash"></i>';
+          deleteBtn.addEventListener('click', function () {
+            confirmUserDeletion(rowData);
+          });
+          cell.innerHTML = '';
+          cell.appendChild(deleteBtn);
+        }
+      }
 
 
     ],
@@ -460,7 +459,7 @@ const updateValuesPeriodically = () => {
 
 
 const getNiveux = () => {
- axios.get('/api/niveaux') // Remplacez '/api/niveaux' par votre endpoint pour récupérer les niveaux depuis la base de données
+  axios.get('/api/niveaux') // Remplacez '/api/niveaux' par votre endpoint pour récupérer les niveaux depuis la base de données
     .then(response => {
       niveaux.value = response.data; // Assurez-vous que response.data contient les données des niveaux
     })
@@ -498,9 +497,9 @@ const getMatieres = () => {
 };
 
 
-const getProfesseurs = (selectedMatieres,selectedNiveau,selectedFiliere) => {
+const getProfesseurs = (selectedMatieres, selectedNiveau, selectedFiliere) => {
 
-    axios.get(`/api/selectedProfesseurs/${selectedMatieres}/${selectedNiveau}/${selectedFiliere}`)
+  axios.get(`/api/selectedProfesseurs/${selectedMatieres}/${selectedNiveau}/${selectedFiliere}`)
     .then(response => {
       professeurs.value = response.data;
       // Mise à jour manuelle de showFiliere en fonction des filières récupérées
@@ -513,35 +512,35 @@ const getProfesseurs = (selectedMatieres,selectedNiveau,selectedFiliere) => {
 
 
 const handleNiveauChange = (newVal) => {
-    selectedNiveau.value = newVal; // Mettre à jour la valeur de selectedNiveau avec l'ID du niveau sélectionné
-    // console.log(selectedNiveau.value);
-    if (newVal) {
-        getFilieres(newVal);
-    } else {
-        showFiliere = false;
-        filieres.value = [];
-    }
+  selectedNiveau.value = newVal; // Mettre à jour la valeur de selectedNiveau avec l'ID du niveau sélectionné
+  // console.log(selectedNiveau.value);
+  if (newVal) {
+    getFilieres(newVal);
+  } else {
+    showFiliere = false;
+    filieres.value = [];
+  }
 };
 
 
-const handleMatiereChange = (selectedMatieres,selectedNiveau,selectedFiliere) => {
-    // Mettre à jour les valeurs sélectionnées des matières
-    selectedMatieres.value = selectedMatieres;
+const handleMatiereChange = (selectedMatieres, selectedNiveau, selectedFiliere) => {
+  // Mettre à jour les valeurs sélectionnées des matières
+  selectedMatieres.value = selectedMatieres;
 
-    // Autres actions à effectuer en fonction des matières sélectionnées
-    if (selectedMatieres.length > 0) {
-        getProfesseurs(selectedMatieres,selectedNiveau,selectedFiliere); // Appel de la fonction avec les valeurs sélectionnées
-    } else {
-        showProfesseurs = false;
-        professeurs.value = [];
-    }
+  // Autres actions à effectuer en fonction des matières sélectionnées
+  if (selectedMatieres.length > 0) {
+    getProfesseurs(selectedMatieres, selectedNiveau, selectedFiliere); // Appel de la fonction avec les valeurs sélectionnées
+  } else {
+    showProfesseurs = false;
+    professeurs.value = [];
+  }
 };
 
 
 const handleFiliereChange = (newVal) => {
-    selectedFiliere.value = newVal;
+  selectedFiliere.value = newVal;
 
-    // showMat = true;
+  // showMat = true;
 
 };
 
@@ -556,34 +555,34 @@ const handleFiliereChange = (newVal) => {
 
 const createUserSchema = yup.object({
 
-    nom: yup.string().required(),
-    prenom: yup.string().required(),
-    tele: yup.string().required(),
-    adresse: yup.string().required(),
-    Date_debut : yup.date().required(),
+  nom: yup.string().required(),
+  prenom: yup.string().required(),
+  tele: yup.string().required(),
+  adresse: yup.string().required(),
+  Date_debut: yup.date().required(),
 
 
 });
 
 const editUserSchema = yup.object({
 
-    nom: yup.string().required(),
-    prenom: yup.string().required(),
-    tele: yup.string().required(),
-    adresse: yup.string().required(),
-    Date_debut : yup.date().required(),
+  nom: yup.string().required(),
+  prenom: yup.string().required(),
+  tele: yup.string().required(),
+  adresse: yup.string().required(),
+  Date_debut: yup.date().required(),
 
 });
 
 const createUser = (values, { resetForm, setErrors }) => {
-    axios.post('/api/etudiants', {
+  axios.post('/api/etudiants', {
     ...values,
     niv: selectedNiveau.value,
     fil: selectedFiliere.value,
     matieres: selectedMatieres.value.map(matiere => matiere),
     professeurs: selectedProfesseurs.value.map(professeur => professeur)
 
-})
+  })
 
     .then((response) => {
       users.value.unshift(response.data);
@@ -593,7 +592,7 @@ const createUser = (values, { resetForm, setErrors }) => {
       resetForm();
       toastr.success('Étudiant créé avec succès !');
       getUsers(); // Mettre à jour la DataTable après la création
-    //   location.reload(); // Rechargement de la page après la suppression
+      //   location.reload(); // Rechargement de la page après la suppression
     })
     .catch((error) => {
       if (error.response.data.errors) {
@@ -603,44 +602,44 @@ const createUser = (values, { resetForm, setErrors }) => {
 };
 
 const addUser = () => {
-    editing.value = false;
-    resetFormValues();
-    $('#userFormModal').modal('show');
+  editing.value = false;
+  resetFormValues();
+  $('#userFormModal').modal('show');
 };
 
 
 
 const editUser = (user) => {
-    editing.value = true;
-    form.value.resetForm();
-    getFilieres(user.IdNiv);
+  editing.value = true;
+  form.value.resetForm();
+  getFilieres(user.IdNiv);
 
-    getProfesseurs(selectedMatieres,selectedNiveau,selectedFiliere);
+  getProfesseurs(selectedMatieres, selectedNiveau, selectedFiliere);
 
-    $('#userFormModal').modal('show');
+  $('#userFormModal').modal('show');
 
-    // Initialiser les valeurs pour Nom, Prenom, Telephone, Adresse
-    formValues.value = {
-        id: user.id,
-        nom: user.Nom,
-        prenom: user.Prenom,
-        tele: user.Tele,
-        adresse: user.Adresse,
-        niv: user.IdNiv,
-        fil: user.IdFil,
-        matieres: user.Matieres, // Garder les matières sélectionnées
-        professeurs: user.professeurs,
+  // Initialiser les valeurs pour Nom, Prenom, Telephone, Adresse
+  formValues.value = {
+    id: user.id,
+    nom: user.Nom,
+    prenom: user.Prenom,
+    tele: user.Tele,
+    adresse: user.Adresse,
+    niv: user.IdNiv,
+    fil: user.IdFil,
+    matieres: user.Matieres, // Garder les matières sélectionnées
+    professeurs: user.professeurs,
 
-        Date_debut : user.Date_debut
-    };
+    Date_debut: user.Date_debut
+  };
 
-    // Initialiser les valeurs sélectionnées pour Niveau et Filière
-    selectedNiveau.value = user.IdNiv; // Sélectionner l'ancienne valeur pour le niveau
-    selectedFiliere.value = user.IdFil; // Sélectionner l'ancienne valeur pour la filière
+  // Initialiser les valeurs sélectionnées pour Niveau et Filière
+  selectedNiveau.value = user.IdNiv; // Sélectionner l'ancienne valeur pour le niveau
+  selectedFiliere.value = user.IdFil; // Sélectionner l'ancienne valeur pour la filière
 
-    // Cocher les anciennes valeurs pour Matières
-    selectedMatieres.value = user.Matieres; // Cocher les matières précédemment sélectionnées
-    selectedProfesseurs.value = user.Professeurs; // Cocher les matières précédemment sélectionnées
+  // Cocher les anciennes valeurs pour Matières
+  selectedMatieres.value = user.Matieres; // Cocher les matières précédemment sélectionnées
+  selectedProfesseurs.value = user.Professeurs; // Cocher les matières précédemment sélectionnées
 
 };
 
@@ -656,7 +655,7 @@ const updateUser = (values, { setErrors }) => {
     matieres: selectedMatieres.value.map(matiere => matiere),
     professeurs: selectedProfesseurs.value.map(professeur => professeur)
 
-})
+  })
     .then((response) => {
       const index = users.value.findIndex(user => user.id === response.data.id);
       users.value[index] = response.data;
@@ -665,7 +664,7 @@ const updateUser = (values, { setErrors }) => {
       }, 10);
       toastr.success('Étudiant mis à jour avec succès !');
       getUsers(); // Mettre à jour la DataTable après la mise à jour
-    //   location.reload(); // Rechargement de la page après la suppression
+      //   location.reload(); // Rechargement de la page après la suppression
     }).catch((error) => {
       setErrors(error.response.data.errors);
       console.log(error);
@@ -674,18 +673,18 @@ const updateUser = (values, { setErrors }) => {
 
 const handleSubmit = (values, actions) => {
 
-    if(editing.value){
-        updateUser(values, actions);
-    }else{
-        createUser(values, actions);
-    }
+  if (editing.value) {
+    updateUser(values, actions);
+  } else {
+    createUser(values, actions);
+  }
 };
 
 
 
 const confirmUserDeletion = (user) => {
-    userIdBeingDeleted.value = user.id;
-    $('#deleteUserModal').modal('show');
+  userIdBeingDeleted.value = user.id;
+  $('#deleteUserModal').modal('show');
 };
 
 const deleteUser = () => {
@@ -696,7 +695,7 @@ const deleteUser = () => {
       users.value = users.value.filter(user => user.id !== userIdBeingDeleted.value);
       userIdBeingDeleted.value = null;
       getUsers(); // Mettre à jour la DataTable après la suppression
-    //   location.reload(); // Rechargement de la page après la suppression
+      //   location.reload(); // Rechargement de la page après la suppression
     })
     .catch((error) => {
       console.error('Erreur lors de la suppression de l\'utilisateur :', error);

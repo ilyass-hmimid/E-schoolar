@@ -1,53 +1,53 @@
 <template>
-    <div class="homepage">
-      <header class="header">
-        <!-- Barre de navigation -->
-        <nav class="navbar">
-          <!-- Logo -->
-          <div class="navbar-logo">
+  <div class="homepage">
+    <header class="header">
+      <!-- Barre de navigation -->
+      <nav class="navbar">
+        <!-- Logo -->
+        <div class="navbar-logo">
 
-            <!-- <img src="./imgs/logo.png" alt="Logo" /> -->
-          </div>
-
-
-        </nav>
-      </header>
-
-      <main class="main-content">
-        <!-- Section principale -->
-        <section class="hero-section">
-          <div class="hero-content">
-            <h1>Bienvenue dans notre site</h1>
-            <!-- <p>Exploitez votre potentiel au maximum.</p> -->
-          </div>
-          <div class="hero-image">
-            <!-- Image ou vidéo d'illustration -->
-            <img src="./imgs/logo.png" alt="Logo" style="height: 466px;" />
-          </div>
-        </section>
-
-        <!-- Autres sections ou composants -->
-        <section class="other-section">
-          <!-- Contenu de la section -->
-        </section>
-      </main>
-
-      <footer class="footer">
-        <!-- Pied de page -->
-        <div class="footer-content">
-          <!-- Informations de contact, liens sociaux, etc. -->
+          <!-- <img src="./imgs/logo.png" alt="Logo" /> -->
         </div>
-        <div class="footer-bottom">
-          <p>&copy; 2024 CENTRE CONCEPT ETUDES. Tous droits réservés.</p>
-        </div>
-      </footer>
 
-      <!-- Modale d'authentification -->
-      <div class="auth-modal" v-if="showAuthModal">
-        <!-- Contenu de la modale -->
+
+      </nav>
+    </header>
+
+    <main class="main-content">
+      <!-- Section principale -->
+      <section class="hero-section">
+        <div class="hero-content">
+          <h1>Bienvenue dans notre site</h1>
+          <!-- <p>Exploitez votre potentiel au maximum.</p> -->
+        </div>
+        <div class="hero-image">
+          <!-- Image ou vidéo d'illustration -->
+          <img src="./imgs/logo.png" alt="Logo" style="height: 466px;" />
+        </div>
+      </section>
+
+      <!-- Autres sections ou composants -->
+      <section class="other-section">
+        <!-- Contenu de la section -->
+      </section>
+    </main>
+
+    <footer class="footer">
+      <!-- Pied de page -->
+      <div class="footer-content">
+        <!-- Informations de contact, liens sociaux, etc. -->
       </div>
+      <div class="footer-bottom">
+        <p>&copy; 2024 CENTRE CONCEPT ETUDES. Tous droits réservés.</p>
+      </div>
+    </footer>
+
+    <!-- Modale d'authentification -->
+    <div class="auth-modal" v-if="showAuthModal">
+      <!-- Contenu de la modale -->
     </div>
-  </template>
+  </div>
+</template>
 
 
 <script>

@@ -1,36 +1,36 @@
 
 <template>
-
-    <div class="content-header">
-   <div class="container-fluid">
-   <div class="row mb-2">
-   <div class="col-sm-6" style="display: flex;
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6" style="display: flex;
     justify-content: space-between;
     flex-direction: row-reverse; ">
-   <h1 class="m-0" style="font-weight: 500 !important; ">Les matières</h1>
-   <button v-if="IsAdmin" @click="addUser" type="button" class="mb-2 btn btn-primary" style="font-weight: bold;" >
-        Ajouter nouveau Matière
-    </button>
-   </div>
-   <div class="col-sm-6">
-   <ol class="breadcrumb float-sm-right">
-   <!-- <li class="breadcrumb-item"><a href="#">Home</a></li>
+          <h1 class="m-0" style="font-weight: 500 !important; ">Les matières</h1>
+          <button v-if="IsAdmin" @click="addUser" type="button" class="mb-2 btn btn-primary" style="font-weight: bold;">
+            Ajouter nouveau Matière
+          </button>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <!-- <li class="breadcrumb-item"><a href="#">Home</a></li>
    <li class="breadcrumb-item active">Matières</li> -->
-   </ol>
-   </div>
-   </div>
-   </div>
-   </div>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
 
 
-   <div class="content">
-   <div class="container-fluid">
+  <div class="content">
+    <div class="container-fluid">
 
 
 
-  <div class="container" style="overflow : auto !important; height:  calc(100vh - 176px) !important; max-width: 2040px !important;">
+      <div class="container"
+        style="overflow : auto !important; height:  calc(100vh - 176px) !important; max-width: 2040px !important;">
 
-    <table class="table table-striped table-bordered">
+        <table class="table table-striped table-bordered">
           <thead>
             <tr>
               <th>#</th>
@@ -45,106 +45,106 @@
             <tr v-for="(user, index) in matieres" :key="index">
               <td>{{ index + 1 }}</td>
 
-                <td>{{ user.Libelle }}</td>
-                <td>{{ user.created_at }}</td>
+              <td>{{ user.Libelle }}</td>
+              <td>{{ user.created_at }}</td>
 
 
 
-                <a v-if="IsAdmin" href="#" @click.prevent="editUser(user)" class="btn btn-primary btn-sm">
-  <i class="fa fa-edit"></i>
-</a>
+              <a v-if="IsAdmin" href="#" @click.prevent="editUser(user)" class="btn btn-primary btn-sm">
+                <i class="fa fa-edit"></i>
+              </a>
 
- <a v-if="IsAdmin" href="#" @click.prevent="confirmUserDeletion(user)" class="btn btn-danger btn-sm ml-4">
-  <i class="fa fa-trash"></i>
-</a>
+              <a v-if="IsAdmin" href="#" @click.prevent="confirmUserDeletion(user)" class="btn btn-danger btn-sm ml-4">
+                <i class="fa fa-trash"></i>
+              </a>
 
 
             </tr>
           </tbody>
         </table>
+      </div>
+
+
+
+
+    </div>
   </div>
 
 
-
-
-   </div>
-   </div>
-
-
-   <!-- Modal pour ajouter un nouvel Matière -->
-    <div class="modal fade" id="userFormModal" tabindex="-1" role="dialog" aria-labelledby="userFormModalLabel" aria-hidden="true">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content" style="margin-top: -28px !important;">
-          <div class="modal-header">
-            <h5 class="modal-title" id="userFormModalLabel">
+  <!-- Modal pour ajouter un nouvel Matière -->
+  <div class="modal fade" id="userFormModal" tabindex="-1" role="dialog" aria-labelledby="userFormModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content" style="margin-top: -28px !important;">
+        <div class="modal-header">
+          <h5 class="modal-title" id="userFormModalLabel">
             <span v-if="editing">Modifier la matière</span>
             <span v-else>Ajouter nouveau matière</span>
-            </h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
+          </h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
 
 
-<!--The form is here => -->
-          <Form ref="form" @submit="handleSubmit" :validation-schema="editing ? editUserSchema : createUserSchema"
-          v-slot="{errors}" :initial-values="formValues">
+        <!--The form is here => -->
+        <Form ref="form" @submit="handleSubmit" :validation-schema="editing ? editUserSchema : createUserSchema"
+          v-slot="{ errors }" :initial-values="formValues">
           <div class="modal-body">
             <!-- Formulaire pour ajouter un nouvel Matière -->
 
-              <div class="form-group">
-                <label for="name">Libelle</label>
-                <Field name="Libelle" type="text" class="form-control"
-                :class="{'is-invalid': errors.Libelle }"
-                id="Libelle" placeholder="Entrer Libelle" required />
-                <span class="invalid-feedback">{{ errors.Libelle }}</span>
-              </div>
+            <div class="form-group">
+              <label for="name">Libelle</label>
+              <Field name="Libelle" type="text" class="form-control" :class="{ 'is-invalid': errors.Libelle }" id="Libelle"
+                placeholder="Entrer Libelle" required />
+              <span class="invalid-feedback">{{ errors.Libelle }}</span>
+            </div>
 
 
 
           </div>
           <div class="modal-footer">
             <div class="modal-footer">
-    <button type="button" class="btn btn-secondary" data-dismiss="modal" @click="cancelEdit">Annuler</button>
-    <button type="submit" class="btn btn-primary">Enregistrer</button>
-</div>
+              <button type="button" class="btn btn-secondary" data-dismiss="modal" @click="cancelEdit">Annuler</button>
+              <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
 
           </div>
         </form>
-        </div>
       </div>
     </div>
+  </div>
 
 
-   <!-- Modal pour ajouter un nouvel Matière -->
-   <div class="modal fade" id="deleteUserModal" tabindex="-1" role="dialog" aria-labelledby="userFormModalLabel" aria-hidden="true">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="userFormModalLabel">
+  <!-- Modal pour ajouter un nouvel Matière -->
+  <div class="modal fade" id="deleteUserModal" tabindex="-1" role="dialog" aria-labelledby="userFormModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="userFormModalLabel">
             <span>Supprimer matière</span>
-            </h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
+          </h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
 
-<div class="modal-body">
-    <h5>Êtes-vous sûr de vouloir supprimer cette matière</h5>
-</div>
+        <div class="modal-body">
+          <h5>Êtes-vous sûr de vouloir supprimer cette matière</h5>
+        </div>
 
-<div class="modal-footer">
+        <div class="modal-footer">
 
-    <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
-    <button @click.prevent="deleteUser" type="button" class="btn btn-primary">Supprimer</button>
-
-</div>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
+          <button @click.prevent="deleteUser" type="button" class="btn btn-primary">Supprimer</button>
 
         </div>
+
       </div>
     </div>
-
-   </template>
+  </div>
+</template>
 
 
 
@@ -183,18 +183,18 @@ let showFiliere = false;
 
 
 const cancelEdit = () => {
-    editing.value = false;
-    resetFormValues(); // Réinitialiser le formulaire
-    // Autres actions si nécessaire lors de l'annulation de la modification
+  editing.value = false;
+  resetFormValues(); // Réinitialiser le formulaire
+  // Autres actions si nécessaire lors de l'annulation de la modification
 };
 
 const getRole = () => {
-    axios.get('/api/getRole')
+  axios.get('/api/getRole')
     .then((response) => {
-        IsAdmin.value = response.data;
+      IsAdmin.value = response.data;
 
 
-      }
+    }
 
     )
     .catch((error) => {
@@ -203,12 +203,12 @@ const getRole = () => {
 };
 
 const resetFormValues = () => {
-    form.value.resetForm(); // Utilisez la méthode resetForm() fournie par VeeValidate pour réinitialiser le formulaire
-    // Remettre à zéro les valeurs sélectionnées et autres états si nécessaire
-    selectedNiveau.value = '';
-    selectedFiliere.value = '';
-    selectedMatiere.value = '';
-    // Autres remises à zéro si nécessaire
+  form.value.resetForm(); // Utilisez la méthode resetForm() fournie par VeeValidate pour réinitialiser le formulaire
+  // Remettre à zéro les valeurs sélectionnées et autres états si nécessaire
+  selectedNiveau.value = '';
+  selectedFiliere.value = '';
+  selectedMatiere.value = '';
+  // Autres remises à zéro si nécessaire
 };
 
 
@@ -261,8 +261,8 @@ const formatMonth = (date) => {
 const initDataTable = () => {
   $('#myTable').DataTable({
     ddom: 'Bfrtip',
-   sSwfPath: "http://datatables.net/release-datatables/extras/TableTools/media/swf/copy_csv_xls_pdf.swf",
-    buttons: [ 'excel', 'pdf',],
+    sSwfPath: "http://datatables.net/release-datatables/extras/TableTools/media/swf/copy_csv_xls_pdf.swf",
+    buttons: ['excel', 'pdf',],
     paging: true,
     lengthChange: true, // Force l'affichage des options de changement de longueur
     columns: [
@@ -277,37 +277,37 @@ const initDataTable = () => {
       { data: 'Date_debut' },
 
       {
-  data: null,
-  render: function () {
-    return '<button class="btn btn-primary btn-sm edit-btn"><i class="fa fa-edit"></i></button>';
-  },
-  createdCell: function (cell, cellData, rowData) {
-    const editBtn = document.createElement('button');
-    editBtn.classList.add('btn', 'btn-primary', 'btn-sm', 'edit-btn');
-    editBtn.innerHTML = '<i class="fa fa-edit"></i>';
-    editBtn.addEventListener('click', function () {
-      editUser(rowData);
-    });
-    cell.innerHTML = '';
-    cell.appendChild(editBtn);
-  }
-},
-{
-  data: null,
-  render: function () {
-    return '<button class="btn btn-danger btn-sm delete-btn"><i class="fa fa-trash"></i></button>';
-  },
-  createdCell: function (cell, cellData, rowData) {
-    const deleteBtn = document.createElement('button');
-    deleteBtn.classList.add('btn', 'btn-danger', 'btn-sm', 'delete-btn');
-    deleteBtn.innerHTML = '<i class="fa fa-trash"></i>';
-    deleteBtn.addEventListener('click', function () {
-      confirmUserDeletion(rowData);
-    });
-    cell.innerHTML = '';
-    cell.appendChild(deleteBtn);
-  }
-}
+        data: null,
+        render: function () {
+          return '<button class="btn btn-primary btn-sm edit-btn"><i class="fa fa-edit"></i></button>';
+        },
+        createdCell: function (cell, cellData, rowData) {
+          const editBtn = document.createElement('button');
+          editBtn.classList.add('btn', 'btn-primary', 'btn-sm', 'edit-btn');
+          editBtn.innerHTML = '<i class="fa fa-edit"></i>';
+          editBtn.addEventListener('click', function () {
+            editUser(rowData);
+          });
+          cell.innerHTML = '';
+          cell.appendChild(editBtn);
+        }
+      },
+      {
+        data: null,
+        render: function () {
+          return '<button class="btn btn-danger btn-sm delete-btn"><i class="fa fa-trash"></i></button>';
+        },
+        createdCell: function (cell, cellData, rowData) {
+          const deleteBtn = document.createElement('button');
+          deleteBtn.classList.add('btn', 'btn-danger', 'btn-sm', 'delete-btn');
+          deleteBtn.innerHTML = '<i class="fa fa-trash"></i>';
+          deleteBtn.addEventListener('click', function () {
+            confirmUserDeletion(rowData);
+          });
+          cell.innerHTML = '';
+          cell.appendChild(deleteBtn);
+        }
+      }
 
 
     ],
@@ -320,7 +320,7 @@ const initDataTable = () => {
 
 
 const getUsers = () => {
-    axios.get('/api/professeurs')
+  axios.get('/api/professeurs')
     .then((response) => {
       users.value = response.data;
 
@@ -339,7 +339,7 @@ const getUsers = () => {
 
 
 const getNiveux = () => {
- axios.get('/api/niveaux') // Remplacez '/api/niveaux' par votre endpoint pour récupérer les niveaux depuis la base de données
+  axios.get('/api/niveaux') // Remplacez '/api/niveaux' par votre endpoint pour récupérer les niveaux depuis la base de données
     .then(response => {
       niveaux.value = response.data; // Assurez-vous que response.data contient les données des niveaux
     })
@@ -386,25 +386,25 @@ const getMatieres = () => {
 
 
 const handleNiveauChange = (newVal) => {
-    selectedNiveau.value = newVal; // Mettre à jour la valeur de selectedNiveau avec l'ID du niveau sélectionné
-    // console.log(selectedNiveau.value);
-    if (newVal) {
-        getFilieres(newVal);
-    } else {
-        showFiliere = false;
-        filieres.value = [];
-    }
+  selectedNiveau.value = newVal; // Mettre à jour la valeur de selectedNiveau avec l'ID du niveau sélectionné
+  // console.log(selectedNiveau.value);
+  if (newVal) {
+    getFilieres(newVal);
+  } else {
+    showFiliere = false;
+    filieres.value = [];
+  }
 };
 
 const handleFiliereChange = (newVal) => {
-    selectedFiliere.value = newVal;
+  selectedFiliere.value = newVal;
 
 };
 
 const handleMatiereChange = (value) => {
-        selectedMatiere.value = value; // Mettez à jour la matière sélectionnée
-        // Ajoutez ici toute logique supplémentaire à exécuter lorsqu'une nouvelle matière est sélectionnée
-    };
+  selectedMatiere.value = value; // Mettez à jour la matière sélectionnée
+  // Ajoutez ici toute logique supplémentaire à exécuter lorsqu'une nouvelle matière est sélectionnée
+};
 
 
 
@@ -417,7 +417,7 @@ const handleMatiereChange = (value) => {
 
 const createUserSchema = yup.object({
 
-    Libelle: yup.string().required(),
+  Libelle: yup.string().required(),
 
 
 
@@ -425,14 +425,14 @@ const createUserSchema = yup.object({
 
 const editUserSchema = yup.object({
 
-    Libelle: yup.string().required(),
+  Libelle: yup.string().required(),
 
 
 });
 
 
 const createUser = (values, { resetForm, setErrors }) => {
-    axios.post('/api/matiere', values)
+  axios.post('/api/matiere', values)
 
     .then((response) => {
       users.value.unshift(response.data);
@@ -442,7 +442,7 @@ const createUser = (values, { resetForm, setErrors }) => {
       resetForm();
       toastr.success('Matière créé avec succès !');
       getMatieres(); // Mettre à jour la DataTable après la création
-    //   location.reload(); // Rechargement de la page après la suppression
+      //   location.reload(); // Rechargement de la page après la suppression
     })
     .catch((error) => {
       if (error.response.data.errors) {
@@ -452,24 +452,24 @@ const createUser = (values, { resetForm, setErrors }) => {
 };
 
 const addUser = () => {
-    editing.value = false;
-    resetFormValues();
-    $('#userFormModal').modal('show');
+  editing.value = false;
+  resetFormValues();
+  $('#userFormModal').modal('show');
 };
 
 
 
 const editUser = (user) => {
-    editing.value = true;
-    form.value.resetForm();
-    $('#userFormModal').modal('show');
+  editing.value = true;
+  form.value.resetForm();
+  $('#userFormModal').modal('show');
 
-    // Initialiser les valeurs pour Nom, Prenom, Telephone, Adresse
-    formValues.value = {
-        id: user.id,
-        Libelle: user.Libelle,
+  // Initialiser les valeurs pour Nom, Prenom, Telephone, Adresse
+  formValues.value = {
+    id: user.id,
+    Libelle: user.Libelle,
 
-    };
+  };
 
 
 };
@@ -479,7 +479,7 @@ const editUser = (user) => {
 
 const updateUser = (values, { setErrors }) => {
 
-axios.put('/api/matiere/' + formValues.value.id, values)
+  axios.put('/api/matiere/' + formValues.value.id, values)
     .then((response) => {
       const index = users.value.findIndex(user => user.id === response.data.id);
       users.value[index] = response.data;
@@ -488,7 +488,7 @@ axios.put('/api/matiere/' + formValues.value.id, values)
       }, 10);
       toastr.success('matière mis à jour avec succès !');
       getMatieres(); // Mettre à jour la DataTable après la mise à jour
-    //   location.reload(); // Rechargement de la page après la suppression
+      //   location.reload(); // Rechargement de la page après la suppression
     }).catch((error) => {
       setErrors(error.response.data.errors);
       console.log(error);
@@ -497,29 +497,29 @@ axios.put('/api/matiere/' + formValues.value.id, values)
 
 const handleSubmit = (values, actions) => {
 
-    if(editing.value){
-        updateUser(values, actions);
-    }else{
-        createUser(values, actions);
-    }
+  if (editing.value) {
+    updateUser(values, actions);
+  } else {
+    createUser(values, actions);
+  }
 };
 
 
 
 const confirmUserDeletion = (user) => {
-    userIdBeingDeleted.value = user.id;
-    $('#deleteUserModal').modal('show');
+  userIdBeingDeleted.value = user.id;
+  $('#deleteUserModal').modal('show');
 };
 
 const deleteUser = () => {
-    axios.delete(`/api/matiere/${userIdBeingDeleted.value}`)
-        .then(() => {
+  axios.delete(`/api/matiere/${userIdBeingDeleted.value}`)
+    .then(() => {
       $('#deleteUserModal').modal('hide');
       toastr.success('Matière supprimé avec succès !');
       users.value = users.value.filter(user => user.id !== userIdBeingDeleted.value);
       userIdBeingDeleted.value = null;
       getMatieres();// Mettre à jour la DataTable après la suppression
-    //   location.reload(); // Rechargement de la page après la suppression
+      //   location.reload(); // Rechargement de la page après la suppression
     })
     .catch((error) => {
       console.error('Erreur lors de la suppression de matiere :', error);
