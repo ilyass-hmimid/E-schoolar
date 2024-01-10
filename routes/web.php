@@ -21,6 +21,8 @@ use App\Http\Controllers\Profile\AvatarController;
 |
 */
 
+
+
 Route::get('/', function () {
     // Vérifier si l'utilisateur est authentifié
     if (auth()->check()) {
@@ -42,6 +44,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     return view('admin.layouts.app');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+
+
  Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -50,6 +54,12 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
 
 require __DIR__.'/auth.php';
+
+// Route::middleware(['guest'])->group(function () {
+//     Route::get('/{any}', function () {
+//         return view('auth.login');
+//     })->where('any', '.*');
+// });
 
 /* Route::get('/openai', function(){
 
@@ -66,6 +76,8 @@ require __DIR__.'/auth.php';
 //  Route::get('/dashboard1', function(){
 //     return view('dashboard1');
 // });
+
+Route::middleware('auth')->group(function () {
 
 Route::get('/api/users', [UserController::class, 'index']);
 Route::get('/api/getRole', [UserController::class, 'IsAdmin']);
@@ -146,8 +158,14 @@ Route::delete('/api/niveau/{user}', [CentreController::class, 'destoryNiveau']);
 Route::delete('/api/filiere/{user}', [CentreController::class, 'destoryFiliere']);
 
 
+});
+
+
 
 
 
 
 Route::get('{view}', ApplicationController::class)->where('view', '(.*)');
+
+
+
