@@ -22,8 +22,19 @@ use App\Http\Controllers\Profile\AvatarController;
 */
 
 Route::get('/', function () {
-    return view('auth.login');
+    // Vérifier si l'utilisateur est authentifié
+    if (auth()->check()) {
+        // Récupérer l'URL précédente depuis la session
+        $previousUrl = session()->has('url.intended') ? session('url.intended') : '/home';
+        return redirect()->to($previousUrl);
+    } else {
+        // S'il n'est pas authentifié, enregistrer l'URL précédente et afficher la vue de connexion
+        session(['url.intended' => url()->previous()]);
+        return view('auth.login');
+    }
 });
+
+
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 
