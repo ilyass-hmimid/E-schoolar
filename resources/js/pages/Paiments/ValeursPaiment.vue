@@ -173,10 +173,6 @@ const editValeursPaiment = (niveau, index) => {
 
 
 
-
-
-
-
 const updateValeursPaiment = () => {
   const dataToUpdate = {
     NivToEdit: NivToEdit.value, // Inclure NivToEdit.value dans les données à envoyer
@@ -240,10 +236,22 @@ const getNbrMateres = () => {
     });
 };
 
+<<<<<<< HEAD
 const getNiveaux = () => {
   axios.get('/api/niveaux')
     .then((response) => {
       niveaux.value = response.data;
+=======
+  const refreshPage = () => {
+  window.location.reload();
+};
+
+  const getNiveaux = () => {
+
+    axios.get('/api/niveaux')
+      .then((response) => {
+        niveaux.value = response.data;
+>>>>>>> e188556 (before merge)
 
     })
     .catch((error) => {
@@ -275,6 +283,7 @@ const getValeurPaiement = () => {
 
 
 
+<<<<<<< HEAD
 onMounted(() => {
   getNiveaux();
   getNbrMateres();
@@ -283,3 +292,16 @@ onMounted(() => {
 
 });
 </script>
+=======
+  onMounted(() => {
+    // window.location.reload(); // Cette ligne actualisera la page
+
+    getNiveaux();
+    getNbrMateres();
+    getValeurPaiement();
+      updateValuesPeriodically(); // Lance le polling pour les mises à jour régulières
+
+  });
+
+  </script>
+>>>>>>> e188556 (before merge)

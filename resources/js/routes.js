@@ -46,6 +46,8 @@ const routes = [
         path: '/valeurs_paiments',
         name: 'valeurs_paiments',
         component: ValeursPaiments,
+        meta: { reload: true }, // Ajoutez cette ligne
+
     },
     {
         path: '/paiments',
