@@ -158,14 +158,17 @@ Route::delete('/api/niveau/{user}', [CentreController::class, 'destoryNiveau']);
 Route::delete('/api/filiere/{user}', [CentreController::class, 'destoryFiliere']);
 
 
+
 });
 
 
-
-
-
-
 Route::get('{view}', ApplicationController::class)->where('view', '(.*)');
+
+
+
+
+
+
 
 
 

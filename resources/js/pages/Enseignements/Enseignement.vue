@@ -95,21 +95,19 @@
         <div class="modal-header">
           <h5 class="modal-title" id="userFormModalLabel">
             <span v-if="editing">Modifier le enseignement</span>
-<<<<<<< HEAD
-            <span v-else>Ajouter nouveau enseignement</span>
+
+            <!-- <span v-else>Ajouter nouveau enseignement</span>
           </h5>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
-        </div>
-=======
+        </div> -->
             <span v-else>Ajouter nouveau enseignement pour le prof {{ currentProf.Prenom }} {{ currentProf.Nom }}</span>
             </h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
->>>>>>> e188556 (before merge)
 
 
         <!--The form is here => -->
