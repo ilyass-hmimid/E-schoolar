@@ -8,6 +8,8 @@ use App\Http\Controllers\ProfesseurController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\Profile\AvatarController;
+use Illuminate\Support\Facades\Session;
+
 
 
 /*
@@ -22,24 +24,29 @@ use App\Http\Controllers\Profile\AvatarController;
 */
 
 
-Route::middleware(['guest'])->group(function () {
-    Route::get('/{any}', function () {
-        return view('auth.login');
-    })->where('any', '.*');
-});
+// Route::middleware(['guest'])->group(function () {
+//     Route::get('/{any}', function () {
+//         return view('auth.login');
+//     })->where('any', '.*');
+// });
 
 Route::get('/', function () {
     // Vérifier si l'utilisateur est authentifié
     if (auth()->check()) {
-        // Récupérer l'URL précédente depuis la session
-        $previousUrl = session()->has('url.intended') ? session('url.intended') : '/dashboard';
+        // Rediriger l'utilisateur vers la dernière page active ou vers /home par défaut
+        $previousUrl = Session::get(auth()->id() . '_url.intended', '/home');
+        Session::forget(auth()->id() . '_url.intended'); // Effacer la session après utilisation
         return redirect()->to($previousUrl);
     } else {
-        // S'il n'est pas authentifié, enregistrer l'URL précédente et afficher la vue de connexion
-        session(['url.intended' => url()->previous()]);
+        // S'il n'est pas authentifié, enregistrer l'URL précédente dans la session
+        $currentUserKey = auth()->id() . '_url.intended';
+        Session::put($currentUserKey, url()->previous());
         return view('auth.login');
     }
-});
+})->middleware('auth');
+
+
+
 
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
