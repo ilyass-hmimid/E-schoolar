@@ -24,6 +24,7 @@ import EspaceProfesseur from "./pages/EspaceProfesseur/EspaceProfesseur.vue";
 
 
 
+
 const routes = [
     {
         path: '/dashboard',

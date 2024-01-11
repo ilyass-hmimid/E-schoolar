@@ -22,12 +22,17 @@ use App\Http\Controllers\Profile\AvatarController;
 */
 
 
+Route::middleware(['guest'])->group(function () {
+    Route::get('/{any}', function () {
+        return view('auth.login');
+    })->where('any', '.*');
+});
 
 Route::get('/', function () {
     // Vérifier si l'utilisateur est authentifié
     if (auth()->check()) {
         // Récupérer l'URL précédente depuis la session
-        $previousUrl = session()->has('url.intended') ? session('url.intended') : '/home';
+        $previousUrl = session()->has('url.intended') ? session('url.intended') : '/dashboard';
         return redirect()->to($previousUrl);
     } else {
         // S'il n'est pas authentifié, enregistrer l'URL précédente et afficher la vue de connexion
@@ -53,13 +58,15 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+// Route::middleware(['guest'])->group(function () {
+//     Route::get('/', function () {
+//         return view('auth.login');
+//     })->name('login');
+// });
+
 require __DIR__.'/auth.php';
 
-// Route::middleware(['guest'])->group(function () {
-//     Route::get('/{any}', function () {
-//         return view('auth.login');
-//     })->where('any', '.*');
-// });
+
 
 /* Route::get('/openai', function(){
 
@@ -157,12 +164,16 @@ Route::delete('/api/matiere/{user}', [CentreController::class, 'destoryMatiere']
 Route::delete('/api/niveau/{user}', [CentreController::class, 'destoryNiveau']);
 Route::delete('/api/filiere/{user}', [CentreController::class, 'destoryFiliere']);
 
+Route::get('{view}', ApplicationController::class)->where('view', '(.*)');
+
+
 
 
 });
 
 
-Route::get('{view}', ApplicationController::class)->where('view', '(.*)');
+
+
 
 
 
