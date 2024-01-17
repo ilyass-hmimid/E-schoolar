@@ -557,8 +557,8 @@ const createUserSchema = yup.object({
 
   nom: yup.string().required(),
   prenom: yup.string().required(),
-  tele: yup.string().required(),
-  adresse: yup.string().required(),
+  tele: yup.string(),
+  adresse: yup.string(),
   Date_debut: yup.date().required(),
 
 
@@ -568,8 +568,8 @@ const editUserSchema = yup.object({
 
   nom: yup.string().required(),
   prenom: yup.string().required(),
-  tele: yup.string().required(),
-  adresse: yup.string().required(),
+  tele: yup.string(),
+  adresse: yup.string(),
   Date_debut: yup.date().required(),
 
 });

@@ -51,7 +51,7 @@
 
       </template>
       <td>
-                <a href="#" @click.prevent="editValeursPaiment(niveau,valeursPaiements[niveauIndex])" class="btn btn-primary btn-sm">
+                <a v-if="IsAdmin" @click.prevent="editValeursPaiment(niveau,valeursPaiements[niveauIndex])" class="btn btn-primary btn-sm">
   <i class="fa fa-edit"></i>
 </a>  </td>
     </tr>
@@ -178,6 +178,23 @@ const toastr = useToastr();
   }
 };
 
+const IsAdmin = ref('');
+
+const getRole = () => {
+  axios.get('/api/getRole')
+    .then((response) => {
+      IsAdmin.value = response.data;
+
+
+    }
+
+    )
+    .catch((error) => {
+      console.error('Erreur lors de la récupération de role:', error);
+    });
+};
+
+
 
 
 const updateValeursPaiment = () => {
@@ -290,6 +307,8 @@ const initFormValues = () => {
     getNbrMateres();
     getValeurPaiement();
       updateValuesPeriodically(); // Lance le polling pour les mises à jour régulières
+
+      getRole();
 
   });
 

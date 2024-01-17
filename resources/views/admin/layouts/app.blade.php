@@ -224,7 +224,7 @@ Dashboard
             @endif
 
 
-            @if(Auth::check() && Auth::user()->role == 'admin')
+            @if(Auth::check() && (Auth::user()->role == 'admin' || Auth::user()->role == 'admin_assistant'))
             <li class="nav-item">
                 <router-link to="/students" active-class="active" class="nav-link">
                 <i class="nav-icon fas fa-user-graduate"></i>
@@ -236,7 +236,7 @@ Dashboard
                 @endif
 
 
-                @if(Auth::check() && Auth::user()->role == 'admin')
+                @if(Auth::check() && (Auth::user()->role == 'admin' || Auth::user()->role == 'admin_assistant'))
                 <li class="nav-item">
                     <router-link to="/paiments" active-class="active" class="nav-link">
                     <i class="nav-icon fas fa-money-bill-wave"></i>
@@ -247,7 +247,7 @@ Dashboard
                     </li>
                     @endif
 
-                    @if(Auth::check() && Auth::user()->role == 'admin')
+                    @if(Auth::check() && (Auth::user()->role == 'admin' || Auth::user()->role == 'admin_assistant'))
                     <li class="nav-item">
                         <router-link to="/valeurs_paiments" active-class="active" class="nav-link">
                         <i class="nav-icon fas fa-dollar-sign"></i>
@@ -298,13 +298,26 @@ Dashboard
                                     @if(Auth::check() && Auth::user()->role == 'professeur')
                                     <li class="nav-item">
                                         <router-link to="/EspaceProfesseur" active-class="active" class="nav-link">
-                                        <i class="nav-icon fas fa-user-shield"></i>
+                                        <i class="nav-icon fas fa-money-bill"></i>
                                         <p>
-                                            Espace professeur
+                                            Mon salaire
                                         </p>
                                         </router-link>
                                         </li>
                                         @endif
+
+                                        @if(Auth::check() && Auth::user()->role == 'professeur')
+                                        <li class="nav-item">
+                                            <router-link to="/classes_professeur" active-class="active" class="nav-link">
+                                            <i class="nav-icon fas fa-school"></i>
+                                            <p>
+                                                Mes classes
+                                            </p>
+                                            </router-link>
+                                            </li>
+                                            @endif
+
+
 
                                         @if(Auth::check() && Auth::user()->role != 'professeur')
                                     <li class="nav-item">

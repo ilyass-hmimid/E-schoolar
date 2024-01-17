@@ -102,7 +102,7 @@
           <div class="modal-body">
             <!-- Formulaire pour ajouter un nouvel Etudiant -->
 
-            <div class="form-group">
+            <div v-if="IsAdmin" class="form-group">
               <label for="SommeApaye">Somme a payé</label>
               <Field name="SommeApaye" type="number" class="form-control" :class="{ 'is-invalid': errors.SommeApaye }"
                 id="SommeApaye" placeholder="Entrer somme a payé par mois" required />
@@ -251,6 +251,23 @@ const initDataTable = () => {
     },
     data: users.value
   });
+};
+
+
+const IsAdmin = ref('');
+
+const getRole = () => {
+  axios.get('/api/getRole')
+    .then((response) => {
+      IsAdmin.value = response.data;
+
+
+    }
+
+    )
+    .catch((error) => {
+      console.error('Erreur lors de la récupération de role:', error);
+    });
 };
 
 
@@ -522,6 +539,8 @@ onMounted(() => {
     selectedMonth.value = getDefaultMonth();
     getUsers();
     updateValuesPeriodically();
+
+    getRole();
 
 
   };

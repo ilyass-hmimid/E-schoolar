@@ -104,6 +104,7 @@
               <Field name="role" as="select" class="form-control" :class="{ 'is-invalid': errors.role }" id="role"
                 :value="'user'" @change="handleRoleChange($event.target.value)">
                 <option value="admin">Admin</option>
+                <option value="admin_assistant">Admin Assistant</option>
                 <option value="user">User</option>
                 <option value="professeur">Professeur</option>
               </Field>

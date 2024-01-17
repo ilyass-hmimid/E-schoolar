@@ -15,6 +15,8 @@ use App\Models\Valeurs_Salaires;
 use App\Models\Enseignement;
 use App\Models\Professeur;
 use App\Models\Salaires;
+use App\Models\Absence;
+
 
 
 
@@ -76,6 +78,16 @@ return $prof->SommeApaye;
 
 
 
+    public function getEnseignementsParProf(Request $request)
+{
+    $enseignements = Enseignement::find($request->input('id'))->get();
+
+    return response()->json($enseignements, 200, [], JSON_UNESCAPED_UNICODE);
+}
+
+
+
+
     public function getUsersForProf(Request $request)
     {
         $i=0;
@@ -133,6 +145,105 @@ return $prof->SommeApaye;
             if($Paiment && $Paiment->Etat == 'Payé'){
             $SalaireActuelle = $SalaireActuelle + $ens->SalaireParEtu;
             }
+
+
+
+
+
+            // if (!$Paiment) {
+            //     // Si aucun paiement trouvé, ajouter les détails par défaut
+            //     $result[] = [
+            //         'id' => $user->id,
+            //         'Nom' => $user->Nom,
+            //         'Prenom' => $user->Prenom,
+            //         'SommeApaye' => $ens->SalaireParEtu,
+            //         'Etat' => 'Non payé',
+            //         'Montant' => $nive->Nom,
+            //         'Reste' => $fili->Intitule,
+            //         'Matiere' => $mati->Libelle,
+            //         'DatePaiment' => '',
+            //         'SalaireActuelle' => $SalaireActuelle,
+            //     ];
+            // }
+            if($Paiment && $Paiment->Etat == 'Payé') {
+                // Si un paiement est trouvé, ajouter les détails du paiement
+                $result[] = [
+                    'id' => $user->id,
+                    'Nom' => $user->Nom . ' ' . $user->Prenom,
+                    'Prenom' => $user->Prenom,
+                    'SommeApaye' => $ens->SalaireParEtu,
+                    'Etat' => $Paiment->Etat,
+                    'Montant' => $nive->Nom,
+                    'Reste' => $fili->Intitule,
+                    'Matiere' => $mati->Libelle,
+                    'DatePaiment' => $Paiment->Date_Paiment,
+                    'SalaireActuelle' => $SalaireActuelle,
+                ];
+            }
+        }
+
+        return response()->json($result, 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+
+
+    public function getUsersForProfForAbsence(Request $request)
+    {
+        $i=0;
+
+
+        dd($request->input('id'));
+        $datePourAfficher = $request->input('date'); // Récupération du mois sélectionné depuis la requête
+
+        dd($datePourAfficher);
+
+
+        $EtusEnsParProf = Inscription::where('IdProf', $request->input('id'))->get();
+        $users = collect(); // Initialiser une collection pour stocker les étudiants
+        $mats = collect();
+
+        foreach ($EtusEnsParProf as $etu) {
+            $user = Etudiant::find($etu->IdEtu); // Récupérer l'étudiant par son ID dans chaque inscription
+            if ($user) {
+                $users->push($user); // Ajouter l'étudiant à la collection
+                $mats->push($etu->IdMat);
+            }
+        }
+
+        // dd($users);
+
+
+
+
+        // Initialiser le tableau résultat
+        $result = [];
+
+        foreach ($users as $user) {
+            // Convertir la date sélectionnée en objet DateTime pour extraire le mois et l'année
+            $dateAfficher = new DateTime($datePourAfficher);
+            $mois = $dateAfficher->format('m'); // Mois de la date sélectionnée
+            $annee = $dateAfficher->format('Y'); // Année de la date sélectionnée
+
+            // Vérifier s'il existe un paiement pour cet étudiant et ce mois
+            $Paiment = Paiment::where('IdEtu', $user->id)
+                ->whereRaw('MONTH(Date_Paiment) = ?', [$mois])
+                ->whereRaw('YEAR(Date_Paiment) = ?', [$annee])
+                ->first();
+
+            $ens = Enseignement::where('IdProf',$request->input('id'))
+                                ->where('IdMat',$mats[$i])
+                                ->where('IdNiv',$user->IdNiv)
+                                ->where('IdFil',$user->IdFil)
+                                ->first();
+
+
+            $mati = Matiere::find($mats[$i]);
+            $nive= Niveau::find($user->IdNiv);
+            $fili= Filiere::find($user->IdFil);
+
+            $i=$i+1;
+
+
 
 
 
@@ -350,8 +461,6 @@ return $prof->SommeApaye;
         request()->validate([
             'nom' => 'required',
             'prenom' => 'required',
-            'tele' => 'required',
-            'adresse' => 'required',
             'niv' => 'required',
             'fil' => 'required',
             'matieres' => 'required|array', // Assurez-vous que 'matieres' est un tableau
@@ -532,8 +641,6 @@ if($enseignement){
         request()->validate([
             'nom' => 'required',
             'prenom' => 'required',
-            'tele' => 'required',
-            'adresse' => 'required',
             'niv' => 'required',
             'fil' => 'required',
             'matieres' => 'required|array',

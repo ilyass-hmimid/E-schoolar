@@ -91,8 +91,6 @@ class ProfesseurController extends Controller
         request()->validate([
             'nom' => 'required',
             'prenom' => 'required',
-            'tele' => 'required',
-            'adresse' => 'required',
             'niv' => 'required',
             'fil' => 'required',
             'mat' => 'required', // Assurez-vous que 'matieres' est un tableau
@@ -227,8 +225,6 @@ class ProfesseurController extends Controller
         request()->validate([
             'nom' => 'required',
             'prenom' => 'required',
-            'tele' => 'required',
-            'adresse' => 'required',
             'Date_debut' => 'required',
         ]);
         $dateDebut = request('Date_debut') . '-01'; // Ajoutez le jour 01 pour former une date complète au format YYYY-MM-DD

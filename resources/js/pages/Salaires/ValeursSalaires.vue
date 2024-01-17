@@ -53,7 +53,7 @@
 
               </template>
               <td>
-                <a href="#" @click.prevent="editValeursPaiment(niveau, valeursPaiements[niveauIndex])"
+                <a  @click.prevent="editValeursPaiment(niveau, valeursPaiements[niveauIndex])"
                   class="btn btn-primary btn-sm">
                   <i class="fa fa-edit"></i>
                 </a>

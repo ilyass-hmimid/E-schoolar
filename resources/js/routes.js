@@ -16,6 +16,8 @@ import Niveaux from "./pages/Niveaux/Niveau.vue";
 import Filieres from "./pages/Filieres/Filiere.vue";
 import Home from "./pages/Home/Home.vue";
 import EspaceProfesseur from "./pages/EspaceProfesseur/EspaceProfesseur.vue";
+import ClassesProfesseur from "./pages/ClassesProfesseurs/ClassesProfesseur.vue";
+
 
 
 
@@ -109,6 +111,13 @@ const routes = [
         path: '/espaceprofesseur',
         name: 'espaceprofesseur',
         component: EspaceProfesseur,
+        meta: { requiresAuth: true },
+
+    },
+    {
+        path: '/classes_professeur',
+        name: 'classes_professeur',
+        component: ClassesProfesseur,
         meta: { requiresAuth: true },
 
     },

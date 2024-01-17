@@ -104,6 +104,11 @@ Route::get('/api/salaireProf', [CentreController::class, 'getSlaireForProf']);
 Route::get('/api/etudiants', [CentreController::class, 'index']);
 Route::get('/api/etudiantsForPaiment', [CentreController::class, 'getUsersForPaiment']);
 Route::get('/api/etudiantsForProf', [CentreController::class, 'getUsersForProf']);
+Route::get('/api/etudiantsForProfForAbsence', [CentreController::class, 'getUsersForProfForAbsence']);
+
+Route::get('/api/EnseignementsParProf', [CentreController::class, 'getEnseignementsParProf']);
+
+
 
 Route::get('/api/professeurs', [ProfesseurController::class, 'index']);
 Route::get('/api/professeursForSalaire', [CentreController::class, 'getUsersForSalaire']);
