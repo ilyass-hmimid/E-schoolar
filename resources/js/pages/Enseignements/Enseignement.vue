@@ -168,7 +168,7 @@
               <label for="SalaireParEtu">Salaire par étudiant</label>
               <Field name="SalaireParEtu" type="number" class="form-control"
                 :class="{ 'is-invalid': errors.SalaireParEtu }" id="SalaireParEtu"
-                placeholder="Entrer un nouveau salaire par étudiant" required />
+                placeholder="Entrer un nouveau salaire par étudiant" required v-model="formValues.SalaireParEtu"/>
               <span class="invalid-feedback">{{ errors.SalaireParEtu }}</span>
             </div>
 
@@ -192,7 +192,7 @@
             <div class="form-group">
               <label for="Date_Debut">Date de début(mm/jj/aaaa)</label>
               <Field name="Date_debut" type="date" class="form-control" :class="{ 'is-invalid': errors.Date_debut }"
-                id="Date_Debut" placeholder="Entrer la date de début" required
+                id="Date_Debut" placeholder="Entrer la date de début" required v-model="formValues.Date_debut"
                 v-bind:value="formValues && formValues.Date_debut ? formValues.Date_debut : getDefaultDate()" />
               <span class="invalid-feedback">{{ errors.Date_debut }}</span>
 
@@ -262,7 +262,12 @@ import 'datatables.net';
 const toastr = useToastr();
 const users = ref([]);
 const editing = ref(false);
-const formValues = ref();
+const formValues = ref({
+  id: '',
+  SalaireParEtu: '',
+  Date_debut:'',
+
+});
 const form = ref(null);
 const userIdBeingDeleted = ref(null);
 
@@ -570,8 +575,9 @@ let currentProf = ref('');
 
 const addUser = (user) => {
   currentProf.value = user;
+  formValues.value.Date_debut = getDefaultDate(); // Initialiser Date_debut avec getDefaultDate()
   editing.value = false;
-  resetFormValues();
+//   resetFormValues();
   $('#userFormModal').modal('show');
 };
 
@@ -579,8 +585,8 @@ const addUser = (user) => {
 
 const editUser = (user) => {
   editing.value = true;
-  resetFormValues();
-  form.value.resetForm();
+//   resetFormValues();
+//   form.value.resetForm();
   getFilieres(user.IdNiv);
   $('#userFormModal').modal('show');
 
@@ -618,6 +624,8 @@ const updateUser = (values, { setErrors }) => {
       setTimeout(() => {
         $('#userFormModal').modal('hide');
       }, 10);
+      resetFormValues();
+
       toastr.success('Enseignement mis à jour avec succès !');
       getUsers(); // Mettre à jour la DataTable après la mise à jour
       //   location.reload(); // Rechargement de la page après la suppression

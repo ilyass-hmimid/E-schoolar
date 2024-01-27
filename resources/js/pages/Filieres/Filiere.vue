@@ -98,7 +98,7 @@
             <div class="form-group">
               <label for="name">Intitule</label>
               <Field name="Intitule" type="text" class="form-control" :class="{ 'is-invalid': errors.Intitule }"
-                id="Intitule" placeholder="Entrer Intitule" required />
+                id="Intitule" placeholder="Entrer Intitule" required v-model="formValues.Intitule" />
               <span class="invalid-feedback">{{ errors.Intitule }}</span>
             </div>
 
@@ -178,7 +178,12 @@ import 'datatables.net';
 const toastr = useToastr();
 const users = ref([]);
 const editing = ref(false);
-const formValues = ref();
+const formValues = ref({
+  id: '',
+  Intitule: '',
+
+
+});
 const form = ref(null);
 const userIdBeingDeleted = ref(null);
 
@@ -484,7 +489,7 @@ const addUser = () => {
 
 const editUser = (user) => {
   editing.value = true;
-  form.value.resetForm();
+//   form.value.resetForm();
   $('#userFormModal').modal('show');
 
   // Initialiser les valeurs pour Nom, Prenom, Telephone, Adresse

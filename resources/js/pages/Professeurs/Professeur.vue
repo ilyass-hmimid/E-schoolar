@@ -131,25 +131,25 @@
             <div class="form-group">
               <label for="name">Nom</label>
               <Field name="nom" type="text" class="form-control" :class="{ 'is-invalid': errors.nom }" id="nom"
-                placeholder="Entrer nom" required />
+                placeholder="Entrer nom" required v-model="formValues.nom"/>
               <span class="invalid-feedback">{{ errors.nom }}</span>
             </div>
             <div class="form-group">
               <label for="prenom">Prenom</label>
               <Field name="prenom" type="text" class="form-control" :class="{ 'is-invalid': errors.prenom }" id="prenom"
-                placeholder="Entrer prenom" required />
+                placeholder="Entrer prenom" required v-model="formValues.prenom"/>
               <span class="invalid-feedback">{{ errors.prenom }}</span>
             </div>
             <div class="form-group">
               <label for="tele">Telephone</label>
               <Field name="tele" type="text" class="form-control" :class="{ 'is-invalid': errors.tele }" id="tele"
-                placeholder="Entrer telephone" required />
+                placeholder="Entrer telephone" required v-model="formValues.tele"/>
               <span class="invalid-feedback">{{ errors.tele }}</span>
             </div>
             <div class="form-group">
               <label for="adresse">Adresse</label>
               <Field name="adresse" type="text" class="form-control" :class="{ 'is-invalid': errors.adresse }" id="adresse"
-                placeholder="Entrer adresse" required />
+                placeholder="Entrer adresse" required v-model="formValues.adresse"/>
               <span class="invalid-feedback">{{ errors.adresse }}</span>
             </div>
 
@@ -218,7 +218,7 @@
             <div class="form-group">
               <label for="Date_Debut">Date de début(mm/jj/aaaa)</label>
               <Field name="Date_debut" type="date" class="form-control" :class="{ 'is-invalid': errors.Date_debut }"
-                id="Date_Debut" placeholder="Entrer la date de début" required
+                id="Date_Debut" placeholder="Entrer la date de début" required v-model="formValues.Date_debut"
                 v-bind:value="formValues && formValues.Date_debut ? formValues.Date_debut : getDefaultDate()" />
               <span class="invalid-feedback">{{ errors.Date_debut }}</span>
 
@@ -287,7 +287,15 @@ import 'datatables.net';
 const toastr = useToastr();
 const users = ref([]);
 const editing = ref(false);
-const formValues = ref();
+const formValues = ref({
+  id: '',
+  nom: '',
+  prenom: '',
+  tele: '',
+  adresse: '',
+  Date_debut:'getDefaultDate()',
+
+});
 const form = ref(null);
 const userIdBeingDeleted = ref(null);
 
@@ -531,8 +539,8 @@ const createUserSchema = yup.object({
 
   nom: yup.string().required(),
   prenom: yup.string().required(),
-  tele: yup.string(),
-  adresse: yup.string(),
+//   tele: yup.string(),
+//   adresse: yup.string(),
   Date_debut: yup.date().required(),
 
 
@@ -542,8 +550,8 @@ const editUserSchema = yup.object({
 
   nom: yup.string().required(),
   prenom: yup.string().required(),
-  tele: yup.string(),
-  adresse: yup.string(),
+//   tele: yup.string(),
+//   adresse: yup.string(),
   Date_debut: yup.date().required(),
 
 });
@@ -575,7 +583,8 @@ const createUser = (values, { resetForm, setErrors }) => {
 
 const addUser = () => {
   editing.value = false;
-  resetFormValues();
+  formValues.value.Date_debut = getDefaultDate(); // Initialiser Date_debut avec getDefaultDate()
+//   resetFormValues();
   $('#userFormModal').modal('show');
 };
 
@@ -583,7 +592,7 @@ const addUser = () => {
 
 const editUser = (user) => {
   editing.value = true;
-  form.value.resetForm();
+//   form.value.resetForm();
   $('#userFormModal').modal('show');
 
   // Initialiser les valeurs pour Nom, Prenom, Telephone, Adresse
@@ -624,6 +633,7 @@ const updateUser = (values, { setErrors }) => {
       setTimeout(() => {
         $('#userFormModal').modal('hide');
       }, 10);
+      resetFormValues();
       toastr.success('Professeur mis à jour avec succès !');
       getUsers(); // Mettre à jour la DataTable après la mise à jour
       //   location.reload(); // Rechargement de la page après la suppression

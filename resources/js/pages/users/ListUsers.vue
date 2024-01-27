@@ -115,14 +115,14 @@
             <div v-if="!showListProfs" class="form-group">
               <label for="name">Nom</label>
               <Field name="name" type="text" class="form-control" :class="{ 'is-invalid': errors.name }" id="name"
-                placeholder="Enter full name" required />
+                placeholder="Enter full name" required v-model="formValues.name"/>
               <span class="invalid-feedback">{{ errors.name }}</span>
             </div>
 
 
             <div v-else class="form-group">
               <label for="name">Professeurs</label>
-              <Field name="name" as="select" class="form-control" :class="{ 'is-invalid': errors.name }" id="name">
+              <Field name="name" v-model="formValues.name" as="select" class="form-control" :class="{ 'is-invalid': errors.name }" id="name">
                 <option v-if="!editing" value="">Sélectionner un professeur</option>
                 <option v-for="prof in profs" :key="prof.id"
                   :value="JSON.stringify({ id: prof.id, Prenom: prof.Prenom, Nom: prof.Nom })"
@@ -149,7 +149,7 @@
             <div class="form-group">
               <label for="email">Email</label>
               <Field name="email" type="email" class="form-control" :class="{ 'is-invalid': errors.email }" id="email"
-                placeholder="Enter email" required />
+                placeholder="Enter email" required v-model="formValues.email"/>
               <span class="invalid-feedback">{{ errors.email }}</span>
             </div>
             <div class="form-group">
@@ -222,7 +222,14 @@ import 'datatables.net';
 const toastr = useToastr();
 const users = ref([]);
 const editing = ref(false);
-const formValues = ref();
+const formValues = ref({
+  id: '',
+  name: '',
+  email: '',
+  role:'user',
+
+
+});
 const form = ref(null);
 const userIdBeingDeleted = ref(null);
 
@@ -253,6 +260,8 @@ let showMat = false;
 const cancelEdit = () => {
   editing.value = false;
   resetFormValues(); // Réinitialiser le formulaire
+  formValues.value.role = 'user';
+
   // Autres actions si nécessaire lors de l'annulation de la modification
 };
 
@@ -263,6 +272,7 @@ const resetFormValues = () => {
   selectedFiliere.value = '';
   selectedMatieres.value = [];
   selectedProfesseurs.value = [];
+
 
   // Autres remises à zéro si nécessaire
 };
@@ -555,7 +565,9 @@ const createUser = (values, { resetForm, setErrors }) => {
 
 const addUser = () => {
   editing.value = false;
-  resetFormValues();
+  formValues.value.role = 'user';
+
+//   resetFormValues();
   $('#userFormModal').modal('show');
 };
 
@@ -563,7 +575,7 @@ const addUser = () => {
 
 const editUser = (user) => {
   editing.value = true;
-  form.value.resetForm();
+//   form.value.resetForm();
 
 
   $('#userFormModal').modal('show');
@@ -591,6 +603,8 @@ const updateUser = (values, { setErrors }) => {
       setTimeout(() => {
         $('#userFormModal').modal('hide');
       }, 10);
+        resetFormValues();
+
       toastr.success('Utilisateur mis à jour avec succès !');
       getUsers(); // Mettre à jour la DataTable après la mise à jour
       //   location.reload(); // Rechargement de la page après la suppression

@@ -105,13 +105,19 @@
             <div v-if="IsAdmin" class="form-group">
               <label for="SommeApaye">Somme a payé</label>
               <Field name="SommeApaye" type="number" class="form-control" :class="{ 'is-invalid': errors.SommeApaye }"
-                id="SommeApaye" placeholder="Entrer somme a payé par mois" required />
+                id="SommeApaye" placeholder="Entrer somme a payé par mois" required v-model="formValues.SommeApaye"/>
+              <span class="invalid-feedback">{{ errors.SommeApaye }}</span>
+            </div>
+            <div v-else style="  display: none;" class="form-group">
+              <label for="SommeApaye">Somme a payé</label>
+              <Field name="SommeApaye" type="number" class="form-control" :class="{ 'is-invalid': errors.SommeApaye }"
+                id="SommeApaye" placeholder="Entrer somme a payé par mois" required v-model="formValues.SommeApaye"/>
               <span class="invalid-feedback">{{ errors.SommeApaye }}</span>
             </div>
             <div class="form-group">
               <label for="Montant">Somme payé</label>
               <Field name="Montant" type="number" class="form-control" :class="{ 'is-invalid': errors.Montant }"
-                id="Montant" placeholder="Entrer la somme payé" required />
+                id="Montant" placeholder="Entrer la somme payé" required v-model="formValues.Montant" />
               <span class="invalid-feedback">{{ errors.Montant }}</span>
             </div>
 
@@ -121,7 +127,7 @@
             <div class="form-group">
               <label for="DatePaiment">Date de paiement (mm/jj/aaaa)</label>
               <Field name="DatePaiment" type="date" class="form-control" :class="{ 'is-invalid': errors.DatePaiment }"
-                id="DatePaiment" placeholder="Entrer la date de paiment" required v-bind:value="getDefaultDate()" />
+                id="DatePaiment" placeholder="Entrer la date de paiment" required v-model="formValues.DatePaiment" />
               <span class="invalid-feedback">{{ errors.DatePaiment }}</span>
             </div>
 
@@ -158,7 +164,16 @@ import jsPDF from 'jspdf';
 
 const toastr = useToastr();
 const users = ref([]);
-const formValues = ref();
+const formValues = ref({
+  id: '',
+  nom: '',
+  prenom: '',
+  Etat: '',
+  SommeApaye: '',
+  Montant: '',
+  Reste: '',
+  DatePaiment: 'getDefaultDate()'
+});
 const form = ref(null);
 
 
@@ -354,7 +369,7 @@ const addUser = () => {
 
 
 const editUser = (user) => {
-  form.value.resetForm();
+//   form.value.resetForm();
   $('#userFormModal').modal('show');
 
   // Initialiser les valeurs pour Nom, Prenom, Etat, SommeApaye
