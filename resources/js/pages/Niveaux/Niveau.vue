@@ -94,9 +94,9 @@
             <!-- Formulaire pour ajouter un nouvel niveau -->
 
             <div class="form-group">
-              <label for="name">Nom</label>
+              <label for="name">Niveau</label>
               <Field name="Nom" type="text" class="form-control" :class="{ 'is-invalid': errors.Nom }" id="Nom"
-                placeholder="Entrer Nom" required />
+                placeholder="Entrer Niveau" required v-model="formValues.Nom"/>
               <span class="invalid-feedback">{{ errors.Nom }}</span>
             </div>
 
@@ -165,7 +165,12 @@ const users = ref([]);
 const IsAdmin = ref('');
 
 const editing = ref(false);
-const formValues = ref();
+const formValues = ref({
+  id: '',
+  Nom: '',
+
+
+});
 const form = ref(null);
 const userIdBeingDeleted = ref(null);
 
@@ -463,7 +468,7 @@ const addUser = () => {
 
 const editUser = (user) => {
   editing.value = true;
-  form.value.resetForm();
+//   form.value.resetForm();
   $('#userFormModal').modal('show');
 
   // Initialiser les valeurs pour Nom, Prenom, Telephone, Adresse
