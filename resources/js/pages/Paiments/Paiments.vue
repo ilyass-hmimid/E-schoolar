@@ -273,7 +273,7 @@ const initDataTable = () => {
     ],
     columnDefs: [
       {
-        targets: 2, // Indice de la colonne 'État de paiement'
+        targets: 6, // Indice de la colonne 'État de paiement'
         render: function (data, type, row) {
           if (data === 'Non payé') {
             return '<span style="color: red; font-weight: bold;">' + data + '</span>';
