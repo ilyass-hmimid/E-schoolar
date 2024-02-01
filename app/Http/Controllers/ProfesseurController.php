@@ -9,6 +9,8 @@ use App\Models\Filiere;
 use App\Models\Matiere;
 use App\Models\Valeurs_Salaires;
 use App\Models\Enseignement;
+use App\Models\Inscription;
+
 
 
 
@@ -281,7 +283,28 @@ class ProfesseurController extends Controller
 
     public function destoryEnseignement(Enseignement $user)
     {
+
+
+        $professeur = Professeur::where('id',$user->IdProf)->first();
+        $insc = Inscription::where('IdProf',$user->IdProf)->where('IdFil',$user->IdFil)->where('IdMat',$user->IdMat)->where('IdNiv',$user->IdNiv)->get();
+        foreach($insc as $ins){
+            $ins->update([
+                'IdProf' =>  Null,
+            ]);
+        }
         $user->delete();
+
+
+
+        $val_salaire = Enseignement::where('IdProf',$user->IdProf)->get();
+                $totalSalire=0;
+                foreach($val_salaire as $val){
+                    $totalSalire=$totalSalire+$val->Somme;
+
+                }
+                $professeur->update([
+                    'SommeApaye' =>  $totalSalire,
+                ]);
 
         return response()->noContent();
     }

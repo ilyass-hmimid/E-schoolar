@@ -293,10 +293,19 @@ return $prof->SommeApaye;
         // Récupérer tous les étudiants
         $users = Etudiant::latest()->get();
 
+
+
+
+
+
         // Initialiser le tableau résultat
         $result = [];
 
         foreach ($users as $user) {
+            $niveau = Niveau::find($user->IdNiv);
+            $filiere = Filiere::find($user->IdFil);
+            $matieres = $user->matieres()->pluck('Libelle')->toArray();
+            $professeurs = $user->professeurs()->pluck('Nom')->toArray();
             // Convertir la date sélectionnée en objet DateTime pour extraire le mois et l'année
             $dateAfficher = new DateTime($datePourAfficher);
             $mois = $dateAfficher->format('m'); // Mois de la date sélectionnée
@@ -314,6 +323,10 @@ return $prof->SommeApaye;
                     'id' => $user->id,
                     'Nom' => $user->Nom,
                     'Prenom' => $user->Prenom,
+                    'IdNiv' => $niveau ? $niveau->Nom : null,
+                    'IdFil' => $filiere ? $filiere->Intitule : null,
+                    'Matieres' => $matieres,
+                    'Professeurs' => $professeurs,
                     'SommeApaye' => $user->SommeApaye,
                     'Etat' => 'Non payé',
                     'Montant' => '0',
@@ -326,6 +339,10 @@ return $prof->SommeApaye;
                     'id' => $user->id,
                     'Nom' => $user->Nom,
                     'Prenom' => $user->Prenom,
+                    'IdNiv' => $niveau ? $niveau->Nom : null,
+                    'IdFil' => $filiere ? $filiere->Intitule : null,
+                    'Matieres' => $matieres,
+                    'Professeurs' => $professeurs,
                     'SommeApaye' => $user->SommeApaye,
                     'Etat' => $Paiment->Etat,
                     'Montant' => $Paiment->Montant,
@@ -505,6 +522,10 @@ return $prof->SommeApaye;
 
              if($index<count($professeurs)){
                 $professeur=Professeur::where('Nom',$professeurs[$index])->first();
+
+
+
+
                 Inscription::create([
                     'IdEtu' => $etudiant->id,
                     'IdMat' => $idMat,
@@ -513,7 +534,21 @@ return $prof->SommeApaye;
                     'IdFil' => $idFil,
                 ]);
 
-                $nbrEtus = $this->NbrEtuParProf($professeur->id,$idNiv,$idFil);
+                // else
+                // {
+                //     $existInsc->update([
+                //         'IdEtu' => $etudiant->id,
+                //         'IdMat' => $idMat,
+                //         'IdProf' => $professeur->id,
+                //         'IdNiv'=> $idNiv,
+                //         'IdFil' => $idFil,
+                //     ]);
+                // }
+
+
+
+
+                $nbrEtus = $this->NbrEtuParProf($professeur->id,$idNiv,$idFil,$idMat);
 
 
                 $val_salaire = Enseignement::where('IdProf',$professeur->id)->get();
@@ -562,10 +597,13 @@ return $prof->SommeApaye;
         ];
     }
 
-    public function NbrEtuParProf($IdProf,$idNiv,$idFil){
-        $insc = Inscription::where('IdProf',$IdProf)->where('IdNiv',$idNiv)->where('IdFil',$idFil)->get();
-        // dd(count($insc));
-        $enseignement = Enseignement::where('IdProf',$IdProf)->where('IdNiv',$idNiv)->where('IdFil',$idFil)->first();
+
+    public function NbrEtuParProf($IdProf,$idNiv,$idFil,$idMat){
+        $insc = Inscription::where('IdProf',$IdProf)->where('IdNiv',$idNiv)->where('IdFil',$idFil)->where('IdMat',$idMat)->get();
+        // dd($idNiv);
+        $enseignement = Enseignement::where('IdProf',$IdProf)->where('IdNiv',$idNiv)->where('IdFil',$idFil)->where('IdMat',$idMat)->first();
+        // dd($enseignement);
+
 if($enseignement){
         $enseignement->update([
             'NbrEtu' => count($insc),
@@ -575,6 +613,37 @@ if($enseignement){
 
        return $enseignement;
     }
+
+    public function deleteInsc($IdProf,$idNiv,$idFil,$idMat,$IdEtu){
+        $insc = Inscription::where('IdProf',$IdProf)->where('IdEtu',$IdEtu)->where('IdNiv',$idNiv)->where('IdFil',$idFil)->where('IdMat',$idMat)->first();
+
+
+if($insc){
+    $deleted=$insc->delete();
+    }
+
+       return $deleted;
+    }
+
+    public function DecNbrEtuParProf($IdProf,$idNiv,$idFil,$idMat){
+        $insc = Inscription::where('IdProf',$IdProf)->where('IdNiv',$idNiv)->where('IdFil',$idFil)->where('IdMat',$idMat)->get();
+        // dd(count($insc));
+        $enseignement = Enseignement::where('IdProf',$IdProf)->where('IdNiv',$idNiv)->where('IdFil',$idFil)->where('IdMat',$idMat)->first();
+if($enseignement){
+        $enseignement->update([
+            'NbrEtu' => count($insc)-1,
+
+        ]);
+    }
+
+       return $enseignement;
+    }
+
+
+
+
+
+
 
 
     public function updateMatiere(Matiere $user)
@@ -658,6 +727,10 @@ if($enseignement){
         $filiere = Filiere::where('Intitule', request('fil'))->first();
         $idFil = $filiere ? $filiere->id : null;
 
+        $matiere = Matiere::where('Libelle', request('matieres'))->first();
+        $idMat = $matiere ? $matiere->id : null;
+        // dd($idMat);
+
         // Récupération de l'étudiant
         $user = Etudiant::findOrFail($user->id);
         // dd($user);
@@ -669,6 +742,58 @@ if($enseignement){
 
         $dateDebut = request('Date_debut') . '-01'; // Ajoutez le jour 01 pour former une date complète au format YYYY-MM-DD
 
+        $inscription = Inscription::where('IdEtu', $user->id)->first();
+        // dd($inscription);
+
+
+        $NbrMat=0;
+
+
+        $inscDeleted= $this->deleteInsc($inscription->IdProf,$inscription->IdNiv,$inscription->IdFil,$inscription->IdMat,$user->id);
+
+        if($inscDeleted){
+        $nbrEtusDec = $this->NbrEtuParProf($inscription->IdProf,$inscription->IdNiv,$inscription->IdFil,$inscription->IdMat);
+        }
+
+
+        $matieres = request('matieres');
+        $professeurs = request('professeurs');
+       //  dd(count($professeurs));
+        foreach ($matieres as $index => $matiere) {
+            $matiere = Matiere::where('Libelle', $matiere)->first();
+            $idMat = $matiere ? $matiere->id : null;
+            $NbrMat = $NbrMat +1;
+
+            if($index<count($professeurs)){
+               $professeur=Professeur::where('Nom',$professeurs[$index])->first();
+
+
+
+
+               Inscription::create([
+                   'IdEtu' => $user->id,
+                   'IdMat' => $idMat,
+                   'IdProf' => $professeur->id,
+                   'IdNiv'=> $idNiv,
+                   'IdFil' => $idFil,
+               ]);
+
+                $nbrEtusIncFirst = $this->NbrEtuParProf($professeur->id,$idNiv,$idFil,$idMat);
+
+
+
+
+
+            }
+            else{
+            Inscription::create([
+                'IdEtu' => $user->id,
+                'IdMat' => $idMat,
+                'IdNiv'=> $idNiv,
+                'IdFil' => $idFil,
+            ]);
+           }
+        }
 
         // Vérifier si les matières ont été modifiées
         if (array_diff($currentMatieres, request('matieres')) || array_diff(request('matieres'), $currentMatieres)) {
@@ -704,14 +829,33 @@ if($enseignement){
             // Mise à jour des matières sélectionnées pour cet étudiant
             $user->matieres()->sync($matiereIds);
             $user->professeurs()->sync($professeurIds);
-            $this->AllNbrEtuParProf();
+            // $this->AllNbrEtuParProf();
+
+            $nbrEtusInc = $this->NbrEtuParProf($inscription->IdProf,$idNiv,$idFil,$idMat);
+
+
+
+        $professeur = Professeur::where('id',$inscription->IdProf)->first();
+
+
+
+        $val_salaire = Enseignement::where('IdProf',$inscription->IdProf)->get();
+                $totalSalire=0;
+                foreach($val_salaire as $val){
+                    $totalSalire=$totalSalire+$val->Somme;
+
+                }
+                $professeur->update([
+                    'SommeApaye' =>  $totalSalire,
+                ]);
+
 
 
         } else {
             // Si les matières n'ont pas été modifiées, procéder à la mise à jour des autres informations seulement
 
 
-
+            // $nbrEtusDec = $this->DecNbrEtuParProf($inscription->IdProf,$inscription->IdNiv,$inscription->IdFil,$inscription->IdMat);
 
 
             // Mise à jour des autres informations de l'étudiant
@@ -725,10 +869,33 @@ if($enseignement){
                 'Date_debut' => $dateDebut,
             ]);
 
+
+
             $professeurNames = request('professeurs');
             $professeurIds = Professeur::whereIn('Nom', $professeurNames)->pluck('id')->toArray();
             $user->professeurs()->sync($professeurIds);
-            $this->AllNbrEtuParProf();
+
+            $nbrEtusInc = $this->NbrEtuParProf($inscription->IdProf,$idNiv,$idFil,$idMat);
+            // dd($nbrEtusInc->NbrEtu);
+
+
+
+        $professeur = Professeur::where('id',$inscription->IdProf)->first();
+
+
+
+        $val_salaire = Enseignement::where('IdProf',$inscription->IdProf)->get();
+                $totalSalire=0;
+                foreach($val_salaire as $val){
+                    $totalSalire=$totalSalire+$val->Somme;
+
+                }
+                $professeur->update([
+                    'SommeApaye' =>  $totalSalire,
+                ]);
+
+
+            // $this->AllNbrEtuParProf();
         }
 
         return $user;
@@ -1207,9 +1374,26 @@ if($enseignement){
 
     public function destory(Etudiant $user)
     {
+        $inscription = Inscription::where('IdEtu', $user->id)->first();
+        $nbrEtusDec = $this->DecNbrEtuParProf($inscription->IdProf,$inscription->IdNiv,$inscription->IdFil,$inscription->IdMat);
 
+        $professeur = Professeur::where('id',$inscription->IdProf)->first();
         $user->delete();
-        $this->AllNbrEtuParProf();
+
+
+
+        $val_salaire = Enseignement::where('IdProf',$inscription->IdProf)->get();
+                $totalSalire=0;
+                foreach($val_salaire as $val){
+                    $totalSalire=$totalSalire+$val->Somme;
+
+                }
+                $professeur->update([
+                    'SommeApaye' =>  $totalSalire,
+                ]);
+
+
+        // $this->AllNbrEtuParProf();
 
         return response()->noContent();
     }

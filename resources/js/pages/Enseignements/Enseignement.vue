@@ -34,9 +34,9 @@
             <tr>
               <th>Nom</th>
               <th>Prenom</th>
-              <th>Niveaux</th>
-              <th>Filières</th>
-              <th>Matières</th>
+              <th>Niveau</th>
+              <th>Filière</th>
+              <th>Matière</th>
               <th>Nombre d'étudiants</th>
               <th>Salaire par étudiant</th>
               <th>Somme</th>

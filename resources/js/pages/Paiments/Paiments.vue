@@ -36,6 +36,10 @@
               <!-- <th>#</th> -->
               <th>Nom</th>
               <th>Prenom</th>
+              <th>Niveau</th>
+              <th>Filière</th>
+              <th>Matières</th>
+              <th>Professeurs</th>
               <th>État de paiement</th>
               <th>Somme à payé</th>
               <th>Montant payé</th>
@@ -51,6 +55,24 @@
               <!-- <td>{{ index + 1 }}</td> -->
               <td>{{ user.Nom }}</td>
               <td>{{ user.Prenom }}</td>
+              <td>{{ user.IdNiv }}</td>
+              <td>{{ user.IdFil }}</td>
+
+              <td>
+                <ul>
+                  <li v-for="matiere in user.Matieres" :key="matiere">
+                    {{ matiere }}
+                  </li>
+                </ul>
+              </td>
+
+              <td>
+                <ul>
+                  <li v-for="professeur in user.Professeurs" :key="professeur">
+                    {{ professeur }}
+                  </li>
+                </ul>
+              </td>
               <td v-if="user.Etat === 'Non payé'" style="color: red; font-weight: bold;">{{ user.Etat }}</td>
               <td v-else-if="user.Etat === 'Payé'" style="color: green; font-weight: bold;">{{ user.Etat }}</td>
               <td v-else-if="user.Etat === 'Payé et plus'" style="color: green; font-weight: bold;">{{ user.Etat }}</td>
@@ -227,6 +249,10 @@ const initDataTable = () => {
     columns: [
       { data: 'Nom' },
       { data: 'Prenom' },
+      { data: 'IdNiv' },
+      { data: 'IdFil' },
+      { data: 'Matieres' },
+      { data: 'Professeurs' },
       { data: 'Etat' },
       { data: 'SommeApaye' },
       { data: 'Montant' },
