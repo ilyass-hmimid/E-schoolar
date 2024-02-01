@@ -382,7 +382,7 @@ const updatePaiement = (values, { setErrors }) => {
       }, 10);
       toastr.success('Paiement mis à jour avec succès !');
       getUsers(); // Mettre à jour la DataTable après la mise à jour
-      //   location.reload(); // Rechargement de la page après la suppression
+        location.reload(); // Rechargement de la page après la suppression
     }).catch((error) => {
       setErrors(error.response.data.errors);
       console.log(error);

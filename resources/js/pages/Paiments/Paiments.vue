@@ -428,8 +428,16 @@ const updatePaiement = (values, { setErrors }) => {
       setTimeout(() => {
         $('#userFormModal').modal('hide');
       }, 10);
+      // Mettre à jour la DataTable après la mise à jour
+
       toastr.success('Paiement mis à jour avec succès !');
+
+
       getUsers(); // Mettre à jour la DataTable après la mise à jour
+      window.location.reload();
+
+
+
 
       // Après la mise à jour du paiement, générer le reçu de paiement PDF ici
       generateReceiptPDF(response.data); // Appelez la fonction pour générer le reçu PDF avec les données mises à jour
