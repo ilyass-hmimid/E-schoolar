@@ -38,6 +38,14 @@
                     {{ __('Forgot your password?') }}
                 </a>
             @endif
+            @if(session('logout'))
+    <script>
+        if (window.history.replaceState) {
+            window.history.replaceState(null, null, window.location.href);
+        }
+    </script>
+@endif
+
 
             <x-primary-button class="ml-3">
                 {{ __('Log in') }}

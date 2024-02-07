@@ -5,9 +5,9 @@
       <div class="row mb-2">
         <div class="col-sm-6" style="display: flex;
     justify-content: space-between;">
-          <h1 class="m-0" style="font-weight: 500 !important; ">Salaire du mois</h1>
+          <h1 class="m-0" style="font-weight: 600 !important; ">Salaire du mois</h1>
 
-          <Field style="width: 30% !important;" name="MoisPorAfficher" type="month" class="form-control"
+          <Field style="width: 44% !important;" name="MoisPorAfficher" type="month" class="form-control"
             id="selectedMonth" placeholder="Entrer la date de début" required :value="getDefaultMonth()"
             v-model="selectedMonth" @change="getRole" />
 
@@ -28,7 +28,7 @@
     <div class="container-fluid">
       <div style="display:flex;">
         <!-- <h3 style="color:#007bff; font-weight: bold;">Salaire attendu : {{ Salaire }} dh </h3> -->
-        <h3 style="color:green; font-weight: 700px;">Salaire actuel : {{ users.length > 0 ?
+        <h3 style="color:green; font-weight: 700px;">Actuelement : {{ users.length > 0 ?
           users[users.length - 1].SalaireActuelle + ' dh' : 'N/A' }}</h3>
       </div>
       <br>

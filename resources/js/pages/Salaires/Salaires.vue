@@ -37,7 +37,7 @@
               <th>Nom</th>
               <th>Prenom</th>
               <th>État de salaire</th>
-              <th>Somme à payé</th>
+              <th>Somme à payer</th>
               <th>Montant payé</th>
               <th>Reste a payé</th>
               <th>Date de salaire</th>
@@ -232,6 +232,7 @@ const initDataTable = () => {
           editBtn.classList.add('btn', 'btn-primary', 'btn-sm', 'edit-btn');
           editBtn.innerHTML = '<i class="fa fa-edit"></i>';
           editBtn.addEventListener('click', function () {
+            IsBigtable.value = true;
             editUser(row);
           });
           return editBtn.outerHTML;
@@ -254,6 +255,7 @@ const initDataTable = () => {
     ],
     createdRow: function (row, data, dataIndex) {
       $(row).find('.edit-btn').on('click', function () {
+        IsBigtable.value = true;
         editUser(data);
       });
     },
@@ -261,7 +263,7 @@ const initDataTable = () => {
   });
 };
 
-
+const IsBigtable = ref(false);
 
 
 
@@ -382,7 +384,10 @@ const updatePaiement = (values, { setErrors }) => {
       }, 10);
       toastr.success('Paiement mis à jour avec succès !');
       getUsers(); // Mettre à jour la DataTable après la mise à jour
-        location.reload(); // Rechargement de la page après la suppression
+        // location.reload(); // Rechargement de la page après la suppression
+        if(IsBigtable.value){ // Utiliser directement IsBigtable.value pour vérifier si la mise à jour provient de la DataTable
+        window.location.reload();
+      }
     }).catch((error) => {
       setErrors(error.response.data.errors);
       console.log(error);

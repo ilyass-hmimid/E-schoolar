@@ -23,6 +23,7 @@ class Absence extends Authenticatable
         'IdMat',
         'IdFil',
         'IdProf',
+        'IdNiv',
         'Status',
         'Date_absence',
 

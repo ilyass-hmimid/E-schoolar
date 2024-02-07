@@ -1,6 +1,170 @@
 
 <template>
 
+<div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6" style="display: flex;
+      justify-content: space-between;">
+            <h1 class="m-0" style="font-weight: 600 !important; ">Mes étudiants</h1>
+
+            <Field style="width: 40% !important;" name="MoisPorAfficher" type="date" class="form-control"
+    id="selectedMonth" placeholder="Entrer la date de début" required :value="getdate()"
+    v-model="selectedMonth" @change="getRole" />
+
+    <!-- <Field name="name" as="select" class="form-control"  id="EnseignementsProf">
+    <option v-for="prof in enseignements" :key="prof.id"
+        :value="JSON.stringify({ IdNiv: prof.IdProf, IdFil: prof.IdFil, IdMat: prof.IdMat })"
+        style="color: black !important;">
+        {{ prof.Prenom }} {{ prof.Nom }}
+    </option>
+</Field> -->
+
+
+          </div>
+
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <!-- <li class="breadcrumb-item"><a href="#">Home</a></li>
+     <li class="breadcrumb-item active">Etudiants</li> -->
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="content">
+      <div class="container-fluid">
+        <div style="display:flex;">
+          <!-- <h3 style="color:#007bff; font-weight: bold;">Salaire attendu : {{ Salaire }} dh </h3> -->
+          <!-- <h3 style="color:green; font-weight: 700px;">Salaire actuel : {{ users.length > 0 ?
+            users[users.length - 1].SalaireActuelle + ' dh' : 'N/A' }}</h3> -->
+        </div>
+        <br>
+
+        <div class="container"
+          style="overflow : auto !important; height:  calc(100vh - 176px) !important; max-width: 2040px !important;">
+
+          <table id="myTable" class="table table-striped table-bordered">
+            <thead>
+              <tr>
+                <!-- <th>#</th> -->
+                <th>Etudiant</th>
+                <th>Classe</th>
+                <th>État</th>
+                <!-- <th>Niveau</th>
+                <th>Filière</th>
+                <th>Matière</th> -->
+                <!-- <th>Date</th> -->
+                <!-- <th>Date de paiment</th> -->
+
+
+
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(user, index) in users" :key="user.id">
+                <!-- <td>{{ index + 1 }}</td> -->
+                <td>{{ user.Nom }}</td>
+                <td>{{ user.Filiere}}</td>
+                <td v-if="user.Etat === 'Absent'" style="color: red; font-weight: bold;">{{ user.Etat }}</td>
+                <td v-else style="color: green; font-weight: bold;">{{ user.Etat }}</td>
+                <!-- <td>{{ user.Montant }}</td>
+                <td>{{ user.Reste }}</td>
+                <td>{{ user.Matiere }}</td> -->
+                <!-- <td>{{ user.DatePaiment }} </td> -->
+
+
+                <!-- <td>{{ user.DatePaiment }}</td> -->
+                <!-- <td v-if="IsPresent"> -->
+                    <td v-if="user.Etat === 'Présent'">
+                  <a href="#" @click.prevent="MarquerAbsent(user)" class="btn btn-danger btn-sm">
+    <i class="fa fa-bell" ></i>
+  </a>
+</td>
+<td v-else>
+  <a href="#" @click.prevent="MarquerPresent(user)" class="btn btn-success btn-sm" >
+    <i class="fa fa-bell"></i>
+  </a></td>
+
+
+
+
+
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+
+
+
+      </div>
+    </div>
+
+
+    <!-- Modal pour ajouter un nouvel Etudiant -->
+    <div class="modal fade" id="userFormModal" tabindex="-1" role="dialog" aria-labelledby="userFormModalLabel"
+      aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content" style="margin-top: -28px !important;">
+          <div class="modal-header">
+            <h5 class="modal-title" id="userFormModalLabel">
+              <span>Effectuer un paiement</span>
+
+            </h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+
+
+          <!--The form is here => -->
+          <Form ref="form" @submit="handleSubmit" :validation-schema="createUserSchema" v-slot="{ errors }"
+            :initial-values="formValues">
+            <div class="modal-body">
+              <!-- Formulaire pour ajouter un nouvel Etudiant -->
+
+              <div class="form-group">
+                <label for="SommeApaye">Somme a payé</label>
+                <Field name="SommeApaye" type="number" class="form-control" :class="{ 'is-invalid': errors.SommeApaye }"
+                  id="SommeApaye" placeholder="Entrer somme a payé par mois" required />
+                <span class="invalid-feedback">{{ errors.SommeApaye }}</span>
+              </div>
+              <div class="form-group">
+                <label for="Montant">Somme payé</label>
+                <Field name="Montant" type="number" class="form-control" :class="{ 'is-invalid': errors.Montant }"
+                  id="Montant" placeholder="Entrer la somme payé" required />
+                <span class="invalid-feedback">{{ errors.Montant }}</span>
+              </div>
+
+
+
+
+              <div class="form-group">
+                <label for="DatePaiment">Date de paiement (mm/jj/aaaa)</label>
+                <Field name="DatePaiment" type="date" class="form-control" :class="{ 'is-invalid': errors.DatePaiment }"
+                  id="DatePaiment" placeholder="Entrer la date de paiment" required v-bind:value="getDefaultDate()" />
+                <span class="invalid-feedback">{{ errors.DatePaiment }}</span>
+              </div>
+
+
+
+            </div>
+            <div class="modal-footer">
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" @click="cancelEdit">Annuler</button>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+              </div>
+
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+
   </template>
 
 
@@ -31,6 +195,9 @@
 
   let showFiliere = false;
   const selectedMonth = ref(''); // Initialisez selectedMonth comme une référence avec une valeur initiale vide
+
+  const EnseignementsProf = ref(''); // Initialisez selectedMonth comme une référence avec une valeur initiale vide
+
 
 
   const cancelEdit = () => {
@@ -73,58 +240,67 @@
 
 
 
+const initDataTable = () => {
+  $('#myTable').DataTable({
+    ddom: 'Bfrtip',
+    sSwfPath: "http://datatables.net/release-datatables/extras/TableTools/media/swf/copy_csv_xls_pdf.swf",
+    buttons: ['excel', 'pdf'],
+    paging: true,
+    lengthChange: true,
+    columns: [
+      { data: 'Nom' },
+      { data: 'Filiere' },
+      { data: 'Etat' },
+      {
+        data: null,
+        render: function (data, type, row) {
+          const editBtn = document.createElement('button');
+          editBtn.classList.add('btn', 'btn-sm', 'edit-btn');
+          editBtn.innerHTML = '<i class="fa fa-bell"></i>';
+          editBtn.addEventListener('click', function () {
+            if (row.Etat === 'Absent') {
+              MarquerPresent(row);
+            } else {
+              MarquerAbsent(row);
+            }
+          });
 
+          if (row.Etat === 'Absent') {
+            editBtn.classList.add('btn-success');
+          } else {
+            editBtn.classList.add('btn-danger');
+          }
 
-  const initDataTable = () => {
-    $('#myTable').DataTable({
-      ddom: 'Bfrtip',
-      sSwfPath: "http://datatables.net/release-datatables/extras/TableTools/media/swf/copy_csv_xls_pdf.swf",
-      buttons: ['excel', 'pdf'],
-      paging: true,
-      lengthChange: true, // Force l'affichage des options de changement de longueur
-      columns: [
-        { data: 'Nom' },
-        //   { data: 'Prenom' },
-        { data: 'Etat' },
-        //   { data: 'Montant' },
-        //   { data: 'Reste' },
-        //   { data: 'Matiere' },
-        { data: 'SommeApaye' },
-        //   { data: 'DatePaiment' },
-        {
-          data: null,
-          render: function (data, type, row) {
-            const editBtn = document.createElement('button');
-            editBtn.classList.add('btn', 'btn-primary', 'btn-sm', 'edit-btn', 'hide-btn'); // Ajoutez la classe 'hide-btn'
-            editBtn.innerHTML = '<i class="fa fa-edit"></i>';
-            editBtn.addEventListener('click', function () {
-              editUser(row);
-            });
-            return editBtn.outerHTML;
+          return editBtn.outerHTML;
+        }
+      }
+    ],
+    columnDefs: [
+      {
+        targets: 2,
+        render: function (data, type, row) {
+          if (data === 'Absent') {
+            return '<span style="color: red; font-weight: bold;">' + data + '</span>';
+          } else {
+            return '<span style="color: green; font-weight: bold;">' + data + '</span>';
           }
         },
-
-      ],
-      columnDefs: [
-        {
-          targets: 1, // Indice de la colonne 'État de paiement'
-          render: function (data, type, row) {
-            if (data === 'Absent') {
-              return '<span style="color: red; font-weight: bold;">' + data + '</span>';
-            }  else {
-              return '<span style="color: green; font-weight: bold;">' + data + '</span>';
-            }
-          },
-        },
-      ],
-      createdRow: function (row, data, dataIndex) {
-        $(row).find('.edit-btn').on('click', function () {
-          editUser(data);
-        });
       },
-      data: users.value
-    });
-  };
+    ],
+    createdRow: function (row, data, dataIndex) {
+      const editBtn = $(row).find('.edit-btn');
+      editBtn.on('click', function () {
+        if (data.Etat === 'Absent') {
+          MarquerPresent(data);
+        } else {
+          MarquerAbsent(data);
+        }
+        location.reload();
+      });
+    },
+    data: users.value
+  });
+};
 
 
 
@@ -136,12 +312,16 @@
     const year = now.getFullYear().toString(); // Obtenir l'année actuelle
     return `${year}-${month}`; // Format YYYY-MM pour le champ month
   };
+  const ProfId = ref('');
+
 
   const getRole = () => {
     axios.get('/api/getIdProf')
       .then((response) => {
         getUsers(response.data);
         getEnseignementsParProf(response.data);
+        //console.log(response.data);
+        ProfId.value = response.data;
         // getSalaire(response.data);
       }
       )
@@ -288,13 +468,74 @@ axios.get('/api/EnseignementsParProf', { params: { id: id } })
           $('#userFormModal').modal('hide');
         }, 10);
         toastr.success('Paiement mis à jour avec succès !');
-        getUsers(); // Mettre à jour la DataTable après la mise à jour
+        getRole();
         //   location.reload(); // Rechargement de la page après la suppression
       }).catch((error) => {
         setErrors(error.response.data.errors);
         console.log(error);
       })
   };
+  const IsPresent = ref('true');
+
+
+
+  const MarquerAbsent = (user) => {
+// console.log(user);
+IsPresent.value = false;
+
+const dataToUpdate = {
+    data: user,
+    ProfId: ProfId.value,
+    selectedMonth: selectedMonth.value,
+
+
+  };
+
+    axios.put('/api/absence' , dataToUpdate)
+      .then((response) => {
+        const index = users.value.findIndex(user => user.id === response.data.id);
+        users.value[index] = response.data;
+        setTimeout(() => {
+          $('#userFormModal').modal('hide');
+        }, 10);
+        toastr.success('L\'bsence est marqué avec succès !');
+        getRole(); // Mettre à jour la DataTable après la mise à jour
+        //   location.reload(); // Rechargement de la page après la suppression
+      }).catch((error) => {
+        setErrors(error.response.data.errors);
+        console.log(error);
+      })
+  };
+
+
+  const MarquerPresent = (user) => {
+// console.log(user);
+IsPresent.value = true;
+
+const dataToUpdate = {
+    data: user,
+    ProfId: ProfId.value,
+    selectedMonth: selectedMonth.value,
+
+
+  };
+
+    axios.put('/api/presence' , dataToUpdate)
+      .then((response) => {
+        const index = users.value.findIndex(user => user.id === response.data.id);
+        users.value[index] = response.data;
+        setTimeout(() => {
+          $('#userFormModal').modal('hide');
+        }, 10);
+        toastr.success('La présence est marqué avec succès !');
+        getRole(); // Mettre à jour la DataTable après la mise à jour
+        //   location.reload(); // Rechargement de la page après la suppression
+      }).catch((error) => {
+        setErrors(error.response.data.errors);
+        console.log(error);
+      })
+  };
+
 
   const handleSubmit = (values, actions) => {
 

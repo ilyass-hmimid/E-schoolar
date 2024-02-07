@@ -21,6 +21,7 @@ class Paiment extends Authenticatable
 
      protected $fillable = [
         'Montant',
+        'SommeApaye',
         'Reste',
         'Etat',
         'Date_Paiment',

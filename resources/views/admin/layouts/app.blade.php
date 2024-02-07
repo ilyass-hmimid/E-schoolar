@@ -309,9 +309,9 @@ Dashboard
                                         @if(Auth::check() && Auth::user()->role == 'professeur')
                                         <li class="nav-item">
                                             <router-link to="/classes_professeur" active-class="active" class="nav-link">
-                                            <i class="nav-icon fas fa-school"></i>
+                                            <i class="nav-icon fas fa-users"></i>
                                             <p>
-                                                Mes classes
+                                                Mes étudiants
                                             </p>
                                             </router-link>
                                             </li>

@@ -192,10 +192,10 @@ return $prof->SommeApaye;
         $i=0;
 
 
-        dd($request->input('id'));
+        // dd($request->input('id'));
         $datePourAfficher = $request->input('date'); // Récupération du mois sélectionné depuis la requête
 
-        dd($datePourAfficher);
+        // dd($datePourAfficher);
 
 
         $EtusEnsParProf = Inscription::where('IdProf', $request->input('id'))->get();
@@ -224,10 +224,13 @@ return $prof->SommeApaye;
             $mois = $dateAfficher->format('m'); // Mois de la date sélectionnée
             $annee = $dateAfficher->format('Y'); // Année de la date sélectionnée
 
+            // dd($mois);
+
             // Vérifier s'il existe un paiement pour cet étudiant et ce mois
-            $Paiment = Paiment::where('IdEtu', $user->id)
-                ->whereRaw('MONTH(Date_Paiment) = ?', [$mois])
-                ->whereRaw('YEAR(Date_Paiment) = ?', [$annee])
+            $Paiment = Absence::where('IdEtu', $user->id)
+                    ->where('Date_absence',$datePourAfficher)
+                // ->whereRaw('MONTH(Date_absence) = ?', [$mois])
+                // ->whereRaw('YEAR(Date_absence) = ?', [$annee])
                 ->first();
 
             $ens = Enseignement::where('IdProf',$request->input('id'))
@@ -235,48 +238,46 @@ return $prof->SommeApaye;
                                 ->where('IdNiv',$user->IdNiv)
                                 ->where('IdFil',$user->IdFil)
                                 ->first();
-
-
+            // dd($user);
             $mati = Matiere::find($mats[$i]);
-            $nive= Niveau::find($user->IdNiv);
-            $fili= Filiere::find($user->IdFil);
+            $nive= Niveau::where('id',$user->IdNiv)->first();
+            $fili= Filiere::where('id',$user->IdFil)->first();
+
+            // dd($nive);
 
             $i=$i+1;
 
 
-
-
-
-
-
-            // if (!$Paiment) {
-            //     // Si aucun paiement trouvé, ajouter les détails par défaut
-            //     $result[] = [
-            //         'id' => $user->id,
-            //         'Nom' => $user->Nom,
-            //         'Prenom' => $user->Prenom,
-            //         'SommeApaye' => $ens->SalaireParEtu,
-            //         'Etat' => 'Non payé',
-            //         'Montant' => $nive->Nom,
-            //         'Reste' => $fili->Intitule,
-            //         'Matiere' => $mati->Libelle,
-            //         'DatePaiment' => '',
-            //         'SalaireActuelle' => $SalaireActuelle,
-            //     ];
-            // }
-            if($Paiment && $Paiment->Etat == 'Payé') {
+            if($Paiment && $Paiment->Status == 'Absent') {
                 // Si un paiement est trouvé, ajouter les détails du paiement
                 $result[] = [
                     'id' => $user->id,
                     'Nom' => $user->Nom . ' ' . $user->Prenom,
                     'Prenom' => $user->Prenom,
-                    'SommeApaye' => $ens->SalaireParEtu,
-                    'Etat' => $Paiment->Etat,
-                    'Montant' => $nive->Nom,
-                    'Reste' => $fili->Intitule,
-                    'Matiere' => $mati->Libelle,
-                    'DatePaiment' => $Paiment->Date_Paiment,
-                    'SalaireActuelle' => $SalaireActuelle,
+                    'Filiere' => $nive->Nom. "\n" .$fili->Intitule. "\n" .$mati->Libelle,
+                    // 'SommeApaye' => $ens->SalaireParEtu,
+                    'Etat' => $Paiment->Status,
+                    // 'Montant' => $nive->Nom,
+                    // 'Reste' => $fili->Intitule,
+                    // 'Matiere' => $mati->Libelle,
+                    'DatePaiment' => $Paiment->Date_absence,
+                ];
+            }
+
+            else {
+                // dd($nive->Nom);
+                $result[] = [
+                    'id' => $user->id,
+                    'Nom' => $user->Nom . ' ' . $user->Prenom,
+                    'Prenom' => $user->Prenom,
+                    'Filiere' => $nive->Nom. "\n" .$fili->Intitule. "\n" .$mati->Libelle,
+                    // 'SommeApaye' => $ens->SalaireParEtu,
+                    'Etat' => 'Présent',
+                    // 'Montant' => $nive->Nom,
+                    // 'Reste' => $fili->Intitule,
+                    // 'Matiere' => $mati->Libelle,
+                    'DatePaiment' => '',
+                    // 'SalaireActuelle' => $SalaireActuelle,
                 ];
             }
         }
@@ -289,9 +290,11 @@ return $prof->SommeApaye;
     public function getUsersForPaiment(Request $request)
     {
         $datePourAfficher = $request->input('date'); // Récupération du mois sélectionné depuis la requête
+        // dd($datePourAfficher);
 
-        // Récupérer tous les étudiants
-        $users = Etudiant::latest()->get();
+        // Récupérer tous les étudiants avec une Date_debut inférieure ou égale à $datePourAfficher
+        $users = Etudiant::whereRaw('DATE_FORMAT(Date_debut, "%Y-%m") <= ?', [$datePourAfficher])->latest()->get();
+
 
 
 
@@ -343,7 +346,7 @@ return $prof->SommeApaye;
                     'IdFil' => $filiere ? $filiere->Intitule : null,
                     'Matieres' => $matieres,
                     'Professeurs' => $professeurs,
-                    'SommeApaye' => $user->SommeApaye,
+                    'SommeApaye' => $Paiment->SommeApaye ? $Paiment->SommeApaye : $user->SommeApaye,
                     'Etat' => $Paiment->Etat,
                     'Montant' => $Paiment->Montant,
                     'Reste' => $Paiment->Reste,
@@ -793,7 +796,30 @@ if($enseignement){
                 'IdFil' => $idFil,
             ]);
            }
+           $valeur_paiment = Valeurs_Paiments::where('IdNiv', $idNiv)->where('NbrMat', $NbrMat)->first();
+           $paiment = Paiment::where('IdEtu',$user->id)->get();
+        //    dd($paiment);
+           foreach($paiment as $p){
+
+            // dd($user->SommeApaye);
+            $p->update([
+                'SommeApaye' => $user->SommeApaye,
+            ]);
+            // dd($p->SommeApaye);
+           }
+
+
+
+           $user->update([
+           'SommeApaye' => $valeur_paiment->Valeur,
+       ]);
+
+
         }
+
+
+
+
 
         // Vérifier si les matières ont été modifiées
         if (array_diff($currentMatieres, request('matieres')) || array_diff(request('matieres'), $currentMatieres)) {
@@ -902,9 +928,118 @@ if($enseignement){
     }
 
 
+    public function marquerPresence(Request $request)
+    {
+
+       // Récupérez toutes les données envoyées via la requête
+       $data = $request->all();
+    //    dd($data);
+
+       $filiere_infos = explode("\n", $data['data']["Filiere"]);
+
+       $niv = $filiere_infos[0];
+       $fili = $filiere_infos[1];
+       $mat = $filiere_infos[2];
+
+       $filiere = Filiere::where('Intitule', $fili)->first();
+
+        $niveau = Niveau::where('Nom', $niv)->first();
+        $matiere = Matiere::where('Libelle', $mat)->first();
+
+       $IdProf = $data['ProfId'];
+
+       $date = $data['selectedMonth'];
+    //    dd($data['data']["id"]);
+
+
+       $absence=Absence::where('IdEtu', $data['data']["id"])
+                    ->where('IdMat',$matiere->id)
+                    ->where('IdFil',$filiere->id)
+                    ->where('IdProf',$IdProf)
+                    ->where('IdNiv',$niveau->id)
+                    ->where('Date_absence',$date)
+                    ->first();
+                    // dd($absence);
+        if($absence){
+            $absence->update([
+                'Status' => 'Présent',
+            ]);
+        }
+        else
+        {
+       $absence=Absence::create([
+        'IdEtu' =>  $data['data']["id"],
+        'IdMat' => $matiere->id,
+        'IdFil' => $filiere->id,
+        'IdProf' => $IdProf,
+        'IdNiv' => $niveau->id,
+        'Status' => 'Présent',
+        'Date_absence' => $date,
+
+    ]);
+     }
 
 
 
+
+    }
+
+
+    public function marquerAbsence(Request $request)
+    {
+
+       // Récupérez toutes les données envoyées via la requête
+       $data = $request->all();
+    //    dd($data);
+
+       $filiere_infos = explode("\n", $data['data']["Filiere"]);
+
+       $niv = $filiere_infos[0];
+       $fili = $filiere_infos[1];
+       $mat = $filiere_infos[2];
+
+       $filiere = Filiere::where('Intitule', $fili)->first();
+
+        $niveau = Niveau::where('Nom', $niv)->first();
+        $matiere = Matiere::where('Libelle', $mat)->first();
+
+       $IdProf = $data['ProfId'];
+
+       $date = $data['selectedMonth'];
+    //    dd($data['data']["id"]);
+
+
+       $absence=Absence::where('IdEtu', $data['data']["id"])
+                    ->where('IdMat',$matiere->id)
+                    ->where('IdFil',$filiere->id)
+                    ->where('IdProf',$IdProf)
+                    ->where('IdNiv',$niveau->id)
+                    ->where('Date_absence',$date)
+                    ->first();
+                    // dd($absence);
+        if($absence){
+            $absence->update([
+                'Status' => 'Absent',
+            ]);
+        }
+        else
+        {
+       $absence=Absence::create([
+        'IdEtu' =>  $data['data']["id"],
+        'IdMat' => $matiere->id,
+        'IdFil' => $filiere->id,
+        'IdProf' => $IdProf,
+        'IdNiv' => $niveau->id,
+        'Status' => 'Absent',
+        'Date_absence' => $date,
+
+    ]);
+     }
+
+
+
+
+    }
 
 
     public function effectuerPaiement(Etudiant $user)

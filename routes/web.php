@@ -30,22 +30,33 @@ use Illuminate\Support\Facades\Session;
 //     })->where('any', '.*');
 // });
 
+// Route::get('/', function () {
+//     // Vérifier si l'utilisateur est authentifié
+//     if (auth()->check()) {
+//         // Rediriger l'utilisateur vers la dernière page active ou vers /home par défaut
+//         // $previousUrl = Session::get(auth()->id() . '_url.intended', '/home');
+//         $previousUrl = Session::get(auth()->id() . '/home', '/home');
+//         Session::forget(auth()->id() . '_url.intended'); // Effacer la session après utilisation
+//         return redirect()->to($previousUrl);
+//     } else {
+//         // S'il n'est pas authentifié, enregistrer l'URL précédente dans la session
+//         // $currentUserKey = auth()->id() . '_url.intended';
+//         $currentUserKey = auth()->id() . '/home';
+//         Session::put($currentUserKey, url()->previous());
+//         return view('auth.login');
+//     }
+// })->middleware('auth');
+
+
 Route::get('/', function () {
-    // Vérifier si l'utilisateur est authentifié
     if (auth()->check()) {
-        // Rediriger l'utilisateur vers la dernière page active ou vers /home par défaut
-        $previousUrl = Session::get(auth()->id() . '_url.intended', '/home');
-        Session::forget(auth()->id() . '_url.intended'); // Effacer la session après utilisation
-        return redirect()->to($previousUrl);
+        return redirect()->route('home'); // Rediriger vers la page de tableau de bord si authentifié
     } else {
-        // S'il n'est pas authentifié, enregistrer l'URL précédente dans la session
-        $currentUserKey = auth()->id() . '_url.intended';
-        Session::put($currentUserKey, url()->previous());
         return view('auth.login');
     }
-})->middleware('auth');
+})->name('home'); // Nommez la route pour référence future
 
-
+// Supprimez la partie qui enregistre l'URL précédente dans la session
 
 
 
@@ -153,8 +164,11 @@ Route::put('/api/etudiants/{user}', [CentreController::class, 'update']);
 Route::put('/api/professeurs/{user}', [ProfesseurController::class, 'update']);
 Route::put('/api/valeurs_paiments', [CentreController::class, 'updateValPaiment']);
 Route::put('/api/valeurs_salaires', [CentreController::class, 'updateValSalaire']);
-
 Route::put('/api/paiements/{user}', [CentreController::class, 'effectuerPaiement']);
+Route::put('/api/absence', [CentreController::class, 'marquerAbsence']);
+Route::put('/api/presence', [CentreController::class, 'marquerPresence']);
+
+
 Route::put('/api/salaires/{user}', [CentreController::class, 'effectuerSalaire']);
 Route::put('/api/enseignements/{user}', [ProfesseurController::class, 'updateEnseignement']);
 

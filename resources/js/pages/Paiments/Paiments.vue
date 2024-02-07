@@ -287,12 +287,20 @@ const initDataTable = () => {
     ],
     createdRow: function (row, data, dataIndex) {
       $(row).find('.edit-btn').on('click', function () {
+        IsBigtable.value = true;
         editUser(data);
+
+
       });
+    //   location.reload();
+
+
     },
     data: users.value
   });
 };
+
+const IsBigtable = ref(false);
 
 
 const IsAdmin = ref('');
@@ -345,26 +353,6 @@ const updateValuesPeriodically = () => {
     getUsers();
   }, 5000000);
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 const createUserSchema = yup.object({
 
@@ -434,8 +422,9 @@ const updatePaiement = (values, { setErrors }) => {
 
 
       getUsers(); // Mettre à jour la DataTable après la mise à jour
-      window.location.reload();
-
+      if(IsBigtable.value){ // Utiliser directement IsBigtable.value pour vérifier si la mise à jour provient de la DataTable
+        window.location.reload();
+      }
 
 
 

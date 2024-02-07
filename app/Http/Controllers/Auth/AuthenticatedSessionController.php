@@ -36,13 +36,20 @@ class AuthenticatedSessionController extends Controller
      * Destroy an authenticated session.
      */
     public function destroy(Request $request): RedirectResponse
-    {
-        Auth::guard('web')->logout();
+{
+    Auth::guard('web')->logout();
 
-        $request->session()->invalidate();
+    $request->session()->invalidate();
 
-        $request->session()->regenerateToken();
+        // Récupérer tous les cookies de la requête
+    $cookies = $request->cookies->all();
 
-        return redirect('/');
+    // Supprimer tous les cookies un par un
+    foreach ($cookies as $name => $value) {
+        $request->session()->forget($name);
     }
+
+    return redirect()->route('login')->with('logout', true); // Rediriger vers la page de connexion
+}
+
 }

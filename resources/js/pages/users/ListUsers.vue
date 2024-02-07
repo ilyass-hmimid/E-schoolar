@@ -337,6 +337,7 @@ const initDataTable = () => {
           editBtn.classList.add('btn', 'btn-primary', 'btn-sm', 'edit-btn');
           editBtn.innerHTML = '<i class="fa fa-edit"></i>';
           editBtn.addEventListener('click', function () {
+            IsBigtable.value = true;
             editUser(rowData);
           });
           cell.innerHTML = '';
@@ -353,6 +354,7 @@ const initDataTable = () => {
           deleteBtn.classList.add('btn', 'btn-danger', 'btn-sm', 'delete-btn');
           deleteBtn.innerHTML = '<i class="fa fa-trash"></i>';
           deleteBtn.addEventListener('click', function () {
+            IsBigtable.value = true;
             confirmUserDeletion(rowData);
           });
           cell.innerHTML = '';
@@ -364,7 +366,7 @@ const initDataTable = () => {
   });
 };
 
-
+const IsBigtable = ref(false);
 
 
 
@@ -607,6 +609,9 @@ const updateUser = (values, { setErrors }) => {
 
       toastr.success('Utilisateur mis à jour avec succès !');
       getUsers(); // Mettre à jour la DataTable après la mise à jour
+      if(IsBigtable.value){ // Utiliser directement IsBigtable.value pour vérifier si la mise à jour provient de la DataTable
+        window.location.reload();
+      }
       //   location.reload(); // Rechargement de la page après la suppression
     }).catch((error) => {
       setErrors(error.response.data.errors);
@@ -638,6 +643,9 @@ const deleteUser = () => {
       users.value = users.value.filter(user => user.id !== userIdBeingDeleted.value);
       userIdBeingDeleted.value = null;
       getUsers(); // Mettre à jour la DataTable après la suppression
+      if(IsBigtable.value){ // Utiliser directement IsBigtable.value pour vérifier si la mise à jour provient de la DataTable
+        window.location.reload();
+      }
       //   location.reload(); // Rechargement de la page après la suppression
     })
     .catch((error) => {
