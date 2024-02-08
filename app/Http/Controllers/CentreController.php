@@ -78,6 +78,41 @@ return $prof->SommeApaye;
 
 
 
+    public function getListeAbsences()
+    {
+        $users = Absence::where('Status','Absent')->get()->map(function ($user){
+            // dd($user);
+            $etudiant = Etudiant::find($user->IdEtu);
+            $niv= Niveau::find($user->IdNiv);
+            $fil=Filiere::find($user->IdFil);
+            $mat=Matiere::find($user->IdMat);
+            $prof=Professeur::find($user->IdProf);
+
+
+
+
+
+            return [
+                'id' => $user->id,
+                'Nom' => $etudiant->Nom,
+                'Prenom' => $etudiant->Prenom,
+                'Tele' => $etudiant->Tele,
+                'Adresse' => $etudiant->Adresse,
+                // 'SommeApaye' => $user->SommeApaye,
+                'IdNiv' => $niv->Nom,
+                'IdFil' => $fil->Intitule,
+                'Matieres' => $mat->Libelle,
+                'Professeurs' => $prof->Nom .' '. $prof->Prenom,
+                'Date_debut' => $user->Date_absence,
+                'created_at' => $user->created_at ? $user->created_at->format(config('app.date_format')) : null,
+            ];
+        });
+
+        return response()->json($users, 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+
+
     public function getEnseignementsParProf(Request $request)
 {
     $enseignements = Enseignement::find($request->input('id'))->get();

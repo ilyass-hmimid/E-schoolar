@@ -17,6 +17,8 @@ import Filieres from "./pages/Filieres/Filiere.vue";
 import Home from "./pages/Home/Home.vue";
 import EspaceProfesseur from "./pages/EspaceProfesseur/EspaceProfesseur.vue";
 import ClassesProfesseur from "./pages/ClassesProfesseurs/ClassesProfesseur.vue";
+import ListeAbsences from "./pages/ListeAbsences/ListeAbsences.vue";
+
 
 
 
@@ -97,6 +99,13 @@ const routes = [
         path: '/salaires',
         name: 'salaires',
         component: Salaires,
+        meta: { requiresAuth: true },
+
+    },
+    {
+        path: '/liste_absence',
+        name: 'liste_absenc',
+        component: ListeAbsences,
         meta: { requiresAuth: true },
 
     },

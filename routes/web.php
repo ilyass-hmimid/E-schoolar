@@ -54,7 +54,7 @@ Route::get('/', function () {
     } else {
         return view('auth.login');
     }
-})->name('home'); // Nommez la route pour référence future
+})->name('home');
 
 // Supprimez la partie qui enregistre l'URL précédente dans la session
 
@@ -111,8 +111,9 @@ Route::get('/api/getIdProf', [UserController::class, 'IdProf']);
 Route::get('/api/salaireProf', [CentreController::class, 'getSlaireForProf']);
 
 
-
 Route::get('/api/etudiants', [CentreController::class, 'index']);
+Route::get('/api/ListeAbsences', [CentreController::class, 'getListeAbsences']);
+
 Route::get('/api/etudiantsForPaiment', [CentreController::class, 'getUsersForPaiment']);
 Route::get('/api/etudiantsForProf', [CentreController::class, 'getUsersForProf']);
 Route::get('/api/etudiantsForProfForAbsence', [CentreController::class, 'getUsersForProfForAbsence']);

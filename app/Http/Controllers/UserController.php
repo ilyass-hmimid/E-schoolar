@@ -52,7 +52,10 @@ class UserController extends Controller
         }
         else{$prenom=request('name');$id=null;}
 
-
+                if(User::where('name',$prenom)->where('role',request('role'))->where('IdProf',$id)->first())
+                {
+                    return 0;
+                }
                 return User::create([
                     'name' => $prenom, // Stocker seulement le prénom dans la base de données
                     'role' => request('role'),

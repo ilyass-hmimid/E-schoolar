@@ -554,7 +554,12 @@ const createUser = (values, { resetForm, setErrors }) => {
         $('#userFormModal').modal('hide');
       }, 10);
       resetForm();
+      if(response.data){
       toastr.success('Utilisateur créé avec succès !');
+      }
+      else{
+        toastr.error('Utilisateur déja exister !');
+      }
       getUsers(); // Mettre à jour la DataTable après la création
       //   location.reload(); // Rechargement de la page après la suppression
     })

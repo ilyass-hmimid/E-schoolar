@@ -29,7 +29,7 @@
       <div style="display:flex;">
         <!-- <h3 style="color:#007bff; font-weight: bold;">Salaire attendu : {{ Salaire }} dh </h3> -->
         <h3 style="color:green; font-weight: 700px;">Actuelement : {{ users.length > 0 ?
-          users[users.length - 1].SalaireActuelle + ' dh' : 'N/A' }}</h3>
+          users[users.length - 1].SalaireActuelle + ' dh' : '0 dh' }}</h3>
       </div>
       <br>
 

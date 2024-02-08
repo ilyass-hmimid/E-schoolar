@@ -235,6 +235,18 @@ Dashboard
                 </li>
                 @endif
 
+                @if(Auth::check() && (Auth::user()->role == 'admin' || Auth::user()->role == 'admin_assistant'))
+                <li class="nav-item">
+                    <router-link to="/liste_absence" active-class="active" class="nav-link">
+                    <i class="nav-icon fas fa-users-slash"></i>
+                    <p>
+                       Absences
+                    </p>
+                    </router-link>
+                    </li>
+                    @endif
+
+
 
                 @if(Auth::check() && (Auth::user()->role == 'admin' || Auth::user()->role == 'admin_assistant'))
                 <li class="nav-item">
@@ -403,16 +415,29 @@ Dashboard
 
                     {{-- @auth --}}
                     <li class="nav-item">
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <a href="{{ route('logout') }}" onclick="event.preventDefault(); this.closest('form').submit();" class="nav-link nav-link-hover">
-                                <i class="nav-icon fas fa-sign-out-alt"></i>
-                                <p>
-                                    Déconnexion
-                                </p>
-                            </a>
-                        </form>
+                        <a href="#" onclick="confirmLogout(event)" class="nav-link nav-link-hover">
+                            <i class="nav-icon fas fa-sign-out-alt"></i>
+                            <p>
+                                Déconnexion
+                            </p>
+                        </a>
                     </li>
+
+                    <script>
+                        function confirmLogout(event) {
+                            event.preventDefault();
+
+                            if (confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) {
+                                // Si l'utilisateur confirme, soumettez le formulaire de déconnexion
+                                document.querySelector('#logout-form').submit();
+                            }
+                        }
+                    </script>
+
+                    <form id="logout-form" method="POST" action="{{ route('logout') }}" style="display: none;">
+                        @csrf
+                    </form>
+
                     {{-- @endauth --}}
 
 

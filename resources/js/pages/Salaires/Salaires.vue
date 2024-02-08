@@ -382,7 +382,7 @@ const updatePaiement = (values, { setErrors }) => {
       setTimeout(() => {
         $('#userFormModal').modal('hide');
       }, 10);
-      toastr.success('Paiement mis à jour avec succès !');
+      toastr.success('Salaire mis à jour avec succès !');
       getUsers(); // Mettre à jour la DataTable après la mise à jour
         // location.reload(); // Rechargement de la page après la suppression
         if(IsBigtable.value){ // Utiliser directement IsBigtable.value pour vérifier si la mise à jour provient de la DataTable
