@@ -41,6 +41,7 @@
                 <th>Matière</th>
                 <th>Professeur</th>
                 <th>Date d'absence</th>
+                <th>Whatsapp</th>
                 <!-- <th>Date de début</th> -->
 
               </tr>
@@ -56,8 +57,8 @@
                 <td>{{ user.IdFil }}</td>
                 <td>{{ user.Matieres }}</td>
                 <td>{{ user.Professeurs }}</td>
-                <td>{{ user.created_at }}</td>
                 <td v-if="user.Date_debut == ''"></td>
+                <td><a href="https://wa.me/+2120681328800?text=السلام%20عليكم%2" target="_blank">Logo Whatsapp</a></td>
                 <!-- <td v-else>{{ user.Date_debut }}</td> -->
                 <!-- <td>
                   <a href="#" @click.prevent="editUser(user)" class="btn btn-primary btn-sm">
