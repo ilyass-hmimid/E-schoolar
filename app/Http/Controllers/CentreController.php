@@ -401,8 +401,7 @@ return $prof->SommeApaye;
         $datePourAfficher = $request->input('date'); // Récupération du mois sélectionné depuis la requête
 
         // Récupérer tous les étudiants
-        $users = Professeur::latest()->get();
-
+        $users = Professeur::whereRaw('DATE_FORMAT(Date_debut, "%Y-%m") <= ?', [$datePourAfficher])->latest()->get();
 
 
         // Initialiser le tableau résultat
