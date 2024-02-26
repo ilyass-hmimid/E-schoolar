@@ -32,12 +32,12 @@
         <table id="myTable" class="table table-striped table-bordered">
           <thead>
             <tr>
-              <th>Nom</th>
-              <th>Prenom</th>
+              <th>Nom Prof</th>
+              <th>Prenom Prof</th>
               <th>Niveau</th>
               <th>Filière</th>
               <th>Matière</th>
-              <th>Nombre d'étudiants</th>
+              <th>Nombre d'étudiants enseigné</th>
               <th>Salaire par étudiant</th>
               <th>Somme</th>
               <th>Date de début</th>

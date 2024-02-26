@@ -1,6 +1,9 @@
 <?php
 
 namespace App\Http\Controllers;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+
 
 use App\Models\User;
 use App\Models\Etudiant;
@@ -104,7 +107,7 @@ return $prof->SommeApaye;
                 'Matieres' => $mat->Libelle,
                 'Professeurs' => $prof->Nom .' '. $prof->Prenom,
                 'Date_debut' => $user->Date_absence,
-                'created_at' => $user->created_at ? $user->created_at->format(config('app.date_format')) : null,
+                'created_at' => '',
             ];
         });
 
@@ -182,7 +185,10 @@ return $prof->SommeApaye;
             }
 
 
-
+            $Salaire = Salaires::where('IdProf', $request->input('id'))
+            ->whereRaw('MONTH(Date_Salaire) = ?', [$mois])
+            ->whereRaw('YEAR(Date_Salaire) = ?', [$annee])
+            ->first();
 
 
             // if (!$Paiment) {
@@ -200,6 +206,7 @@ return $prof->SommeApaye;
             //         'SalaireActuelle' => $SalaireActuelle,
             //     ];
             // }
+            // dd($Salaire);
             if($Paiment && $Paiment->Etat == 'Payé') {
                 // Si un paiement est trouvé, ajouter les détails du paiement
                 $result[] = [
@@ -209,10 +216,12 @@ return $prof->SommeApaye;
                     'SommeApaye' => $ens->SalaireParEtu,
                     'Etat' => $Paiment->Etat,
                     'Montant' => $nive->Nom,
+                    // 'Montant_actuel' => $Salaire->Montant_actuel !== null ? $Salaire->Montant_actuel : 0,
                     'Reste' => $fili->Intitule,
                     'Matiere' => $mati->Libelle,
                     'DatePaiment' => $Paiment->Date_Paiment,
-                    'SalaireActuelle' => $SalaireActuelle,
+                    // 'SalaireActuelle' => $SalaireActuelle,
+                    'SalaireActuelle' => $Salaire->Montant_actuel !== null ? $Salaire->Montant_actuel : 0,
                 ];
             }
         }
@@ -393,6 +402,58 @@ return $prof->SommeApaye;
         return response()->json($result, 200, [], JSON_UNESCAPED_UNICODE);
     }
 
+    public function ModificationTotalProvisoir()
+    {
+        $profs = Professeur::orderBy('created_at', 'desc')->get();
+
+        foreach ($profs as $professeur) {
+            // Calcul du total des salaires pour le professeur
+            $totalSalire = Enseignement::where('IdProf', $professeur->id)->sum('Somme');
+
+            // Mise à jour du champ 'SommeApaye' du professeur
+            $professeur->update([
+                'SommeApaye' =>  $totalSalire,
+            ]);
+
+            // Récupération des inscriptions du professeur
+            $inscriptions = Inscription::where('IdProf', $professeur->id)->get();
+
+            // Récupération des salaires non payés du professeur
+            $salaires = Salaires::where('IdProf', $professeur->id)->where('Etat', 'Non payé')->get();
+
+            foreach ($salaires as $salaire) {
+                $totalPaiements = 0;
+
+                foreach ($inscriptions as $inscription) {
+                    // Recherche du paiement pour cette inscription et ce mois
+                    $paiment = Paiment::where('IdEtu', $inscription->IdEtu)
+                        ->whereYear('Date_Paiment', date('Y', strtotime($salaire->Date_Salaire)))
+                        ->whereMonth('Date_Paiment', date('m', strtotime($salaire->Date_Salaire)))
+                        ->first();
+
+                    // Vérification de l'existence du paiement et de son état
+                    if ($paiment && $paiment->Etat == 'Payé') {
+                        // Calcul du total des paiements pour ce mois
+                        $enseignement = Enseignement::where('IdProf', $professeur->id)
+                            ->where('IdFil', $inscription->IdFil)
+                            ->where('IdMat', $inscription->IdMat)
+                            ->where('IdNiv', $inscription->IdNiv)
+                            ->first();
+
+                        $totalPaiements += $enseignement->SalaireParEtu;
+                    }
+                }
+
+                // Mise à jour du salaire avec le reste à payer et le total des paiements
+                $salaire->update([
+                    'Reste' => $professeur->SommeApaye,
+                    'Montant_actuel' => $totalPaiements,
+                ]);
+            }
+        }
+    }
+
+
 
 
     public function getUsersForSalaire(Request $request)
@@ -404,10 +465,6 @@ return $prof->SommeApaye;
         // $users = Professeur::whereRaw('DATE_FORMAT(Date_debut, "%Y-%m") <= ?', [$datePourAfficher])->latest()->get();
         // $users = Professeur::latest()->get();
         $users = Professeur::whereRaw('DATE_FORMAT(Date_debut, "%Y-%m") <= ?', [$datePourAfficher])->latest()->get();
-
-
-
-
 
         // Initialiser le tableau résultat
         $result = [];
@@ -424,6 +481,7 @@ return $prof->SommeApaye;
                 ->whereRaw('YEAR(Date_Salaire) = ?', [$annee])
                 ->first();
 
+
             if (!$Salaire) {
                 // Si aucun paiement trouvé, ajouter les détails par défaut
                 $result[] = [
@@ -433,10 +491,18 @@ return $prof->SommeApaye;
                     'SommeApaye' => $user->SommeApaye,
                     'Etat' => 'Non payé',
                     'Montant' => '0',
+                    'Montant_actuel' => '0',
                     'Reste' => $user->SommeApaye,
                     'DatePaiment' => '',
                 ];
             } else {
+                if(($Salaire->Etat == 'Non payé') && ($Salaire->Reste < $Salaire->Montant_actuel))
+                {
+                    $Salaire->update([
+                                'Reste' => $Salaire->Montant_actuel,
+                            ]);
+                }
+
                 // Si un paiement est trouvé, ajouter les détails du paiement
                 $result[] = [
                     'id' => $user->id,
@@ -445,6 +511,7 @@ return $prof->SommeApaye;
                     'SommeApaye' => $user->SommeApaye,
                     'Etat' => $Salaire->Etat,
                     'Montant' => $Salaire->Montant,
+                    'Montant_actuel' => $Salaire->Montant_actuel !== null ? $Salaire->Montant_actuel : 0,
                     'Reste' => $Salaire->Reste,
                     'DatePaiment' => $Salaire->Date_Salaire,
                 ];
@@ -602,6 +669,47 @@ return $prof->SommeApaye;
                 $professeur->update([
                     'SommeApaye' =>  $totalSalire,
                 ]);
+
+                //debut de modification de reste dans la table salaire
+
+
+
+
+                $datePourAfficher = $dateDebut; // Récupération du mois sélectionné depuis la requête
+                $dateAfficher = new DateTime($datePourAfficher);
+                $mois = $dateAfficher->format('m'); // Mois de la date sélectionnée
+                $annee = $dateAfficher->format('Y'); // Année de la date sélectionnée
+
+                $inscriptions = Inscription::where('IdEtu',$etudiant->id)->get();
+                // dd($inscriptions);
+                foreach($inscriptions as $insc){
+                    $enseignement = Enseignement::where('IdProf',$insc->IdProf)->where('IdFil',$insc->IdFil)
+                    ->where('IdMat',$insc->IdNiv)->where('IdNiv',$insc->IdNiv)->first();
+                    // dd($insc->IdProf);
+
+                    $Salaire = Salaires::where('IdProf',$insc->IdProf)
+                    ->whereRaw('MONTH(Date_Salaire) = ?', [$mois])
+                    ->whereRaw('YEAR(Date_Salaire) = ?', [$annee])
+                    ->first();
+
+                    $profForSomme = Professeur::find($insc->IdProf);
+                    // $Salaire->Montant_actuel = $Salaire->Montant_actuel + $enseignement->SalaireParEtu;
+                    // $Salaire->save();
+            if($Salaire){
+                    $Salaire->update([
+                        'Reste' => $profForSomme->SommeApaye - $Salaire->Montant,
+                    ]);
+                }
+
+
+
+                }
+
+
+
+
+
+                //fin de modification de reste dans la table salaire
 
                 // dd($val_salaire);
 
@@ -1090,6 +1198,8 @@ if($enseignement){
             'DatePaiment' => 'required',
         ]);
 
+
+
         // Mise à jour des informations de l'étudiant
         $user->update([
             'SommeApaye' => request('SommeApaye'),
@@ -1106,6 +1216,69 @@ if($enseignement){
         } else {
             $etat = 'Payé et plus';
         }
+
+        //calcul de salaire actuelle pour prof  -----------------------
+if($etat == 'Payé'){
+
+    $datePourAfficher = request('DatePaiment'); // Récupération du mois sélectionné depuis la requête
+    $dateAfficher = new DateTime($datePourAfficher);
+    $mois = $dateAfficher->format('m'); // Mois de la date sélectionnée
+    $annee = $dateAfficher->format('Y'); // Année de la date sélectionnée
+
+    $inscriptions = Inscription::where('IdEtu',$user->id)->get();
+    // dd($inscriptions);
+    foreach($inscriptions as $insc){
+        $enseignement = Enseignement::where('IdProf',$insc->IdProf)->where('IdFil',$insc->IdFil)
+        ->where('IdMat',$insc->IdMat)->where('IdNiv',$insc->IdNiv)->first();
+        // dd($enseignement);
+
+        $Salaire = Salaires::where('IdProf',$insc->IdProf)
+        ->whereRaw('MONTH(Date_Salaire) = ?', [$mois])
+        ->whereRaw('YEAR(Date_Salaire) = ?', [$annee])
+        ->first();
+
+        $profForSomme = Professeur::find($insc->IdProf);
+        // $Salaire->Montant_actuel = $Salaire->Montant_actuel + $enseignement->SalaireParEtu;
+        // $Salaire->save();
+if(($Salaire) && ($Salaire->Montant_actuel<$profForSomme->SommeApaye)){
+        $Salaire->update([
+            'Montant_actuel' => $Salaire->Montant_actuel + $enseignement->SalaireParEtu,
+            'Reste' => $profForSomme->SommeApaye - $Salaire->Montant,
+        ]);
+    }
+    else{
+        // debut de creation de salaire vide
+        $etat2 = 'Non payé';
+
+
+
+        $reste2 =$profForSomme ? $profForSomme->SommeApaye : 0;
+
+
+
+
+        $montant_actuel = $enseignement ? $enseignement->SalaireParEtu : 0;
+
+        Salaires::create([
+            'Montant' => 0,
+            'Montant_actuel' => $montant_actuel,
+            'Reste' => $reste2,
+            'Etat' => $etat2,
+            'Date_Salaire' => request('DatePaiment'),
+            'IdProf' => $profForSomme->id,
+        ]);
+
+
+        //fin de création de salaire vide
+    }
+
+
+    }
+
+}
+
+
+        //fin de calcule de salaire actuell pour prof ------------------------
 
         $reste = $user->SommeApaye - request('Montant');
 
@@ -1551,11 +1724,11 @@ if($enseignement){
         $inscription = Inscription::where('IdEtu', $user->id)->first();
         $nbrEtusDec = $this->DecNbrEtuParProf($inscription->IdProf,$inscription->IdNiv,$inscription->IdFil,$inscription->IdMat);
 
-        $professeur = Professeur::where('id',$inscription->IdProf)->first();
+        $professeurs = Professeur::where('id',$inscription->IdProf)->get();
         $user->delete();
 
 
-
+    foreach($professeurs as $professeur){
         $val_salaire = Enseignement::where('IdProf',$inscription->IdProf)->get();
                 $totalSalire=0;
                 foreach($val_salaire as $val){
@@ -1566,6 +1739,20 @@ if($enseignement){
                     'SommeApaye' =>  $totalSalire,
                 ]);
 
+            $salaires = Salaires::where('IdProf', $professeur->id)
+            ->where('Etat', '=', 'Non payé')
+            ->where(DB::raw('MONTH(Date_Salaire)'), '>=', Carbon::now()->month)
+            ->where(DB::raw('YEAR(Date_Salaire)'), '>=', Carbon::now()->year)
+            ->get();
+
+            // dd($salaires);
+            foreach($salaires as $salaire){
+
+                $salaire->update([
+                    'Reste' =>  $totalSalire,
+                ]);
+            }
+        }
 
         // $this->AllNbrEtuParProf();
 

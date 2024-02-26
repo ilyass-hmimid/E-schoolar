@@ -21,6 +21,7 @@ class Salaires extends Authenticatable
 
      protected $fillable = [
         'Montant',
+        'Montant_actuel',
         'Reste',
         'Etat',
         'Porcentage',

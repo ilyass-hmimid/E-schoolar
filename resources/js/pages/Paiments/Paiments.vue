@@ -8,7 +8,7 @@
           <h1 class="m-0" style="font-weight: 500 !important; ">Les paiments du mois</h1>
           <Field style="width: 30% !important;" name="MoisPorAfficher" type="month" class="form-control"
             id="selectedMonth" placeholder="Entrer la date de début" required :value="getDefaultMonth()"
-            v-model="selectedMonth" @change="getUsers" />
+            v-model="selectedMonth" @change="ChangerMois" />
 
         </div>
         <div class="col-sm-6">
@@ -147,7 +147,7 @@
 
 
             <div class="form-group">
-              <label for="DatePaiment">Date de paiement (mm/jj/aaaa)</label>
+              <label for="DatePaiment">Date de paiement (mm/jj/aaaa) <br> Nb:Doit étre une date qui contient la méme mois que la mois a payé!!</label>
               <Field name="DatePaiment" type="date" class="form-control" :class="{ 'is-invalid': errors.DatePaiment }"
                 id="DatePaiment" placeholder="Entrer la date de paiment" required v-model="formValues.DatePaiment" />
               <span class="invalid-feedback">{{ errors.DatePaiment }}</span>
@@ -254,10 +254,10 @@ const initDataTable = () => {
       { data: 'Matieres' },
       { data: 'Professeurs' },
       { data: 'Etat' },
-      { data: 'SommeApaye' },
-      { data: 'Montant' },
-      { data: 'Reste' },
-      { data: 'DatePaiment' },
+      { data: 'SommeApaye', render: function(data, type, row) { return data + ' dh'; } },
+    { data: 'Montant', render: function(data, type, row) { return data + ' dh'; } },
+    { data: 'Reste', render: function(data, type, row) { return data + ' dh'; } },
+    { data: 'DatePaiment' },
       {
         data: null,
         render: function (data, type, row) {
@@ -324,12 +324,20 @@ const getRole = () => {
 
 
 
+
+
 const getDefaultMonth = () => {
-  const now = new Date();
-  const month = (now.getMonth() + 1).toString().padStart(2, '0'); // Obtenir le mois actuel
-  const year = now.getFullYear().toString(); // Obtenir l'année actuelle
-  return `${year}-${month}`; // Format YYYY-MM pour le champ month
+  const storedMonth = localStorage.getItem('selectedMonth');
+  if (storedMonth) {
+    return storedMonth;
+  } else {
+    const now = new Date();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const year = now.getFullYear().toString();
+    return `${year}-${month}`;
+  }
 };
+
 
 const getUsers = () => {
 
@@ -347,6 +355,26 @@ const getUsers = () => {
       console.error('Erreur lors de la récupération des étudiants :', error);
     });
 };
+
+const ModierLescalculesProvisoirement = () => {
+
+axios.get('/api/calculesProvisoir')
+  .then((response) => {
+
+  })
+  .catch((error) => {
+    console.error('Erreur lors de la récupération des étudiants :', error);
+  });
+};
+
+
+const ChangerMois = () => {
+    // Sauvegarder le mois sélectionné dans localStorage
+    localStorage.setItem('selectedMonth', selectedMonth.value);
+    // Mettre à jour les données en fonction du nouveau mois sélectionné
+    window.location.reload();
+};
+
 
 const updateValuesPeriodically = () => {
   setInterval(() => {
@@ -576,10 +604,12 @@ onMounted(() => {
 
     // Appelez la fonction pour récupérer les données et initialiser la DataTable
     selectedMonth.value = getDefaultMonth();
+  localStorage.setItem('selectedMonth', selectedMonth.value);
     getUsers();
     updateValuesPeriodically();
 
     getRole();
+    ModierLescalculesProvisoirement();
 
 
   };

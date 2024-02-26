@@ -105,6 +105,8 @@ require __DIR__.'/auth.php';
 Route::middleware('auth')->group(function () {
 
 Route::get('/api/users', [UserController::class, 'index']);
+Route::get('/api/calculesProvisoir', [CentreController::class, 'ModificationTotalProvisoir']);
+
 Route::get('/api/getRole', [UserController::class, 'IsAdmin']);
 Route::get('/api/getIdProf', [UserController::class, 'IdProf']);
 

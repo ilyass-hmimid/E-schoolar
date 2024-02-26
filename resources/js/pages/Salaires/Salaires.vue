@@ -8,7 +8,7 @@
           <h1 class="m-0" style="font-weight: 500 !important; ">Les salaires du mois</h1>
           <Field style="width: 30% !important;" name="MoisPorAfficher" type="month" class="form-control"
             id="selectedMonth" placeholder="Entrer la date de début" required :value="getDefaultMonth()"
-            v-model="selectedMonth" @change="getUsers" />
+            v-model="selectedMonth" @change="ChangerMois" />
 
         </div>
         <div class="col-sm-6">
@@ -37,10 +37,11 @@
               <th>Nom</th>
               <th>Prenom</th>
               <th>État de salaire</th>
-              <th>Somme à payer</th>
+              <th>Somme normale</th>
+              <th>Somme actuel</th>
               <th>Montant payé</th>
               <th>Reste a payé</th>
-              <th>Date de salaire</th>
+              <th>Date de dérnière mise à jour</th>
 
 
 
@@ -56,6 +57,7 @@
               <td v-else-if="user.Etat === 'Payé et plus'" style="color: green; font-weight: bold;">{{ user.Etat }}</td>
               <td v-else style="color: orangered; font-weight: bold;">{{ user.Etat }}</td>
               <td>{{ user.SommeApaye }} dh</td>
+              <td>{{ user.Montant_actuel }} dh</td>
               <td>{{ user.Montant }} dh</td>
               <td>{{ user.Reste }} dh</td>
               <td>{{ user.DatePaiment }}</td>
@@ -163,6 +165,7 @@ const formValues = ref({
   prenom: '',
   Etat: '',
   SommeApaye: '',
+  Montant_actuel: '',
   Montant: '',
   Reste: '',
   DatePaiment: 'getDefaultDate()'
@@ -190,6 +193,13 @@ const resetFormValues = () => {
   // Remettre à zéro les valeurs sélectionnées et autres états si nécessaire
 
   // Autres remises à zéro si nécessaire
+};
+
+const ChangerMois = () => {
+    // Sauvegarder le mois sélectionné dans localStorage
+    localStorage.setItem('selectedMonth', selectedMonth.value);
+    // Mettre à jour les données en fonction du nouveau mois sélectionné
+    window.location.reload();
 };
 
 
@@ -221,10 +231,11 @@ const initDataTable = () => {
       { data: 'Nom' },
       { data: 'Prenom' },
       { data: 'Etat' },
-      { data: 'SommeApaye' },
-      { data: 'Montant' },
-      { data: 'Reste' },
-      { data: 'DatePaiment' },
+      { data: 'SommeApaye', render: function(data, type, row) { return data + ' dh'; } },
+    { data: 'Montant_actuel', render: function(data, type, row) { return data + ' dh'; } },
+    { data: 'Montant', render: function(data, type, row) { return data + ' dh'; } },
+    { data: 'Reste', render: function(data, type, row) { return data + ' dh'; } },
+    { data: 'DatePaiment' },
       {
         data: null,
         render: function (data, type, row) {
@@ -267,12 +278,26 @@ const IsBigtable = ref(false);
 
 
 
+// const getDefaultMonth = () => {
+//   const now = new Date();
+//   const month = (now.getMonth() + 1).toString().padStart(2, '0'); // Obtenir le mois actuel
+//   const year = now.getFullYear().toString(); // Obtenir l'année actuelle
+//   return `${year}-${month}`; // Format YYYY-MM pour le champ month
+// };
+
 const getDefaultMonth = () => {
-  const now = new Date();
-  const month = (now.getMonth() + 1).toString().padStart(2, '0'); // Obtenir le mois actuel
-  const year = now.getFullYear().toString(); // Obtenir l'année actuelle
-  return `${year}-${month}`; // Format YYYY-MM pour le champ month
+    const storedMonth = localStorage.getItem('selectedMonth');
+    if (storedMonth) {
+        return storedMonth;
+    } else {
+        // Retourner une valeur par défaut si aucun mois n'est sauvegardé
+        const now = new Date();
+        const month = (now.getMonth() + 1).toString().padStart(2, '0');
+        const year = now.getFullYear().toString();
+        return `${year}-${month}`;
+    }
 };
+
 
 
 

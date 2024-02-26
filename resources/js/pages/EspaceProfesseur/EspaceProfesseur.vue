@@ -7,9 +7,14 @@
     justify-content: space-between;">
           <h1 class="m-0" style="font-weight: 600 !important; ">Salaire du mois</h1>
 
-          <Field style="width: 44% !important;" name="MoisPorAfficher" type="month" class="form-control"
+          <!-- <Field style="width: 44% !important;" name="MoisPorAfficher" type="month" class="form-control"
             id="selectedMonth" placeholder="Entrer la date de début" required :value="getDefaultMonth()"
-            v-model="selectedMonth" @change="getRole" />
+            v-model="selectedMonth" @change="getRole" /> -->
+
+            <Field style="width: 44% !important;" name="MoisPorAfficher" type="month" class="form-control"
+            id="selectedMonth" placeholder="Entrer la date de début" required :value="getDefaultMonth()"
+            v-model="selectedMonth" @change="ChangerMois" />
+
 
         </div>
 
@@ -267,11 +272,24 @@ const initDataTable = () => {
 
 
 
+// const getDefaultMonth = () => {
+//   const now = new Date();
+//   const month = (now.getMonth() + 1).toString().padStart(2, '0'); // Obtenir le mois actuel
+//   const year = now.getFullYear().toString(); // Obtenir l'année actuelle
+//   return `${year}-${month}`; // Format YYYY-MM pour le champ month
+// };
+
 const getDefaultMonth = () => {
-  const now = new Date();
-  const month = (now.getMonth() + 1).toString().padStart(2, '0'); // Obtenir le mois actuel
-  const year = now.getFullYear().toString(); // Obtenir l'année actuelle
-  return `${year}-${month}`; // Format YYYY-MM pour le champ month
+    const storedMonth = localStorage.getItem('selectedMonth');
+    if (storedMonth) {
+        return storedMonth;
+    } else {
+        // Retourner une valeur par défaut si aucun mois n'est sauvegardé
+        const now = new Date();
+        const month = (now.getMonth() + 1).toString().padStart(2, '0');
+        const year = now.getFullYear().toString();
+        return `${year}-${month}`;
+    }
 };
 
 const getRole = () => {
@@ -284,6 +302,13 @@ const getRole = () => {
     .catch((error) => {
       console.error('Erreur lors de la récupération de role:', error);
     });
+};
+
+const ChangerMois = () => {
+    // Sauvegarder le mois sélectionné dans localStorage
+    localStorage.setItem('selectedMonth', selectedMonth.value);
+    // Mettre à jour les données en fonction du nouveau mois sélectionné
+    window.location.reload();
 };
 
 const Salaire = ref('');
