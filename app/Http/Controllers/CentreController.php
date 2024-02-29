@@ -422,7 +422,7 @@ return $prof->SommeApaye;
                                 foreach($enseignements as $enseignement) {
                                     $salaryMontant += $enseignement->SalaireParEtu;
                                 }
-                            
+
                                 Salaires::create([
                                     'Montant' => 0,
                                     'Montant_actuel' => $salaryMontant,
@@ -435,7 +435,7 @@ return $prof->SommeApaye;
                     }
                 }
             }
-            
+
         }
     }
 
@@ -1271,7 +1271,7 @@ if($enseignement){
         }
 
         //calcul de salaire actuelle pour prof  -----------------------
-if($etat == 'Payé'){
+if(($etat == 'Payé') || ($etat == 'Payé et plus')){
 
     $datePourAfficher = request('DatePaiment'); // Récupération du mois sélectionné depuis la requête
     $dateAfficher = new DateTime($datePourAfficher);
