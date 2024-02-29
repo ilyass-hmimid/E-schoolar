@@ -30,33 +30,34 @@ use Illuminate\Support\Facades\Session;
 //     })->where('any', '.*');
 // });
 
-// Route::get('/', function () {
-//     // Vérifier si l'utilisateur est authentifié
-//     if (auth()->check()) {
-//         // Rediriger l'utilisateur vers la dernière page active ou vers /home par défaut
-//         // $previousUrl = Session::get(auth()->id() . '_url.intended', '/home');
-//         $previousUrl = Session::get(auth()->id() . '/home', '/home');
-//         Session::forget(auth()->id() . '_url.intended'); // Effacer la session après utilisation
-//         return redirect()->to($previousUrl);
-//     } else {
-//         // S'il n'est pas authentifié, enregistrer l'URL précédente dans la session
-//         // $currentUserKey = auth()->id() . '_url.intended';
-//         $currentUserKey = auth()->id() . '/home';
-//         Session::put($currentUserKey, url()->previous());
-//         return view('auth.login');
-//     }
-// })->middleware('auth');
-
-
 Route::get('/', function () {
+    // Vérifier si l'utilisateur est authentifié
     if (auth()->check()) {
-        return redirect()->route('home'); // Rediriger vers la page de tableau de bord si authentifié
+        // Rediriger l'utilisateur vers la dernière page active ou vers /home par défaut
+        // $previousUrl = Session::get(auth()->id() . '_url.intended', '/home');
+        $previousUrl = Session::get(auth()->id() . '/home', '/home');
+        Session::forget(auth()->id() . '_url.intended'); // Effacer la session après utilisation
+        return redirect()->to($previousUrl);
     } else {
+        // S'il n'est pas authentifié, enregistrer l'URL précédente dans la session
+        // $currentUserKey = auth()->id() . '_url.intended';
+        $currentUserKey = auth()->id() . '/home';
+        Session::put($currentUserKey, url()->previous());
         return view('auth.login');
     }
-})->name('home');
+})->middleware('auth');
 
-// Supprimez la partie qui enregistre l'URL précédente dans la session
+
+// Route::get('/', function () {
+//     if (auth()->check()) {
+//         return redirect()->route('home'); // Rediriger vers la page home si authentifié
+//     } else {
+//         return view('auth.login');
+//     }
+// })->name('home');
+
+
+
 
 
 
@@ -103,6 +104,7 @@ require __DIR__.'/auth.php';
 // });
 
 Route::middleware('auth')->group(function () {
+
 
 Route::get('/api/users', [UserController::class, 'index']);
 Route::get('/api/calculesProvisoir', [CentreController::class, 'ModificationTotalProvisoir']);
