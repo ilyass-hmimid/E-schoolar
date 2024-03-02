@@ -118,9 +118,39 @@ return $prof->SommeApaye;
 
     public function getEnseignementsParProf(Request $request)
 {
-    $enseignements = Enseignement::find($request->input('id'))->get();
+
+    // dd($request->input('id'));
+    $enseignements = Enseignement::where('IdProf',$request->input('id'))->get();
 
     return response()->json($enseignements, 200, [], JSON_UNESCAPED_UNICODE);
+}
+
+public function getProfClasses(Request $request)
+{
+
+    // dd($request->input('id'));
+    $enseignements = Enseignement::where('IdProf', $request->input('id'))->get();
+    $result = [];
+
+    foreach ($enseignements as $enseignement) {
+        if ($enseignement) {
+            $niv = Niveau::find($enseignement->IdNiv);
+            $fil = Filiere::find($enseignement->IdFil); // Utilisez le modèle Filiere pour récupérer les données de la filière
+            $mat = Matiere::find($enseignement->IdMat); // Utilisez le modèle Matiere pour récupérer les données de la matière
+
+            // Vérifiez si les données ont été trouvées pour chaque niveau, filière et matière
+            if ($niv && $fil && $mat) {
+                // Si un paiement est trouvé, ajouter les détails du paiement
+                $result[] = [
+                    'Classe' => $niv->Nom . ' ' . $fil->Intitule . ' ' . $mat->Libelle,
+                ];
+            }
+        }
+    }
+
+    // dd($result);
+
+    return response()->json($result, 200, [], JSON_UNESCAPED_UNICODE);
 }
 
 
@@ -179,7 +209,7 @@ return $prof->SommeApaye;
 
             $i=$i+1;
 
-            if($ens && $Paiment && $Paiment->Etat == 'Payé'){
+            if($ens && $Paiment && ($Paiment->Etat == 'Payé' || $Paiment->Etat == 'Payé et plus')){
                 $SalaireActuelle += $ens->SalaireParEtu;
             }
 
@@ -206,7 +236,7 @@ return $prof->SommeApaye;
             //     ];
             // }
             // dd($Salaire);
-            if($ens && $Paiment && $Paiment->Etat == 'Payé') {
+            if($ens && $Paiment && ($Paiment->Etat == 'Payé' || $Paiment->Etat == 'Payé et plus')) {
                 // Si un paiement est trouvé, ajouter les détails du paiement
                 $result[] = [
                     'id' => $user->id,
@@ -232,7 +262,18 @@ return $prof->SommeApaye;
 
     public function getUsersForProfForAbsence(Request $request)
     {
-        $i=0;
+
+        $SelectedClasse =  $request->input('selectedClasse');
+
+        // dd($SelectedClasse);
+
+
+
+        if($SelectedClasse == 'Tous')
+        {
+            $i=0;
+
+
 
 
         // dd($request->input('id'));
@@ -326,6 +367,122 @@ return $prof->SommeApaye;
                 }
             }
         }
+
+    }
+    else
+    {
+        $classe_infos = explode(" ", $SelectedClasse);
+
+        $niv = $classe_infos[0];
+        $fil = $classe_infos[1];
+        $mat = $classe_infos[2];
+
+        // dd($mat);
+         $i=0;
+         $niveau = Niveau::where('Nom',$niv)->first();
+         $filiere = Filiere::where('Intitule',$fil)->first();
+         $matiere = Matiere::where('Libelle',$mat)->first();
+
+
+
+
+         // dd($request->input('id'));
+         $datePourAfficher = $request->input('date'); // Récupération du mois sélectionné depuis la requête
+
+         // dd($datePourAfficher);
+
+
+         $EtusEnsParProf = Inscription::where('IdProf', $request->input('id'))
+         ->where('IdNiv',$niveau->id)
+         ->where('IdFil',$filiere->id)
+         ->where('IdMat',$matiere->id)
+         ->get();
+
+        $users = collect(); // Initialiser une collection pour stocker les étudiants
+        $mats = collect();
+
+        foreach ($EtusEnsParProf as $etu) {
+            $user = Etudiant::find($etu->IdEtu); // Récupérer l'étudiant par son ID dans chaque inscription
+            if ($user) {
+                $users->push($user); // Ajouter l'étudiant à la collection
+                $mats->push($etu->IdMat);
+            }
+        }
+
+        // dd($users);
+
+
+
+
+        // Initialiser le tableau résultat
+        $result = [];
+
+        foreach ($users as $user) {
+            // Convertir la date sélectionnée en objet DateTime pour extraire le mois et l'année
+            $dateAfficher = new DateTime($datePourAfficher);
+            $mois = $dateAfficher->format('m'); // Mois de la date sélectionnée
+            $annee = $dateAfficher->format('Y'); // Année de la date sélectionnée
+
+            // dd($mois);
+
+            // Vérifier s'il existe un paiement pour cet étudiant et ce mois
+            $Paiment = Absence::where('IdEtu', $user->id)
+                    ->where('Date_absence',$datePourAfficher)
+                // ->whereRaw('MONTH(Date_absence) = ?', [$mois])
+                // ->whereRaw('YEAR(Date_absence) = ?', [$annee])
+                ->first();
+
+            $ens = Enseignement::where('IdProf',$request->input('id'))
+                                ->where('IdMat',$mats[$i])
+                                ->where('IdNiv',$user->IdNiv)
+                                ->where('IdFil',$user->IdFil)
+                                ->first();
+            // dd($user);
+            $mati = Matiere::find($mats[$i]);
+            $nive= Niveau::where('id',$user->IdNiv)->first();
+            $fili= Filiere::where('id',$user->IdFil)->first();
+
+            // dd($nive);
+
+            $i=$i+1;
+
+
+            if($Paiment && $Paiment->Status == 'Absent') {
+                // Si un paiement est trouvé, ajouter les détails du paiement
+                $result[] = [
+                    'id' => $user->id,
+                    'Nom' => $user->Nom . ' ' . $user->Prenom,
+                    'Prenom' => $user->Prenom,
+                    'Filiere' => $nive->Nom. "\n" .$fili->Intitule. "\n" .$mati->Libelle,
+                    // 'SommeApaye' => $ens->SalaireParEtu,
+                    'Etat' => $Paiment->Status,
+                    // 'Montant' => $nive->Nom,
+                    // 'Reste' => $fili->Intitule,
+                    // 'Matiere' => $mati->Libelle,
+                    'DatePaiment' => $Paiment->Date_absence,
+                ];
+            }
+
+            else {
+                if($nive && $fili && $mati){
+                    // dd($nive->Nom);
+                    $result[] = [
+                        'id' => $user->id,
+                        'Nom' => $user->Nom . ' ' . $user->Prenom,
+                        'Prenom' => $user->Prenom,
+                        'Filiere' => $nive->Nom. "\n" .$fili->Intitule. "\n" .$mati->Libelle,
+                        // 'SommeApaye' => $ens->SalaireParEtu,
+                        'Etat' => 'Présent',
+                        // 'Montant' => $nive->Nom,
+                        // 'Reste' => $fili->Intitule,
+                        // 'Matiere' => $mati->Libelle,
+                        'DatePaiment' => '',
+                        // 'SalaireActuelle' => $SalaireActuelle,
+                    ];
+                }
+            }
+        }
+    }
 
         return response()->json($result, 200, [], JSON_UNESCAPED_UNICODE);
     }
@@ -483,7 +640,7 @@ return $prof->SommeApaye;
                         ->first();
 
                     // Vérification de l'existence du paiement et de son état
-                    if ($paiment && $paiment->Etat == 'Payé') {
+                    if ($paiment && ($paiment->Etat == 'Payé' || $paiment->Etat == 'Payé et plus')) {
                         // Calcul du total des paiements pour ce mois
                         $enseignement = Enseignement::where('IdProf', $professeur->id)
                             ->where('IdFil', $inscription->IdFil)
@@ -1148,7 +1305,7 @@ if($enseignement){
 
        $IdProf = $data['ProfId'];
 
-       $date = $data['selectedMonth'];
+       $date = $data['selectedMonth2'];
     //    dd($data['data']["id"]);
 
 
@@ -1205,7 +1362,7 @@ if($enseignement){
 
        $IdProf = $data['ProfId'];
 
-       $date = $data['selectedMonth'];
+       $date = $data['selectedMonth2'];
     //    dd($data['data']["id"]);
 
 

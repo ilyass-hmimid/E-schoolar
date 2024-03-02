@@ -37,7 +37,7 @@
               <th>Niveau</th>
               <th>Filière</th>
               <th>Matière</th>
-              <th>Nombre d'étudiants enseigné</th>
+              <th>Nombre d'étudiants enseignés</th>
               <th>Salaire par étudiant</th>
               <th>Somme</th>
               <th>Date de début</th>

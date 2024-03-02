@@ -7,10 +7,21 @@
           <div class="col-sm-6" style="display: flex;
       justify-content: space-between;">
             <h1 class="m-0" style="font-weight: 600 !important; ">Mes étudiants</h1>
+<div style="width: 75% !important; display: flex; flex-direction: column;">
 
-            <Field style="width: 40% !important;" name="MoisPorAfficher" type="date" class="form-control"
-    id="selectedMonth" placeholder="Entrer la date de début" required :value="getdate()"
-    v-model="selectedMonth" @change="getRole" />
+    <select v-model="selectedClasse" @change="handleClasseChange($event.target.value)" class="form-control"
+                id="fil" required style="color: black !important;">
+                <option  value="Tous">Tous</option>
+                <option v-for="classe in Classes" :key="classe.id" :value="classe.Classe" style="color: black !important;">{{
+                  classe.Classe }}</option>
+              </select>
+
+    <Field  name="MoisPorAfficher" type="date" class="form-control"
+    id="selectedMonth2" placeholder="Entrer la date de début" required :value="getdate()"
+    v-model="selectedMonth2" @change="getRole" />
+
+</div>
+
 
     <!-- <Field name="name" as="select" class="form-control"  id="EnseignementsProf">
     <option v-for="prof in enseignements" :key="prof.id"
@@ -51,7 +62,7 @@
               <tr>
                 <!-- <th>#</th> -->
                 <th>Etudiant</th>
-                <th>Classe</th>
+                <!-- <th>Classe</th> -->
                 <th>État</th>
                 <!-- <th>Niveau</th>
                 <th>Filière</th>
@@ -67,7 +78,7 @@
               <tr v-for="(user, index) in users" :key="user.id">
                 <!-- <td>{{ index + 1 }}</td> -->
                 <td>{{ user.Nom }}</td>
-                <td>{{ user.Filiere}}</td>
+                <!-- <td>{{ user.Filiere}}</td> -->
                 <td v-if="user.Etat === 'Absent'" style="color: red; font-weight: bold;">{{ user.Etat }}</td>
                 <td v-else style="color: green; font-weight: bold;">{{ user.Etat }}</td>
                 <!-- <td>{{ user.Montant }}</td>
@@ -194,7 +205,7 @@
   const matieres = ref([]);
 
   let showFiliere = false;
-  const selectedMonth = ref(''); // Initialisez selectedMonth comme une référence avec une valeur initiale vide
+  const selectedMonth2 = ref(''); // Initialisez selectedMonth2 comme une référence avec une valeur initiale vide
 
   const EnseignementsProf = ref(''); // Initialisez selectedMonth comme une référence avec une valeur initiale vide
 
@@ -212,17 +223,40 @@
     // Autres remises à zéro si nécessaire
   };
 
+  const selectedClasse = ref(localStorage.getItem('selectedClasse') || 'Tous'); // Utilisez la valeur sauvegardée dans localStorage ou 'Tous' par défaut
+
+
+  const handleClasseChange = (newVal) => {
+    selectedClasse.value = newVal;
+    localStorage.setItem('selectedClasse', selectedClasse.value);
+    // Mettre à jour les données en fonction du nouveau mois sélectionné
+    window.location.reload();
+
+    // getUsers(ProfId.value,selectedClasse);
+
+
+  // showMat = true;
+
+};
+
 
 
 
 
   const getDefaultDate = () => {
+    const storedMonth2 = localStorage.getItem('selectedMonth2');
+    // console.log(storedMonth2);
+  if (storedMonth2) {
+    return storedMonth2;
+  } else {
     const now = new Date();
     const year = now.getFullYear();
     const month = (now.getMonth() + 1).toString().padStart(2, '0'); // +1 car les mois vont de 0 à 11
     const day = now.getDate().toString().padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
   };
+
 
   const getdate = () => {
     const now = new Date();
@@ -249,7 +283,7 @@ const initDataTable = () => {
     lengthChange: true,
     columns: [
       { data: 'Nom' },
-      { data: 'Filiere' },
+    //   { data: 'Filiere' },
       { data: 'Etat' },
       {
         data: null,
@@ -277,7 +311,7 @@ const initDataTable = () => {
     ],
     columnDefs: [
       {
-        targets: 2,
+        targets: 1,
         render: function (data, type, row) {
           if (data === 'Absent') {
             return '<span style="color: red; font-weight: bold;">' + data + '</span>';
@@ -318,7 +352,8 @@ const initDataTable = () => {
   const getRole = () => {
     axios.get('/api/getIdProf')
       .then((response) => {
-        getUsers(response.data);
+        getProfClasses(response.data);
+        getUsers(response.data,selectedClasse);
         getEnseignementsParProf(response.data);
         //console.log(response.data);
         ProfId.value = response.data;
@@ -345,11 +380,12 @@ const initDataTable = () => {
       });
   };
 
-  const getUsers = (id) => {
-
-    axios.get('/api/etudiantsForProfForAbsence', { params: { date: selectedMonth.value, id: id } })
+  const getUsers = (id,selectedClasse) => {
+    axios.get('/api/etudiantsForProfForAbsence', { params: { date: selectedMonth2.value, id: id,selectedClasse: selectedClasse.value } })
       .then((response) => {
         users.value = response.data;
+        localStorage.setItem('selectedMonth2', selectedMonth2.value);
+
 
         if ($.fn.DataTable.isDataTable('#myTable')) {
           $('#myTable').DataTable().destroy();
@@ -361,6 +397,23 @@ const initDataTable = () => {
         console.error('Erreur lors de la récupération des étudiants :', error);
       });
   };
+
+  const Classes = ref([]);
+
+
+  const getProfClasses = (id) => {
+
+axios.get('/api/getProfClasses', { params: { id: id } })
+  .then((response) => {
+    // console.log(response.data);
+    Classes.value = response.data;
+
+
+  })
+  .catch((error) => {
+    console.error('Erreur lors de la récupération des classes de prof :', error);
+  });
+};
 
 
   const enseignements = ref([]);
@@ -379,11 +432,7 @@ axios.get('/api/EnseignementsParProf', { params: { id: id } })
   });
 };
 
-  const updateValuesPeriodically = () => {
-    setInterval(() => {
-      getUsers();
-    }, 5000000);
-  };
+
 
 
 
@@ -486,7 +535,7 @@ IsPresent.value = false;
 const dataToUpdate = {
     data: user,
     ProfId: ProfId.value,
-    selectedMonth: selectedMonth.value,
+    selectedMonth2: selectedMonth2.value,
 
 
   };
@@ -515,7 +564,7 @@ IsPresent.value = true;
 const dataToUpdate = {
     data: user,
     ProfId: ProfId.value,
-    selectedMonth: selectedMonth.value,
+    selectedMonth2: selectedMonth2.value,
 
 
   };
@@ -618,7 +667,7 @@ const dataToUpdate = {
 
 
       // Appelez la fonction pour récupérer les données et initialiser la DataTable
-      selectedMonth.value = getDefaultDate();
+      selectedMonth2.value = getDefaultDate();
       getRole();
 
       // getUsers(id); // Utilisez l'ID retourné pour obtenir les utilisateurs

@@ -38,10 +38,10 @@
               <th>Prenom</th>
               <th>État de salaire</th>
               <th>Somme normale</th>
-              <th>Somme actuel</th>
+              <th>somme actuelle</th>
               <th>Montant payé</th>
               <th>Reste a payé</th>
-              <th>Date de dérnière mise à jour</th>
+              <th>Date de la dernière mise à jour</th>
 
 
 

@@ -8,12 +8,12 @@
           <h1 class="m-0" style="font-weight: 600 !important; ">Salaire du mois</h1>
 
           <!-- <Field style="width: 44% !important;" name="MoisPorAfficher" type="month" class="form-control"
-            id="selectedMonth" placeholder="Entrer la date de début" required :value="getDefaultMonth()"
-            v-model="selectedMonth" @change="getRole" /> -->
+            id="selectedMonth3" placeholder="Entrer la date de début" required :value="getDefaultMonth()"
+            v-model="selectedMonth3" @change="getRole" /> -->
 
-            <Field style="width: 44% !important;" name="MoisPorAfficher" type="month" class="form-control"
-            id="selectedMonth" placeholder="Entrer la date de début" required :value="getDefaultMonth()"
-            v-model="selectedMonth" @change="ChangerMois" />
+            <Field style="width: 54% !important;" name="MoisPorAfficher" type="month" class="form-control"
+            id="selectedMonth3" placeholder="Entrer la date de début" required :value="getDefaultMonth()"
+            v-model="selectedMonth3" @change="ChangerMois" />
 
 
         </div>
@@ -33,7 +33,7 @@
     <div class="container-fluid">
       <div style="display:flex;">
         <!-- <h3 style="color:#007bff; font-weight: bold;">Salaire attendu : {{ Salaire }} dh </h3> -->
-        <h3 style="color:green; font-weight: 700px;">Actuelement : {{ users.length > 0 ?
+        <h3 style="color:green; font-weight: 700px;">Actuellement : {{ users.length > 0 ?
           users[users.length - 1].SalaireActuelle + ' dh' : '0 dh' }}</h3>
       </div>
       <br>
@@ -47,12 +47,12 @@
               <!-- <th>#</th> -->
               <th>Etudiant</th>
               <!-- <th>Prenom étudiant</th> -->
-              <th>État</th>
+              <!-- <th>État</th> -->
               <!-- <th>Niveau</th>
               <th>Filière</th>
               <th>Matière</th> -->
               <th>Montant</th>
-              <!-- <th>Date de paiment</th> -->
+              <th>Date de paiement</th>
 
 
 
@@ -63,17 +63,17 @@
               <!-- <td>{{ index + 1 }}</td> -->
               <td>{{ user.Nom }}</td>
               <!-- <td>{{ user.Prenom}}</td> -->
-              <td v-if="user.Etat === 'Non payé'" style="color: red; font-weight: bold;">{{ user.Etat }}</td>
+              <!-- <td v-if="user.Etat === 'Non payé'" style="color: red; font-weight: bold;">{{ user.Etat }}</td>
               <td v-else-if="user.Etat === 'Payé'" style="color: green; font-weight: bold;">{{ user.Etat }}</td>
               <td v-else-if="user.Etat === 'Payé et plus'" style="color: green; font-weight: bold;">{{ user.Etat }}</td>
-              <td v-else style="color: orangered; font-weight: bold;">{{ user.Etat }}</td>
+              <td v-else style="color: orangered; font-weight: bold;">{{ user.Etat }}</td> -->
               <!-- <td>{{ user.Montant }}</td>
               <td>{{ user.Reste }}</td>
               <td>{{ user.Matiere }}</td> -->
               <td>{{ user.SommeApaye }} dh</td>
 
 
-              <!-- <td>{{ user.DatePaiment }}</td> -->
+              <td>{{ user.DatePaiment }}</td>
               <!-- <td>
                 <a href="#" @click.prevent="editUser(user)" class="btn btn-primary btn-sm">
   <i class="fa fa-edit"></i>
@@ -182,7 +182,7 @@ const selectedMatieres = ref([]); // Utilisation d'un tableau pour stocker les m
 const matieres = ref([]);
 
 let showFiliere = false;
-const selectedMonth = ref(''); // Initialisez selectedMonth comme une référence avec une valeur initiale vide
+const selectedMonth3 = ref(''); // Initialisez selectedMonth3 comme une référence avec une valeur initiale vide
 
 
 const cancelEdit = () => {
@@ -225,12 +225,12 @@ const initDataTable = () => {
     columns: [
       { data: 'Nom' },
       //   { data: 'Prenom' },
-      { data: 'Etat' },
+    //   { data: 'Etat' },
       //   { data: 'Montant' },
       //   { data: 'Reste' },
       //   { data: 'Matiere' },
       { data: 'SommeApaye' },
-      //   { data: 'DatePaiment' },
+        { data: 'DatePaiment' },
       {
         data: null,
         render: function (data, type, row) {
@@ -245,25 +245,25 @@ const initDataTable = () => {
       },
 
     ],
-    columnDefs: [
-      {
-        targets: 1, // Indice de la colonne 'État de paiement'
-        render: function (data, type, row) {
-          if (data === 'Non payé') {
-            return '<span style="color: red; font-weight: bold;">' + data + '</span>';
-          } else if (data === 'Payé' || data === 'Payé et plus') {
-            return '<span style="color: green; font-weight: bold;">' + data + '</span>';
-          } else {
-            return '<span style="color: orangered; font-weight: bold;">' + data + '</span>';
-          }
-        },
-      },
-    ],
-    createdRow: function (row, data, dataIndex) {
-      $(row).find('.edit-btn').on('click', function () {
-        editUser(data);
-      });
-    },
+    // columnDefs: [
+    //   {
+    //     targets: 1, // Indice de la colonne 'État de paiement'
+    //     render: function (data, type, row) {
+    //       if (data === 'Non payé') {
+    //         return '<span style="color: red; font-weight: bold;">' + data + '</span>';
+    //       } else if (data === 'Payé' || data === 'Payé et plus') {
+    //         return '<span style="color: green; font-weight: bold;">' + data + '</span>';
+    //       } else {
+    //         return '<span style="color: orangered; font-weight: bold;">' + data + '</span>';
+    //       }
+    //     },
+    //   },
+    // ],
+    // createdRow: function (row, data, dataIndex) {
+    //   $(row).find('.edit-btn').on('click', function () {
+    //     editUser(data);
+    //   });
+    // },
     data: users.value
   });
 };
@@ -280,7 +280,7 @@ const initDataTable = () => {
 // };
 
 const getDefaultMonth = () => {
-    const storedMonth = localStorage.getItem('selectedMonth');
+    const storedMonth = localStorage.getItem('selectedMonth3');
     if (storedMonth) {
         return storedMonth;
     } else {
@@ -306,7 +306,7 @@ const getRole = () => {
 
 const ChangerMois = () => {
     // Sauvegarder le mois sélectionné dans localStorage
-    localStorage.setItem('selectedMonth', selectedMonth.value);
+    localStorage.setItem('selectedMonth3', selectedMonth3.value);
     // Mettre à jour les données en fonction du nouveau mois sélectionné
     window.location.reload();
 };
@@ -328,7 +328,7 @@ const getSalaire = (id) => {
 
 const getUsers = (id) => {
 
-  axios.get('/api/etudiantsForProf', { params: { date: selectedMonth.value, id: id } })
+  axios.get('/api/etudiantsForProf', { params: { date: selectedMonth3.value, id: id } })
     .then((response) => {
       users.value = response.data;
 
@@ -521,7 +521,7 @@ onMounted(() => {
 
 
     // Appelez la fonction pour récupérer les données et initialiser la DataTable
-    selectedMonth.value = getDefaultMonth();
+    selectedMonth3.value = getDefaultMonth();
     getRole();
 
     // getUsers(id); // Utilisez l'ID retourné pour obtenir les utilisateurs

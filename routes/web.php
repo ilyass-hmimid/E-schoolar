@@ -116,6 +116,8 @@ Route::get('/api/salaireProf', [CentreController::class, 'getSlaireForProf']);
 
 
 Route::get('/api/etudiants', [CentreController::class, 'index']);
+Route::get('/api/getProfClasses', [CentreController::class, 'getProfClasses']);
+
 Route::get('/api/ListeAbsences', [CentreController::class, 'getListeAbsences']);
 
 Route::get('/api/etudiantsForPaiment', [CentreController::class, 'getUsersForPaiment']);

@@ -44,7 +44,7 @@
               <th>Somme à payé</th>
               <th>Montant payé</th>
               <th>Reste a payé</th>
-              <th>Date de paiment</th>
+              <th>Date de paiement</th>
 
 
 
@@ -609,7 +609,7 @@ onMounted(() => {
     updateValuesPeriodically();
 
     getRole();
-    // ModierLescalculesProvisoirement();
+    ModierLescalculesProvisoirement();
 
 
   };
