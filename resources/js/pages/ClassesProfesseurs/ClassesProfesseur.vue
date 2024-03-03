@@ -18,7 +18,7 @@
 
     <Field  name="MoisPorAfficher" type="date" class="form-control"
     id="selectedMonth2" placeholder="Entrer la date de début" required :value="getdate()"
-    v-model="selectedMonth2" @change="getRole" />
+    v-model="selectedMonth2" @change="handleDateChange" />
 
 </div>
 
@@ -239,6 +239,18 @@
 
 };
 
+const handleDateChange = () => {
+    localStorage.setItem('selectedMonth2', selectedMonth2.value);
+    // Mettre à jour les données en fonction du nouveau mois sélectionné
+    window.location.reload();
+
+    // getUsers(ProfId.value,selectedClasse);
+
+
+  // showMat = true;
+
+};
+
 
 
 
@@ -384,7 +396,7 @@ const initDataTable = () => {
     axios.get('/api/etudiantsForProfForAbsence', { params: { date: selectedMonth2.value, id: id,selectedClasse: selectedClasse.value } })
       .then((response) => {
         users.value = response.data;
-        localStorage.setItem('selectedMonth2', selectedMonth2.value);
+        // localStorage.setItem('selectedMonth2', selectedMonth2.value);
 
 
         if ($.fn.DataTable.isDataTable('#myTable')) {
