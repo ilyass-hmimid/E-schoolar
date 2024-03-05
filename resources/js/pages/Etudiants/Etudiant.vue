@@ -596,6 +596,7 @@ const createUser = (values, { resetForm, setErrors }) => {
   })
 
     .then((response) => {
+        if(response.data){
       users.value.unshift(response.data);
       setTimeout(() => {
         $('#userFormModal').modal('hide');
@@ -604,6 +605,15 @@ const createUser = (values, { resetForm, setErrors }) => {
       toastr.success('Étudiant créé avec succès !');
       getUsers(); // Mettre à jour la DataTable après la création
       //   location.reload(); // Rechargement de la page après la suppression
+    }
+    else{
+        setTimeout(() => {
+        $('#userFormModal').modal('hide');
+      }, 10);
+      resetForm();
+        toastr.error('Étudiant déja exist !');
+
+    }
     })
     .catch((error) => {
       if (error.response.data.errors) {
@@ -662,14 +672,14 @@ const editUser = (user) => {
 
 
 const updateUser = (values, { setErrors }) => {
-  axios.put('/api/etudiants/' + formValues.value.id, {
-    ...values,
-    niv: selectedNiveau.value,
-    fil: selectedFiliere.value,
-    matieres: selectedMatieres.value.map(matiere => matiere),
-    professeurs: selectedProfesseurs.value.map(professeur => professeur)
-
-  })
+  for(let i = 0; i < 2; i++) {
+    axios.put('/api/etudiants/' + formValues.value.id, {
+      ...values,
+      niv: selectedNiveau.value,
+      fil: selectedFiliere.value,
+      matieres: selectedMatieres.value.map(matiere => matiere),
+      professeurs: selectedProfesseurs.value.map(professeur => professeur)
+    })
     .then((response) => {
       const index = users.value.findIndex(user => user.id === response.data.id);
       users.value[index] = response.data;
@@ -677,7 +687,7 @@ const updateUser = (values, { setErrors }) => {
         $('#userFormModal').modal('hide');
       }, 10);
       resetFormValues();
-      toastr.success('Étudiant mis à jour avec succès !');
+      if(i == 1)toastr.success('Étudiant mis à jour avec succès !');
       getUsers(); // Mettre à jour la DataTable après la mise à jour
       if(IsBigtable.value){ // Utiliser directement IsBigtable.value pour vérifier si la mise à jour provient de la DataTable
         window.location.reload();
@@ -686,8 +696,10 @@ const updateUser = (values, { setErrors }) => {
     }).catch((error) => {
       setErrors(error.response.data.errors);
       console.log(error);
-    })
+    });
+  }
 };
+
 
 const handleSubmit = (values, actions) => {
 

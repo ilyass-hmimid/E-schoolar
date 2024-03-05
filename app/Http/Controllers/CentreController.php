@@ -283,6 +283,7 @@ public function getProfClasses(Request $request)
 
 
         $EtusEnsParProf = Inscription::where('IdProf', $request->input('id'))->get();
+        // dd($EtusEnsParProf->count());
         $users = collect(); // Initialiser une collection pour stocker les étudiants
         $mats = collect();
 
@@ -345,6 +346,7 @@ public function getProfClasses(Request $request)
                     // 'Reste' => $fili->Intitule,
                     // 'Matiere' => $mati->Libelle,
                     'DatePaiment' => $Paiment->Date_absence,
+                    'TotalEtudiants' => $EtusEnsParProf->count(),
                 ];
             }
 
@@ -363,6 +365,7 @@ public function getProfClasses(Request $request)
                         // 'Matiere' => $mati->Libelle,
                         'DatePaiment' => '',
                         // 'SalaireActuelle' => $SalaireActuelle,
+                        'TotalEtudiants' => $EtusEnsParProf->count(),
                     ];
                 }
             }
@@ -460,6 +463,7 @@ public function getProfClasses(Request $request)
                     // 'Reste' => $fili->Intitule,
                     // 'Matiere' => $mati->Libelle,
                     'DatePaiment' => $Paiment->Date_absence,
+                    'TotalEtudiants' => $EtusEnsParProf->count(),
                 ];
             }
 
@@ -478,6 +482,7 @@ public function getProfClasses(Request $request)
                         // 'Matiere' => $mati->Libelle,
                         'DatePaiment' => '',
                         // 'SalaireActuelle' => $SalaireActuelle,
+                        'TotalEtudiants' => $EtusEnsParProf->count(),
                     ];
                 }
             }
@@ -560,6 +565,55 @@ public function getProfClasses(Request $request)
         return response()->json($result, 200, [], JSON_UNESCAPED_UNICODE);
     }
 
+    public function deleteDuplicateEtudiant()
+    {
+        // dd($etus->count());
+  // Sélectionner les IDs des enregistrements dupliqués
+  $duplicateIds = Etudiant::select('id')
+  ->whereIn(DB::raw('(Nom, Prenom)'), function($query) {
+      $query->select('Nom', 'Prenom')
+            ->from('Etudiants')
+            ->groupBy('Nom', 'Prenom')
+            ->havingRaw('COUNT(*) > 1');
+  })
+  ->get();
+
+// Supprimer les enregistrements correspondant aux IDs dupliqués
+foreach ($duplicateIds as $duplicate) {
+  Etudiant::where('id', $duplicate->id)->delete();
+}
+$etus = Etudiant::get();
+
+        // dd($etus->count());
+
+
+    }
+
+    public function deleteDuplicateInscription()
+{
+    // $inscs = Inscription::get();
+    // Sélectionner les IDs des enregistrements dupliqués
+    $duplicateIds = Inscription::select('id')
+        ->whereIn(DB::raw('(IdEtu, IdProf, IdFil, IdMat, IdNiv)'), function($query) {
+            $query->select('IdEtu', 'IdProf', 'IdFil', 'IdMat', 'IdNiv')
+                  ->from('Inscription')
+                  ->groupBy('IdEtu', 'IdProf', 'IdFil', 'IdMat', 'IdNiv')
+                  ->havingRaw('COUNT(*) > 1');
+        })
+        ->get();
+
+    // Supprimer les enregistrements correspondant aux IDs dupliqués
+    foreach ($duplicateIds as $duplicate) {
+        Inscription::where('id', $duplicate->id)->delete();
+    }
+    // $inscss = Inscription::get();
+
+    // dd($inscss->count());
+
+}
+
+
+
     public function createNewSalaryIfNotExistsForProfs() {
         $professeurs = Professeur::get();
         foreach($professeurs as $professeur) {
@@ -598,6 +652,9 @@ public function getProfClasses(Request $request)
 
     public function ModificationTotalProvisoir()
     {
+        $this->deleteDuplicateInscription();
+        $this->deleteDuplicateEtudiant();
+
         $this->createNewSalaryIfNotExistsForProfs();
         $profs = Professeur::orderBy('created_at', 'desc')->get();
 
@@ -805,6 +862,16 @@ public function getProfClasses(Request $request)
 
         ]);
 
+         // Vérifier si l'étudiant existe déjà
+    $existingStudent = Etudiant::where('Nom', request('nom'))
+    ->where('Prenom', request('prenom'))
+    ->first();
+
+// Si l'étudiant existe déjà, retourner null
+if ($existingStudent) {
+return null;
+}
+
         // Récupération de l'ID du niveau (IdNiv) depuis la table Niveau
         $niveau = Niveau::where('Nom', request('niv'))->first();
         $idNiv = $niveau ? $niveau->id : null; // ID du niveau ou null si non trouvé
@@ -839,79 +906,88 @@ public function getProfClasses(Request $request)
              $idMat = $matiere ? $matiere->id : null;
              $NbrMat = $NbrMat +1;
 
-             if($index<count($professeurs)){
-                $professeur=Professeur::where('Nom',$professeurs[$index])->first();
+             if($index<count($professeurs))
+             {
+                        $professeur=Professeur::where('Nom',$professeurs[$index])->first();
+
+                        $existingInscription = Inscription::where('IdEtu', $etudiant->id)
+                            ->where('IdMat', $idMat)
+                            ->where('IdProf', $professeur->id)
+                            ->where('IdNiv', $idNiv)
+                            ->where('IdFil', $idFil)
+                            ->first();
+
+                if(!$existingInscription)
+                {
+
+
+                        Inscription::create([
+                            'IdEtu' => $etudiant->id,
+                            'IdMat' => $idMat,
+                            'IdProf' => $professeur->id,
+                            'IdNiv'=> $idNiv,
+                            'IdFil' => $idFil,
+                        ]);
+
+                        // else
+                        // {
+                        //     $existInsc->update([
+                        //         'IdEtu' => $etudiant->id,
+                        //         'IdMat' => $idMat,
+                        //         'IdProf' => $professeur->id,
+                        //         'IdNiv'=> $idNiv,
+                        //         'IdFil' => $idFil,
+                        //     ]);
+                        // }
 
 
 
 
-                Inscription::create([
-                    'IdEtu' => $etudiant->id,
-                    'IdMat' => $idMat,
-                    'IdProf' => $professeur->id,
-                    'IdNiv'=> $idNiv,
-                    'IdFil' => $idFil,
-                ]);
+                        $nbrEtus = $this->NbrEtuParProf($professeur->id,$idNiv,$idFil,$idMat);
 
-                // else
-                // {
-                //     $existInsc->update([
-                //         'IdEtu' => $etudiant->id,
-                //         'IdMat' => $idMat,
-                //         'IdProf' => $professeur->id,
-                //         'IdNiv'=> $idNiv,
-                //         'IdFil' => $idFil,
-                //     ]);
-                // }
+
+                        $val_salaire = Enseignement::where('IdProf',$professeur->id)->get();
+                        $totalSalire=0;
+                        foreach($val_salaire as $val){
+                            $totalSalire=$totalSalire+$val->Somme;
+
+                        }
+                        $professeur->update([
+                            'SommeApaye' =>  $totalSalire,
+                        ]);
+
+                        //debut de modification de reste dans la table salaire
 
 
 
 
-                $nbrEtus = $this->NbrEtuParProf($professeur->id,$idNiv,$idFil,$idMat);
+                        $datePourAfficher = $dateDebut; // Récupération du mois sélectionné depuis la requête
+                        $dateAfficher = new DateTime($datePourAfficher);
+                        $mois = $dateAfficher->format('m'); // Mois de la date sélectionnée
+                        $annee = $dateAfficher->format('Y'); // Année de la date sélectionnée
 
+                        $inscriptions = Inscription::where('IdEtu',$etudiant->id)->get();
+                        // dd($inscriptions);
+                        foreach($inscriptions as $insc){
+                            $enseignement = Enseignement::where('IdProf',$insc->IdProf)->where('IdFil',$insc->IdFil)
+                            ->where('IdMat',$insc->IdNiv)->where('IdNiv',$insc->IdNiv)->first();
+                            // dd($insc->IdProf);
 
-                $val_salaire = Enseignement::where('IdProf',$professeur->id)->get();
-                $totalSalire=0;
-                foreach($val_salaire as $val){
-                    $totalSalire=$totalSalire+$val->Somme;
+                            $Salaire = Salaires::where('IdProf',$insc->IdProf)
+                            ->whereRaw('MONTH(Date_Salaire) = ?', [$mois])
+                            ->whereRaw('YEAR(Date_Salaire) = ?', [$annee])
+                            ->first();
 
-                }
-                $professeur->update([
-                    'SommeApaye' =>  $totalSalire,
-                ]);
+                            $profForSomme = Professeur::find($insc->IdProf);
+                            // $Salaire->Montant_actuel = $Salaire->Montant_actuel + $enseignement->SalaireParEtu;
+                            // $Salaire->save();
+                    if($Salaire){
+                            $Salaire->update([
+                                'Reste' => $profForSomme->SommeApaye - $Salaire->Montant,
+                            ]);
+                        }
 
-                //debut de modification de reste dans la table salaire
-
-
-
-
-                $datePourAfficher = $dateDebut; // Récupération du mois sélectionné depuis la requête
-                $dateAfficher = new DateTime($datePourAfficher);
-                $mois = $dateAfficher->format('m'); // Mois de la date sélectionnée
-                $annee = $dateAfficher->format('Y'); // Année de la date sélectionnée
-
-                $inscriptions = Inscription::where('IdEtu',$etudiant->id)->get();
-                // dd($inscriptions);
-                foreach($inscriptions as $insc){
-                    $enseignement = Enseignement::where('IdProf',$insc->IdProf)->where('IdFil',$insc->IdFil)
-                    ->where('IdMat',$insc->IdNiv)->where('IdNiv',$insc->IdNiv)->first();
-                    // dd($insc->IdProf);
-
-                    $Salaire = Salaires::where('IdProf',$insc->IdProf)
-                    ->whereRaw('MONTH(Date_Salaire) = ?', [$mois])
-                    ->whereRaw('YEAR(Date_Salaire) = ?', [$annee])
-                    ->first();
-
-                    $profForSomme = Professeur::find($insc->IdProf);
-                    // $Salaire->Montant_actuel = $Salaire->Montant_actuel + $enseignement->SalaireParEtu;
-                    // $Salaire->save();
-            if($Salaire){
-                    $Salaire->update([
-                        'Reste' => $profForSomme->SommeApaye - $Salaire->Montant,
-                    ]);
-                }
-
-
+                  }
 
                 }
 
@@ -976,7 +1052,7 @@ if($enseignement){
 
     public function deleteInsc($IdProf,$idNiv,$idFil,$idMat,$IdEtu){
         $insc = Inscription::where('IdProf',$IdProf)->where('IdEtu',$IdEtu)->where('IdNiv',$idNiv)->where('IdFil',$idFil)->where('IdMat',$idMat)->first();
-
+$deleted = null;
 
 if($insc){
     $deleted=$insc->delete();
@@ -1103,10 +1179,13 @@ if($enseignement){
         $dateDebut = request('Date_debut') . '-01'; // Ajoutez le jour 01 pour former une date complète au format YYYY-MM-DD
 
         $inscription = Inscription::where('IdEtu', $user->id)->first();
+        $inscriptions = Inscription::where('IdEtu', $user->id)->get();
+        $NbrMat=0;
+
         // dd($inscription);
 
-
-        $NbrMat=0;
+    foreach($inscriptions as $inscription)
+    {
 
 
         $inscDeleted= $this->deleteInsc($inscription->IdProf,$inscription->IdNiv,$inscription->IdFil,$inscription->IdMat,$user->id);
@@ -1114,6 +1193,7 @@ if($enseignement){
         if($inscDeleted){
         $nbrEtusDec = $this->NbrEtuParProf($inscription->IdProf,$inscription->IdNiv,$inscription->IdFil,$inscription->IdMat);
         }
+    }
 
 
         $matieres = request('matieres');
@@ -1145,14 +1225,14 @@ if($enseignement){
 
 
             }
-            else{
-            Inscription::create([
-                'IdEtu' => $user->id,
-                'IdMat' => $idMat,
-                'IdNiv'=> $idNiv,
-                'IdFil' => $idFil,
-            ]);
-           }
+        //     else{
+        //     Inscription::create([
+        //         'IdEtu' => $user->id,
+        //         'IdMat' => $idMat,
+        //         'IdNiv'=> $idNiv,
+        //         'IdFil' => $idFil,
+        //     ]);
+        //    }
            $valeur_paiment = Valeurs_Paiments::where('IdNiv', $idNiv)->where('NbrMat', $NbrMat)->first();
            $paiment = Paiment::where('IdEtu',$user->id)->get();
         //    dd($paiment);
@@ -1166,10 +1246,12 @@ if($enseignement){
            }
 
 
-
-           $user->update([
-           'SommeApaye' => $valeur_paiment->Valeur,
-       ]);
+        if($user)
+        {
+                $user->update([
+                'SommeApaye' => $valeur_paiment->Valeur,
+            ]);
+         }
 
 
         }
@@ -1280,6 +1362,7 @@ if($enseignement){
 
             // $this->AllNbrEtuParProf();
         }
+
 
         return $user;
     }
@@ -1447,10 +1530,11 @@ if(($etat == 'Payé') || ($etat == 'Payé et plus')){
         ->whereRaw('YEAR(Date_Salaire) = ?', [$annee])
         ->first();
 
-        $profForSomme = Professeur::find($insc->IdProf);
+        $profForSomme = Professeur::where('id',$insc->IdProf)->first();
+        // dd($enseignement);
         // $Salaire->Montant_actuel = $Salaire->Montant_actuel + $enseignement->SalaireParEtu;
         // $Salaire->save();
-if(($Salaire) && ($Salaire->Montant_actuel<$profForSomme->SommeApaye)){
+if(($Salaire) && ($profForSomme) && ($enseignement) && ($Salaire->Montant_actuel<$profForSomme->SommeApaye)){
         $Salaire->update([
             'Montant_actuel' => $Salaire->Montant_actuel + $enseignement->SalaireParEtu,
             'Reste' => $profForSomme->SommeApaye - $Salaire->Montant,
@@ -1468,6 +1552,7 @@ if(($Salaire) && ($Salaire->Montant_actuel<$profForSomme->SommeApaye)){
 
 
         $montant_actuel = $enseignement ? $enseignement->SalaireParEtu : 0;
+        $idProfForSlaireCreation = $enseignement ? $profForSomme->id : null;
 
         Salaires::create([
             'Montant' => 0,
@@ -1475,7 +1560,7 @@ if(($Salaire) && ($Salaire->Montant_actuel<$profForSomme->SommeApaye)){
             'Reste' => $reste2,
             'Etat' => $etat2,
             'Date_Salaire' => request('DatePaiment'),
-            'IdProf' => $profForSomme->id,
+            'IdProf' => $idProfForSlaireCreation,
         ]);
 
 

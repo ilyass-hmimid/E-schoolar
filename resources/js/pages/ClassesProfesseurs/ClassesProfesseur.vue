@@ -6,7 +6,8 @@
         <div class="row mb-2">
           <div class="col-sm-6" style="display: flex;
       justify-content: space-between;">
-            <h1 class="m-0" style="font-weight: 600 !important; ">Mes étudiants</h1>
+            <h1 class="m-0" style="font-weight: 600 !important; ">Mes étudiants</h1> <br>
+            <h2 style="background-color: #007bff; color : white; height: 37px;">{{ TotalEtu }}</h2>
 <div style="width: 75% !important; display: flex; flex-direction: column;">
 
     <select v-model="selectedClasse" @change="handleClasseChange($event.target.value)" class="form-control"
@@ -391,12 +392,15 @@ const initDataTable = () => {
         console.error('Erreur lors de la récupération de salaire :', error);
       });
   };
+  const TotalEtu = ref('');
 
   const getUsers = (id,selectedClasse) => {
     axios.get('/api/etudiantsForProfForAbsence', { params: { date: selectedMonth2.value, id: id,selectedClasse: selectedClasse.value } })
       .then((response) => {
         users.value = response.data;
         // localStorage.setItem('selectedMonth2', selectedMonth2.value);
+        // console.log(users.value[0]['TotalEtudiants'])
+        TotalEtu.value = users.value[0]['TotalEtudiants'];
 
 
         if ($.fn.DataTable.isDataTable('#myTable')) {

@@ -100,6 +100,16 @@ class ProfesseurController extends Controller
 
         ]);
 
+            // Vérifier si l'étudiant existe déjà
+    $existingProf = Professeur::where('Nom', request('nom'))
+    ->where('Prenom', request('prenom'))
+    ->first();
+
+// Si l'étudiant existe déjà, retourner null
+if ($existingProf) {
+return null;
+}
+
         // Récupération de l'ID du niveau (IdNiv) depuis la table Niveau
         $niveau = Niveau::where('Nom', request('niv'))->first();
         $IdNiv = $niveau ? $niveau->id : null; // ID du niveau ou null si non trouvé

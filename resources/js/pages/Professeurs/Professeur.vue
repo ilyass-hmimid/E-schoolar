@@ -569,7 +569,8 @@ const createUser = (values, { resetForm, setErrors }) => {
   })
 
     .then((response) => {
-      users.value.unshift(response.data);
+        if(response.data){
+            users.value.unshift(response.data);
       setTimeout(() => {
         $('#userFormModal').modal('hide');
       }, 10);
@@ -577,6 +578,16 @@ const createUser = (values, { resetForm, setErrors }) => {
       toastr.success('Professeur créé avec succès !');
       getUsers(); // Mettre à jour la DataTable après la création
       //   location.reload(); // Rechargement de la page après la suppression
+        }
+        else
+        {
+            setTimeout(() => {
+        $('#userFormModal').modal('hide');
+      }, 10);
+      resetForm();
+      toastr.error('Professeur déja exist !');
+        }
+
     })
     .catch((error) => {
       if (error.response.data.errors) {
