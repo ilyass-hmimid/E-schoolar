@@ -18,6 +18,7 @@ import Home from "./pages/Home/Home.vue";
 import EspaceProfesseur from "./pages/EspaceProfesseur/EspaceProfesseur.vue";
 import ClassesProfesseur from "./pages/ClassesProfesseurs/ClassesProfesseur.vue";
 import ListeAbsences from "./pages/ListeAbsences/ListeAbsences.vue";
+import EtudiantToMatiere from "@/Pages/etudiantToMatiere/EtudiantToMatiere.vue";
 
 
 
@@ -62,6 +63,13 @@ const routes = [
         path: '/students',
         name: 'students',
         component: Etudiant,
+        meta: { requiresAuth: true },
+
+    },
+    {
+        path: '/students/inscriptions/:id',
+        name: 'etudiantMatiere',
+        component: EtudiantToMatiere,
         meta: { requiresAuth: true },
 
     },

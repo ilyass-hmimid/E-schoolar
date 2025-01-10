@@ -226,7 +226,9 @@ Dashboard
 
             @if(Auth::check() && (Auth::user()->role == 'admin' || Auth::user()->role == 'admin_assistant'))
             <li class="nav-item">
-                <router-link to="/students" active-class="active" class="nav-link">
+                <router-link to="/students"
+                             :class="{ active: $route.path.startsWith('/students') }"
+                             class="nav-link">
                 <i class="nav-icon fas fa-user-graduate"></i>
                 <p>
                    Etudiants

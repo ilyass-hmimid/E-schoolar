@@ -39,7 +39,6 @@
               <th>Niveau</th>
               <th>Filière</th>
               <th>Matières</th>
-              <th>Professeurs</th>
               <th>État de paiement</th>
               <th>Somme à payé</th>
               <th>Montant payé</th>
@@ -66,13 +65,6 @@
                 </ul>
               </td>
 
-              <td>
-                <ul>
-                  <li v-for="professeur in user.Professeurs" :key="professeur">
-                    {{ professeur }}
-                  </li>
-                </ul>
-              </td>
               <td v-if="user.Etat === 'Non payé'" style="color: red; font-weight: bold;">{{ user.Etat }}</td>
               <td v-else-if="user.Etat === 'Payé'" style="color: green; font-weight: bold;">{{ user.Etat }}</td>
               <td v-else-if="user.Etat === 'Payé et plus'" style="color: green; font-weight: bold;">{{ user.Etat }}</td>
@@ -252,7 +244,6 @@ const initDataTable = () => {
       { data: 'IdNiv' },
       { data: 'IdFil' },
       { data: 'Matieres' },
-      { data: 'Professeurs' },
       { data: 'Etat' },
       { data: 'SommeApaye', render: function(data, type, row) { return data + ' dh'; } },
     { data: 'Montant', render: function(data, type, row) { return data + ' dh'; } },
@@ -609,7 +600,7 @@ onMounted(() => {
     updateValuesPeriodically();
 
     getRole();
-    ModierLescalculesProvisoirement();
+    //ModierLescalculesProvisoirement();
 
 
   };

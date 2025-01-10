@@ -149,6 +149,7 @@ Route::get('/api/filieres/{id}', [CentreController::class, 'getFilieres']);
 Route::get('/api/filiere', [CentreController::class, 'getFiliere']);
 Route::get('/api/matieres', [CentreController::class, 'getMatieres']);
 Route::get('/api/matiere', [CentreController::class, 'getMatiere']);
+Route::get('/api/matieresEtudiant/{idEtudiant}', [CentreController::class, 'getMatiereParEtudiant']);
 
 
 
@@ -183,6 +184,7 @@ Route::put('/api/enseignements/{user}', [ProfesseurController::class, 'updateEns
 Route::put('/api/matiere/{user}', [CentreController::class, 'updateMatiere']);
 Route::put('/api/niveau/{user}', [CentreController::class, 'updateNiveau']);
 Route::put('/api/filiere/{user}', [CentreController::class, 'updateFiliere']);
+Route::put('/api/inscription/change/{id_etudiant}/{id_matiere}/{type}', [CentreController::class, 'setInscription']);
 
 
 

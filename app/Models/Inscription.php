@@ -24,6 +24,8 @@ class Inscription extends Authenticatable
         'IdProf',
         'IdNiv',
         'IdFil',
+        'inscrit',
+        'dateInscription'
 
     ];
 
