@@ -28,7 +28,8 @@
                         <!-- <th>#</th> -->
                         <th>Nom</th>
                         <th>Prenom</th>
-                        <th>Téléphone</th>
+                        <th>Téléphone du père</th>
+                        <th>Téléphone de la mère</th>
                         <th>Adresse</th>
                         <th>Niveau</th>
                         <th>Filière</th>
@@ -44,6 +45,7 @@
                         <td>{{ user.Nom }}</td>
                         <td>{{ user.Prenom }}</td>
                         <td>{{ user.Tele }}</td>
+                        <td>{{ user.Tele2 }}</td>
                         <td>{{ user.Adresse }}</td>
                         <td>{{ user.IdNiv }}</td>
                         <td>{{ user.IdFil }}</td>
@@ -63,21 +65,17 @@
                             <a class="btn btn-primary btn-sm" href="#" @click.prevent="editUser(user)">
                                 <i class="fa fa-edit"></i>
                             </a>
-                            <a class="btn btn-success btn-sm ml-3" href="#" @click.prevent="affectationMatieres(user, this.$router)">
+                            <a class="btn btn-success btn-sm ml-3" href="#" @click.prevent="affectationMatieres(user)">
                                 <i class="fa fa-tasks"></i>
                             </a>
                             <a class="btn btn-danger btn-sm ml-4" href="#" @click.prevent="confirmUserDeletion(user)">
                                 <i class="fa fa-trash"></i>
                             </a>
                         </td>
-
-
                     </tr>
                     </tbody>
                 </table>
             </div>
-
-
         </div>
     </div>
 
@@ -119,9 +117,16 @@
                             <span class="invalid-feedback">{{ errors.prenom }}</span>
                         </div>
                         <div class="form-group">
-                            <label for="tele">Telephone</label>
+                            <label for="tele">Téléphone du père</label>
                             <Field id="tele" v-model="formValues.tele" :class="{ 'is-invalid': errors.tele }" class="form-control"
                                    name="tele"
+                                   placeholder="Entrer telephone" type="text"/>
+                            <span class="invalid-feedback">{{ errors.tele }}</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="tele2">Téléphone de la mère</label>
+                            <Field id="tele2" v-model="formValues.tele2" :class="{ 'is-invalid': errors.tele }" class="form-control"
+                                   name="tele2"
                                    placeholder="Entrer telephone" type="text"/>
                             <span class="invalid-feedback">{{ errors.tele }}</span>
                         </div>
@@ -251,6 +256,7 @@ const formValues = ref({
     nom: '',
     prenom: '',
     tele: '',
+    tele2: '',
     adresse: '',
     Date_debut: '',
 
@@ -330,6 +336,7 @@ const initDataTable = () => {
             {data: 'Nom'},
             {data: 'Prenom'},
             {data: 'Tele'},
+            {data: 'Tele2'},
             {data: 'Adresse'},
             {data: 'IdNiv'},
             {data: 'IdFil'},
@@ -519,6 +526,7 @@ const editUser = (user) => {
         nom: user.Nom,
         prenom: user.Prenom,
         tele: user.Tele,
+        tele2: user.Tele2,
         adresse: user.Adresse,
         niv: user.IdNiv,
         fil: user.IdFil,
@@ -576,8 +584,9 @@ const confirmUserDeletion = (user) => {
     $('#deleteUserModal').modal('show');
 };
 
-const affectationMatieres = (user, router) => {
-    router.push(`/students/inscriptions/${user.id}`);
+const affectationMatieres = (user) => {
+    window.location.href = `/students/inscriptions/${user.id}`;
+    //router.push(`/students/inscriptions/${user.id}`);
 };
 
 const deleteUser = () => {

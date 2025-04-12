@@ -22,6 +22,7 @@ class Etudiant extends Authenticatable
         'Nom',
         'Prenom',
         'Tele',
+        'Tele2',
         'Adresse',
         'IdNiv',
         'IdFil',

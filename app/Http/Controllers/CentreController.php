@@ -48,6 +48,7 @@ class CentreController extends Controller
                 'Nom' => $user->Nom,
                 'Prenom' => $user->Prenom,
                 'Tele' => $user->Tele,
+                'Tele2' => $user->Tele2,
                 'Adresse' => $user->Adresse,
                 'SommeApaye' => $user->SommeApaye,
                 'IdNiv' => $niveau ? $niveau->Nom : null,
@@ -93,17 +94,17 @@ class CentreController extends Controller
                 $inscription->save();
             }
         }
-        $inscriptions = Inscription::leftJoin('niveau', 'inscription.IdNiv', '=', 'niveau.id')
-            ->leftJoin('filiere', 'inscription.IdFil', '=', 'filiere.id')
-            ->leftJoin('professeurs', 'inscription.IdProf', '=', 'professeurs.id') // LEFT JOIN pour gérer les valeurs nulles
-            ->join('matiere', 'inscription.IdMat', '=', 'matiere.id')
-            ->where('inscription.IdEtu', $idEtudiant)
+        $inscriptions = Inscription::leftJoin('Niveau', 'Inscription.IdNiv', '=', 'Niveau.id')
+            ->leftJoin('Filiere', 'Inscription.IdFil', '=', 'Filiere.id')
+            ->leftJoin('Professeurs', 'Inscription.IdProf', '=', 'Professeurs.id') // LEFT JOIN pour gérer les valeurs nulles
+            ->join('Matiere', 'Inscription.IdMat', '=', 'Matiere.id')
+            ->where('Inscription.IdEtu', $idEtudiant)
             ->select(
-                'niveau.Nom as niveau_nom',
-                'filiere.Intitule as filiere_nom',
-                'professeurs.Nom as professeur_nom',
-                'professeurs.Prenom as professeur_prenom',
-                'matiere.Libelle as matiere_nom',
+                'Niveau.Nom as niveau_nom',
+                'Filiere.Intitule as filiere_nom',
+                'Professeurs.Nom as professeur_nom',
+                'Professeurs.Prenom as professeur_prenom',
+                'Matiere.Libelle as matiere_nom',
                 'Inscription.dateInscription as dateInscription',
                 'Inscription.inscrit as inscrit',
                 'Inscription.IdEtu as id_etudiant',
@@ -121,7 +122,7 @@ class CentreController extends Controller
             ->first();
         if ($type) $inscription->inscrit = true;
         else $inscription->inscrit = false;
-        $inscription->dateInscription = Carbon::now();
+        $inscription->dateInscription = $type ? Carbon::now() : null;
         $inscription->save();
 
         $NbrMat = Inscription::where('IdEtu', '=', $idEtudiant)->where('inscrit', '=', true)->count();
@@ -130,7 +131,7 @@ class CentreController extends Controller
         $valeur_paiment = Valeurs_Paiments::where('IdNiv', $etudiant->IdNiv)->where('NbrMat', $NbrMat)->first();
 
         $etudiant->update([
-            'SommeApaye' => $valeur_paiment->Valeur,
+            'SommeApaye' => $valeur_paiment ? $valeur_paiment->Valeur : 0
         ]);
 
         $ensignemet = Enseignement::where('IdProf', '=', $inscription->IdProf)
@@ -159,9 +160,16 @@ class CentreController extends Controller
     }
 
 
-    public function getListeAbsences()
+    public function getListeAbsences(Request $request)
     {
-        $users = Absence::where('Status', 'Absent')->get()->map(function ($user) {
+
+        $datePourAfficher = $request->input('date');
+
+        if(!$datePourAfficher) return [];
+
+        $users = Absence::where('Status', 'Absent')
+        ->where('Date_absence', $datePourAfficher)
+        ->get()->map(function ($user) {
             // dd($user);
             $etudiant = Etudiant::find($user->IdEtu);
             $niv = Niveau::find($user->IdNiv);
@@ -175,6 +183,7 @@ class CentreController extends Controller
                 'Nom' => $etudiant->Nom,
                 'Prenom' => $etudiant->Prenom,
                 'Tele' => $etudiant->Tele,
+                'Tele2' => $etudiant->Tele2,
                 'Adresse' => $etudiant->Adresse,
                 // 'SommeApaye' => $user->SommeApaye,
                 'IdNiv' => $niv->Nom,
@@ -337,102 +346,8 @@ class CentreController extends Controller
         // dd($SelectedClasse);
 
 
-        if ($SelectedClasse == 'Tous') {
-            $i = 0;
+        if ($SelectedClasse == 'Tous') return [];
 
-
-            // dd($request->input('id'));
-            $datePourAfficher = $request->input('date'); // Récupération du mois sélectionné depuis la requête
-
-            // dd($datePourAfficher);
-
-
-            $EtusEnsParProf = Inscription::where('IdProf', $request->input('id'))->get();
-            // dd($EtusEnsParProf->count());
-            $users = collect(); // Initialiser une collection pour stocker les étudiants
-            $mats = collect();
-
-            foreach ($EtusEnsParProf as $etu) {
-                $user = Etudiant::find($etu->IdEtu); // Récupérer l'étudiant par son ID dans chaque inscription
-                if ($user) {
-                    $users->push($user); // Ajouter l'étudiant à la collection
-                    $mats->push($etu->IdMat);
-                }
-            }
-
-            // dd($users);
-
-
-            // Initialiser le tableau résultat
-            $result = [];
-
-            foreach ($users as $user) {
-                // Convertir la date sélectionnée en objet DateTime pour extraire le mois et l'année
-                $dateAfficher = new DateTime($datePourAfficher);
-                $mois = $dateAfficher->format('m'); // Mois de la date sélectionnée
-                $annee = $dateAfficher->format('Y'); // Année de la date sélectionnée
-
-                // dd($mois);
-
-                // Vérifier s'il existe un paiement pour cet étudiant et ce mois
-                $Paiment = Absence::where('IdEtu', $user->id)
-                    ->where('Date_absence', $datePourAfficher)
-                    // ->whereRaw('MONTH(Date_absence) = ?', [$mois])
-                    // ->whereRaw('YEAR(Date_absence) = ?', [$annee])
-                    ->first();
-
-                $ens = Enseignement::where('IdProf', $request->input('id'))
-                    ->where('IdMat', $mats[$i])
-                    ->where('IdNiv', $user->IdNiv)
-                    ->where('IdFil', $user->IdFil)
-                    ->first();
-                // dd($user);
-                $mati = Matiere::find($mats[$i]);
-                $nive = Niveau::where('id', $user->IdNiv)->first();
-                $fili = Filiere::where('id', $user->IdFil)->first();
-
-                // dd($nive);
-
-                $i = $i + 1;
-
-
-                if ($Paiment && $Paiment->Status == 'Absent') {
-                    // Si un paiement est trouvé, ajouter les détails du paiement
-                    $result[] = [
-                        'id' => $user->id,
-                        'Nom' => $user->Nom . ' ' . $user->Prenom,
-                        'Prenom' => $user->Prenom,
-                        'Filiere' => $nive->Nom . "\n" . $fili->Intitule . "\n" . $mati->Libelle,
-                        // 'SommeApaye' => $ens->SalaireParEtu,
-                        'Etat' => $Paiment->Status,
-                        // 'Montant' => $nive->Nom,
-                        // 'Reste' => $fili->Intitule,
-                        // 'Matiere' => $mati->Libelle,
-                        'DatePaiment' => $Paiment->Date_absence,
-                        'TotalEtudiants' => $EtusEnsParProf->count(),
-                    ];
-                } else {
-                    if ($nive && $fili && $mati) {
-                        // dd($nive->Nom);
-                        $result[] = [
-                            'id' => $user->id,
-                            'Nom' => $user->Nom . ' ' . $user->Prenom,
-                            'Prenom' => $user->Prenom,
-                            'Filiere' => $nive->Nom . "\n" . $fili->Intitule . "\n" . $mati->Libelle,
-                            // 'SommeApaye' => $ens->SalaireParEtu,
-                            'Etat' => 'Présent',
-                            // 'Montant' => $nive->Nom,
-                            // 'Reste' => $fili->Intitule,
-                            // 'Matiere' => $mati->Libelle,
-                            'DatePaiment' => '',
-                            // 'SalaireActuelle' => $SalaireActuelle,
-                            'TotalEtudiants' => $EtusEnsParProf->count(),
-                        ];
-                    }
-                }
-            }
-
-        } else {
             $classe_infos = explode(" ", $SelectedClasse);
 
             $niv = $classe_infos[0];
@@ -486,6 +401,9 @@ class CentreController extends Controller
                 // Vérifier s'il existe un paiement pour cet étudiant et ce mois
                 $Paiment = Absence::where('IdEtu', $user->id)
                     ->where('Date_absence', $datePourAfficher)
+                    ->where('IdMat', $matiere->id)
+                    ->where('IdFil', $filiere->id)
+                    ->where('IdProf', $request->input('id'))
                     // ->whereRaw('MONTH(Date_absence) = ?', [$mois])
                     // ->whereRaw('YEAR(Date_absence) = ?', [$annee])
                     ->first();
@@ -540,7 +458,6 @@ class CentreController extends Controller
                     }
                 }
             }
-        }
 
         return response()->json($result, 200, [], JSON_UNESCAPED_UNICODE);
     }
@@ -1172,8 +1089,6 @@ class CentreController extends Controller
             'prenom' => 'required',
             'niv' => 'required',
             'fil' => 'required',
-            'matieres' => 'required|array',
-            'professeurs' => 'required|array',
             'Date_debut' => 'required',
 
         ]);
@@ -1367,6 +1282,7 @@ class CentreController extends Controller
             'Nom' => request('nom'),
             'Prenom' => request('prenom'),
             'Tele' => request('tele'),
+            'Tele2' => request('tele2'),
             'Adresse' => request('adresse'),
             'IdNiv' => $idNiv,
             'IdFil' => $idFil,
@@ -1789,7 +1705,7 @@ class CentreController extends Controller
             $nivToEdit = $data['NivToEdit'];
             $niveau = Niveau::where('Nom', $nivToEdit)->first();
 
-            $nbr = 0;
+            $nbr = 14;
 
             // Parcourez les données et mettez à jour chaque valeur de paiement
             foreach ($data['formValues'] as $val) {

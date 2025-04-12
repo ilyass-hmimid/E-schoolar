@@ -1,4 +1,3 @@
-
 <template>
   <div class="content-header">
     <div class="container-fluid">
@@ -103,11 +102,11 @@
           </button>
         </div> -->
             <span v-else>Ajouter nouveau enseignement pour le prof {{ currentProf.Prenom }} {{ currentProf.Nom }}</span>
-            </h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
+          </h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
 
 
         <!--The form is here => -->
@@ -144,8 +143,9 @@
               <select v-model="selectedFiliere" @change="handleFiliereChange($event.target.value)" class="form-control"
                 id="fil" required style="color: black !important;">
                 <option v-if="!editing" value="">Sélectionner une filière</option>
-                <option v-for="filiere in filieres" :key="filiere.id" :value="filiere" style="color: black !important;">{{
-                  filiere }}</option>
+                <option v-for="filiere in filieres" :key="filiere.id" :value="filiere" style="color: black !important;">
+                  {{
+                    filiere }}</option>
               </select>
               <!-- <span class="invalid-feedback">{{ errors.fil }}</span> -->
               <span v-if="selectedFiliere === ''" style="    font-size: 80%;
@@ -157,8 +157,9 @@
               <select v-model="selectedMatiere" @change="handleMatiereChange($event.target.value)" class="form-control"
                 id="mat" required style="color: black !important;">
                 <option v-if="!editing" value="">Sélectionner une matière</option>
-                <option v-for="matiere in matieres" :key="matiere.id" :value="matiere" style="color: black !important;">{{
-                  matiere }}</option>
+                <option v-for="matiere in matieres" :key="matiere.id" :value="matiere" style="color: black !important;">
+                  {{
+                    matiere }}</option>
               </select>
               <span v-if="selectedMatiere === ''" style="font-size: 80%; color: #dc3545;">Veuillez sélectionner une
                 matière !!</span>
@@ -168,7 +169,7 @@
               <label for="SalaireParEtu">Salaire par étudiant</label>
               <Field name="SalaireParEtu" type="number" class="form-control"
                 :class="{ 'is-invalid': errors.SalaireParEtu }" id="SalaireParEtu"
-                placeholder="Entrer un nouveau salaire par étudiant" required v-model="formValues.SalaireParEtu"/>
+                placeholder="Entrer un nouveau salaire par étudiant" required v-model="formValues.SalaireParEtu" />
               <span class="invalid-feedback">{{ errors.SalaireParEtu }}</span>
             </div>
 
@@ -265,7 +266,7 @@ const editing = ref(false);
 const formValues = ref({
   id: '',
   SalaireParEtu: '',
-  Date_debut:'',
+  Date_debut: '',
 
 });
 const form = ref(null);
@@ -563,7 +564,7 @@ const createUser = (values, { resetForm, setErrors }) => {
       resetForm();
       toastr.success('Enseignement créé avec succès !');
       getUsers(); // Mettre à jour la DataTable après la création
-      if(IsBigtable.value){ // Utiliser directement IsBigtable.value pour vérifier si la mise à jour provient de la DataTable
+      if (IsBigtable.value) { // Utiliser directement IsBigtable.value pour vérifier si la mise à jour provient de la DataTable
         window.location.reload();
       }
       //   location.reload(); // Rechargement de la page après la suppression
@@ -583,7 +584,7 @@ const addUser = (user) => {
   currentProf.value = user;
   formValues.value.Date_debut = getDefaultDate(); // Initialiser Date_debut avec getDefaultDate()
   editing.value = false;
-//   resetFormValues();
+  //   resetFormValues();
   $('#userFormModal').modal('show');
 };
 
@@ -591,8 +592,8 @@ const addUser = (user) => {
 
 const editUser = (user) => {
   editing.value = true;
-//   resetFormValues();
-//   form.value.resetForm();
+  //   resetFormValues();
+  //   form.value.resetForm();
   getFilieres(user.IdNiv);
   $('#userFormModal').modal('show');
 
@@ -634,7 +635,7 @@ const updateUser = (values, { setErrors }) => {
 
       toastr.success('Enseignement mis à jour avec succès !');
       getUsers(); // Mettre à jour la DataTable après la mise à jour
-      if(IsBigtable.value){ // Utiliser directement IsBigtable.value pour vérifier si la mise à jour provient de la DataTable
+      if (IsBigtable.value) { // Utiliser directement IsBigtable.value pour vérifier si la mise à jour provient de la DataTable
         window.location.reload();
       }
       //   location.reload(); // Rechargement de la page après la suppression
@@ -668,7 +669,7 @@ const deleteUser = () => {
       users.value = users.value.filter(user => user.id !== userIdBeingDeleted.value);
       userIdBeingDeleted.value = null;
       getUsers(); // Mettre à jour la DataTable après la suppression
-      if(IsBigtable.value){ // Utiliser directement IsBigtable.value pour vérifier si la mise à jour provient de la DataTable
+      if (IsBigtable.value) { // Utiliser directement IsBigtable.value pour vérifier si la mise à jour provient de la DataTable
         window.location.reload();
       }
       //   location.reload(); // Rechargement de la page après la suppression
@@ -752,4 +753,3 @@ onMounted(() => {
 
 });
 </script>
-

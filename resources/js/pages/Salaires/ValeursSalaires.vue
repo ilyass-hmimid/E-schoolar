@@ -93,20 +93,9 @@
         </div>
         <form>
           <div class="modal-body">
-            <template v-if="NivToEdit === '6éme primaire' || NivToEdit === '5éme primaire'">
-              <div v-for="(nbr, nbrIndex) in matieres" :key="nbrIndex">
-                <div v-if="nbr === 'Primaire'" class="form-group">
-                  <label :for="'Valeur_paiment_' + nbrIndex">Valeur de salaire pour {{ NivToEdit }}</label>
-                  <input v-model="formValues[nbrIndex]" type="number" class="form-control"
-                    :id="'Valeur_paiment_' + nbrIndex" placeholder="Entrer la nouvelle valeur pour ce niveau" required />
-                  <span class="invalid-feedback">{{ errors[nbrIndex] }}</span>
-                </div>
-              </div>
-            </template>
 
-            <template v-else>
               <div v-for="(nbr, nbrIndex) in matieres" :key="nbrIndex">
-                <div v-if="nbr !== 'Primaire'" class="form-group">
+                <div class="form-group">
                   <label :for="'Valeur_paiment_' + nbrIndex">Valeur de salaire pour {{ nbr }} </label>
                   <input v-model="formValues[nbrIndex]" type="number" class="form-control"
                     :id="'Valeur_paiment_' + nbrIndex" placeholder="Entrer la nouvelle valeur pour ce nombre de matières"
@@ -114,7 +103,6 @@
                   <span class="invalid-feedback">{{ errors[nbrIndex] }}</span>
                 </div>
               </div>
-            </template>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" @click="resetForm" data-dismiss="modal">Annuler</button>
