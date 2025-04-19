@@ -65,12 +65,10 @@ class CentreController extends Controller
     public function getMatiereParEtudiant($idEtudiant)
     {
         if (Inscription::where('IdEtu', $idEtudiant)->count() < Matiere::count()) {
-            $matieresSansInscriptions =
-                Matiere::whereNotIn('id', function ($query) {
-                    $query->select('IdMat')
-                        ->from('Inscription');
-                })
-                    ->get();
+
+            $inscriptions = Inscription::where('IdEtu', $idEtudiant)->pluck('IdMat');
+
+            $matieresSansInscriptions = $inscriptions->isEmpty() ? Matiere::all() : Matiere::whereNotIn('id', $inscriptions)->get();
 
             foreach ($matieresSansInscriptions as $matiere) {
                 $inscription = new Inscription();

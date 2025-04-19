@@ -4,7 +4,7 @@
             <div class="row mb-2">
                 <div class="col-sm-6" style="display: block;">
                     <h1 class="m-0 mb-4" style="font-weight: 500 !important;">Liste des inscriptions</h1>
-                    <button @click="back(this.$router)" type="button" class="mb-2 btn btn-primary" style="font-weight: bold;">
+                    <button @click="back()" type="button" class="mb-2 btn btn-primary" style="font-weight: bold;">
                         <i class="fa fa-arrow-left"></i>
                         Retour
                     </button>
@@ -528,8 +528,8 @@ const createUser = (values, {resetForm, setErrors}) => {
 let currentProf = ref('');
 
 
-const back = (router) => {
-    router.push(`/students`);
+const back = () => {
+    window.location.href = `/students`;
 };
 
 const setInscription = (id_etudiant, id_matiere, type) => {
