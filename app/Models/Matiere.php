@@ -30,6 +30,16 @@ class Matiere extends Authenticatable
         return $this->belongsToMany(Etudiant::class, 'Inscription', 'IdMat', 'IdEtu');
     }
 
+    /**
+     * Relation many-to-many avec le modèle Pack.
+     */
+    public function packs()
+    {
+        return $this->belongsToMany(Pack::class, 'matiere_pack')
+            ->withPivot('nombre_heures_par_matiere')
+            ->withTimestamps();
+    }
+
 
     /**
      * The attributes that should be hidden for serialization.
