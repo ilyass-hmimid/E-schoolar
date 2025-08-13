@@ -25,7 +25,7 @@ return new class extends Migration
         // Table pivot pour la relation many-to-many entre packs et matières
         Schema::create('matiere_pack', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('matiere_id')->constrained('Matiere', 'id')->onDelete('cascade');
+            $table->foreignId('matiere_id')->constrained('matieres')->onDelete('cascade');
             $table->foreignId('pack_id')->constrained('packs')->onDelete('cascade');
             $table->integer('nombre_heures_par_matiere')->default(0);
             $table->timestamps();

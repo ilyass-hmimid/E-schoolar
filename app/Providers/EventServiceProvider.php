@@ -18,6 +18,10 @@ class EventServiceProvider extends ServiceProvider
         Registered::class => [
             SendEmailVerificationNotification::class,
         ],
+        // Écouteur pour diffuser les nouvelles notifications en temps réel
+        'Illuminate\Notifications\Events\NotificationSent' => [
+            'App\Listeners\BroadcastNotificationCreated',
+        ],
     ];
 
     /**

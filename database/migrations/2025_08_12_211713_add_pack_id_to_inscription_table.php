@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('Inscription', function (Blueprint $table) {
+        Schema::table('inscriptions', function (Blueprint $table) {
             // Ajout de la colonne pack_id comme clé étrangère nullable
             $table->foreignId('pack_id')
                 ->after('IdFil')
@@ -36,7 +36,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('Inscription', function (Blueprint $table) {
+        Schema::table('inscriptions', function (Blueprint $table) {
             // Suppression de la contrainte de clé étrangère
             $table->dropForeign(['pack_id']);
             

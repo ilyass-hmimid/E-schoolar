@@ -215,7 +215,14 @@ export default {
     NotificationPreferencesModal
   },
   
-  setup() {
+  props: {
+    auth: {
+      type: Object,
+      required: true
+    }
+  },
+  
+  setup(props) {
     const isOpen = ref(false);
     const showPreferences = ref(false);
     const notifications = ref([]);
@@ -225,21 +232,44 @@ export default {
     const currentPage = ref(1);
     const lastPage = ref(1);
     const hasMorePages = ref(false);
+    const currentUser = ref(props.auth?.user);
     
     // Charger les notifications au montage du composant
     onMounted(() => {
       fetchNotifications();
-      // Écouter les événements de notification en temps réel (si vous utilisez Echo ou similaire)
-      // window.Echo.private(`App.Models.User.${user.id}`)
-      //   .notification((notification) => {
-      //     notifications.value.unshift(notification);
-      //     unreadCount.value++;
-      //   });
+      
+      // Écouter les événements de notification en temps réel via Echo
+      if (window.Echo && currentUser.value) {
+        const channelName = `App.Models.User.${currentUser.value.id}`;
+        
+        // S'abonner au canal privé de l'utilisateur
+        window.Echo.private(channelName)
+          .listen('.new.notification', (data) => {
+            // Ajouter la nouvelle notification au début de la liste
+            notifications.value.unshift(data.notification);
+            
+            // Mettre à jour le compteur de notifications non lues
+            unreadCount.value = data.unread_count || (unreadCount.value + 1);
+            
+            // Afficher une notification toast si le panneau n'est pas ouvert
+            if (!isOpen.value) {
+              // Vous pouvez ajouter ici une logique pour afficher une notification toast
+              console.log('Nouvelle notification reçue:', data.notification);
+            }
+          })
+          .error((error) => {
+            console.error('Erreur de connexion au canal de notification:', error);
+          });
+      } else {
+        console.warn('Echo non initialisé ou utilisateur non connecté');
+      }
     });
     
     // Nettoyer les écouteurs d'événements lors du démontage
     onUnmounted(() => {
-      // window.Echo.leave(`App.Models.User.${user.id}`);
+      if (window.Echo && currentUser.value) {
+        window.Echo.leave(`App.Models.User.${currentUser.value.id}`);
+      }
     });
     
     // Fermer les notifications en cliquant à l'extérieur
