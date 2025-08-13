@@ -17,7 +17,7 @@
         <div class="container" style="overflow: auto !important; height: calc(100vh - 176px) !important;">
          <table class="table table-striped">
   <thead>
-    <tr> <br> <th :colspan="TotalMat" style="text-align: center !important;">Nombre de matières</th>
+    <tr><th :colspan="TotalMat" style="text-align: center !important;">Nombre de matières</th>
 </tr>
     <tr>
 

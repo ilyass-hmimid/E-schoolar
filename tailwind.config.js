@@ -3,13 +3,30 @@ const forms = require('@tailwindcss/forms');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-    // Désactiver le préfligge pour éviter les conflits avec AdminLTE
+    // Configuration du corePlugins pour désactiver uniquement les styles de base problématiques
     corePlugins: {
+        // Désactiver uniquement les styles de base qui causent des conflits
         preflight: false,
+        // Désactiver spécifiquement les styles de base pour les éléments qui causent des conflits
+        // avec AdminLTE
+        backgroundColor: false,
+        textColor: false,
+        borderColor: false,
     },
     
     // Important: spécifier un sélecteur de conteneur pour éviter les conflits
     important: '#app',
+    
+    // Désactiver la génération des classes de base pour éviter les conflits
+    // avec les classes existantes d'AdminLTE
+    corePlugins: {
+        // Désactiver les plugins de base qui pourraient causer des conflits
+        preflight: false,
+        // Réactiver uniquement les plugins nécessaires
+        backgroundColor: true,
+        textColor: true,
+        borderColor: true,
+    },
     
     // Configuration du content pour inclure tous les fichiers nécessaires
     content: [

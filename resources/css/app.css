@@ -1,6 +1,10 @@
 /* Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
 
+/* Imports AdminLTE */
+@import 'admin-lte/plugins/fontawesome-free/css/all.min.css';
+@import 'admin-lte/dist/css/adminlte.min.css';
+
 /* Tailwind Directives */
 @tailwind base;
 @tailwind components;
@@ -55,12 +59,9 @@
     @apply w-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium py-2.5 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2;
 }
 
-/* Imports AdminLTE après les styles personnalisés */
-@import 'admin-lte/plugins/fontawesome-free/css/all.min.css';
-@import 'admin-lte/dist/css/adminlte.min.css';
-
 /* Désactiver les styles problématiques d'AdminLTE */
-.bg-white {
+/* Remplacement de la règle problématique par une classe personnalisée */
+.bg-custom-white {
     background-color: #fff !important;
 }
 

@@ -38,10 +38,18 @@ export default defineConfig(({ mode }) => {
         css: {
             postcss: {
                 plugins: [
+                    // Configuration simplifiée pour éviter les problèmes d'import
                     tailwindcss,
                     autoprefixer,
                 ],
             },
+            // Activer les source maps en développement
+            devSourcemap: true,
+        },
+        // Désactiver les optimisations qui peuvent causer des problèmes
+        optimizeDeps: {
+            include: ['@inertiajs/vue3', 'vue', 'vue-router'],
+            exclude: ['admin-lte'],
         },
         // Définir les variables d'environnement accessibles côté client
         define: {
