@@ -17,6 +17,9 @@
         <!-- Favicon -->
         <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
 
+        <!-- AdminLTE CSS (chargé en tant que fichier statique) -->
+        <link rel="stylesheet" href="{{ asset('vendor/admin-lte/dist/css/adminlte.min.css') }}">
+        
         <!-- Scripts -->
         @routes
         @vite([

@@ -1,0 +1,18 @@
+/* Fichier CSS personnalisé pour AdminLTE */
+/* Tous les @import doivent être en haut du fichier */
+
+/* 1. Importer d'abord Font Awesome */
+@import 'admin-lte/plugins/fontawesome-free/css/all.min.css';
+
+/* 2. Importer AdminLTE en excluant les parties problématiques */
+/* Note: Nous utilisons la directive layer pour isoler ces styles */
+@import 'admin-lte/dist/css/adminlte.min.css' layer(adminlte);
+
+/* 3. Remplacer les styles problématiques */
+/* Cette règle remplace le @apply bg-white problématique */
+.bg-white {
+    background-color: #fff !important;
+}
+
+/* 4. Styles personnalisés spécifiques à AdminLTE */
+/* Ajoutez ici tous les styles personnalisés nécessaires */

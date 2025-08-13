@@ -1,9 +1,8 @@
 /* Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
 
-/* Imports AdminLTE */
-@import 'admin-lte/plugins/fontawesome-free/css/all.min.css';
-@import 'admin-lte/dist/css/adminlte.min.css';
+/* AdminLTE est maintenant chargé en tant que fichier CSS statique */
+/* Les styles personnalisés peuvent être ajoutés ci-dessous */
 
 /* Tailwind Directives */
 @tailwind base;

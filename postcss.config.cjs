@@ -1,14 +1,20 @@
 module.exports = {
   plugins: {
-    'postcss-import': {},
-    'tailwindcss/nesting': {},
-    tailwindcss: {
-      config: './tailwind.config.js',
-    },
-    autoprefixer: {
+    // Désactiver postcss-import pour éviter les problèmes avec AdminLTE
+    // 'postcss-import': {},
+    // Désactiver tailwindcss/nesting pour éviter les conflits
+    // 'tailwindcss/nesting': {},
+    
+    // Configuration Tailwind simplifiée
+    'tailwindcss': {},
+    
+    // Configuration Autoprefixer
+    'autoprefixer': {
       flexbox: 'no-2009',
       grid: 'autoplace',
     },
+    
+    // Désactiver PurgeCSS en développement pour éviter les problèmes
     ...(process.env.NODE_ENV === 'production' 
       ? {
           '@fullhuman/postcss-purgecss': {
@@ -16,6 +22,21 @@ module.exports = {
               './resources/views/**/*.blade.php',
               './resources/js/**/*.vue',
               './resources/js/**/*.js',
+              // Exclure spécifiquement les fichiers AdminLTE
+              '!**/node_modules/admin-lte/**/*',
+            ],
+            // Exclure les classes utilisées dynamiquement
+            safelist: [
+              /bg-.*/,
+              /text-.*/,
+              /border-.*/,
+              /hover:bg-.*/,
+              /hover:text-.*/,
+              /focus:ring-.*/,
+              /focus:border-.*/,
+              /focus:ring-.*/,
+              /active:bg-.*/,
+              /active:text-.*/,
             ],
             defaultExtractor: content => content.match(/[\w-/:]+(?<!:)/g) || [],
             safelist: [

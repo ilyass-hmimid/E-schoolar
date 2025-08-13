@@ -29,13 +29,24 @@ module.exports = {
     },
     
     // Configuration du content pour inclure tous les fichiers nécessaires
-    content: [
-        './resources/views/**/*.blade.php',
-        './resources/js/**/*.vue',
-        './node_modules/admin-lte/**/*.js',
-        './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
-        './storage/framework/views/*.php',
-    ],
+    // Exclure spécifiquement adminlte.css pour éviter le conflit avec @apply bg-white
+    content: {
+        files: [
+            './resources/views/**/*.blade.php',
+            './resources/js/**/*.vue',
+            './node_modules/admin-lte/**/*.js',
+            './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
+            './storage/framework/views/*.php',
+        ],
+        // Exclure explicitement le fichier adminlte.css du scan
+        transform: {
+            // Cette fonction permet d'exclure des fichiers spécifiques du scan
+            // Ici on exclut tous les fichiers adminlte.css
+            include: (content, path) => {
+                return !path.includes('adminlte.css') ? content : '';
+            }
+        }
+    },
     
     // Désactiver la purge CSS en développement
     safelist: [

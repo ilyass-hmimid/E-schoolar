@@ -2,8 +2,6 @@ import { defineConfig, loadEnv } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import vue from '@vitejs/plugin-vue';
 import path from 'path';
-import tailwindcss from 'tailwindcss';
-import autoprefixer from 'autoprefixer';
 
 export default defineConfig(({ mode }) => {
     // Charger les variables d'environnement
@@ -14,6 +12,7 @@ export default defineConfig(({ mode }) => {
             laravel({
                 input: [
                     'resources/css/app.css',
+                    'resources/css/adminlte-custom.css',
                     'resources/js/app.js',
                 ],
                 refresh: true,
@@ -34,22 +33,14 @@ export default defineConfig(({ mode }) => {
                 '~': path.resolve(__dirname, './node_modules'),
             },
         },
-        // Configuration CSS
+        // Configuration CSS simplifiée
         css: {
-            postcss: {
-                plugins: [
-                    // Configuration simplifiée pour éviter les problèmes d'import
-                    tailwindcss,
-                    autoprefixer,
-                ],
-            },
-            // Activer les source maps en développement
+            postcss: './postcss.config.js',
             devSourcemap: true,
         },
-        // Désactiver les optimisations qui peuvent causer des problèmes
+        // Exclure AdminLTE du traitement Vite
         optimizeDeps: {
-            include: ['@inertiajs/vue3', 'vue', 'vue-router'],
-            exclude: ['admin-lte'],
+            exclude: ['admin-lte']
         },
         // Définir les variables d'environnement accessibles côté client
         define: {
