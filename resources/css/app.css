@@ -6,6 +6,85 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Styles pour les pages d'authentification */
+.auth-page {
+    @apply min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-blue-50 to-gray-50;
+}
+
+.auth-card {
+    @apply w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden fade-in;
+}
+
+.auth-header {
+    @apply bg-gradient-to-r from-primary-600 to-primary-800 p-6 text-center;
+}
+
+.auth-logo {
+    @apply h-10 w-auto text-white;
+}
+
+.auth-title {
+    @apply text-2xl font-bold text-white;
+}
+
+.auth-subtitle {
+    @apply text-primary-100 text-sm;
+}
+
+.auth-content {
+    @apply p-8;
+}
+
+.input-group {
+    @apply relative rounded-md shadow-sm;
+}
+
+.input-icon {
+    @apply absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400;
+}
+
+.input-field {
+    @apply block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition duration-150;
+}
+
+.btn-primary {
+    @apply w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2;
+}
+
+.btn-outline {
+    @apply w-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium py-2.5 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2;
+}
+
+/* Imports AdminLTE après les styles personnalisés */
+@import 'admin-lte/plugins/fontawesome-free/css/all.min.css';
+@import 'admin-lte/dist/css/adminlte.min.css';
+
+/* Désactiver les styles problématiques d'AdminLTE */
+.bg-white {
+    background-color: #fff !important;
+}
+
+/* Réinitialisation des styles de base */
+#app {
+    @apply antialiased text-gray-800 min-h-screen;
+}
+
+/* Styles de base pour les éléments HTML */
+body {
+    @apply bg-gray-50;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
 /* Base Styles */
 @layer base {
   html {
@@ -103,25 +182,40 @@
   @apply bg-gray-300 rounded-full hover:bg-gray-400;
 }
 
-/* AdminLTE Overrides */
-@import 'admin-lte/plugins/fontawesome-free/css/all.min.css';
-@import 'admin-lte/dist/css/adminlte.min.css';
+/* AdminLTE Overrides - Styles de remplacement pour AdminLTE */
+:root {
+  --primary: #0ea5e9;
+  --secondary: #8b5cf6;
+  --success: #10b981;
+  --info: #3b82f6;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --light: #f8f9fa;
+  --dark: #1e293b;
+}
 
-/* Ensure AdminLTE doesn't conflict with our custom styles */
+/* Reset des styles AdminLTE problématiques */
 .content-wrapper {
   @apply bg-gray-50;
+  min-height: calc(100vh - 4rem);
+  padding: 1.5rem;
 }
 
 .main-header {
-  @apply shadow-sm;
+  @apply bg-white shadow-sm border-b border-gray-200;
 }
 
-.navbar-white {
-  @apply bg-white border-b border-gray-200;
+.navbar-nav .nav-link {
+  @apply text-gray-700 hover:bg-gray-100;
 }
 
 .sidebar-dark-primary {
   @apply bg-gray-900;
+}
+
+/* Correction des conflits de boutons */
+.btn-primary {
+  @apply bg-primary-600 text-white hover:bg-primary-700;
 }
 
 /* Custom utility classes */

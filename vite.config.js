@@ -1,6 +1,9 @@
 import { defineConfig, loadEnv } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import vue from '@vitejs/plugin-vue';
+import path from 'path';
+import tailwindcss from 'tailwindcss';
+import autoprefixer from 'autoprefixer';
 
 export default defineConfig(({ mode }) => {
     // Charger les variables d'environnement
@@ -24,6 +27,22 @@ export default defineConfig(({ mode }) => {
                 }
             }),
         ],
+        // Configuration de la résolution des imports
+        resolve: {
+            alias: {
+                '@': path.resolve(__dirname, './resources/js'),
+                '~': path.resolve(__dirname, './node_modules'),
+            },
+        },
+        // Configuration CSS
+        css: {
+            postcss: {
+                plugins: [
+                    tailwindcss,
+                    autoprefixer,
+                ],
+            },
+        },
         // Définir les variables d'environnement accessibles côté client
         define: {
             'process.env': {
@@ -39,6 +58,20 @@ export default defineConfig(({ mode }) => {
         server: {
             hmr: {
                 host: 'localhost',
+                protocol: 'ws',
+            },
+        },
+        // Optimisation des builds de production
+        build: {
+            chunkSizeWarningLimit: 1000,
+            rollupOptions: {
+                output: {
+                    manualChunks: {
+                        vue: ['vue', 'vue-router', 'vuex'],
+                        adminlte: ['admin-lte'],
+                        fontawesome: ['@fortawesome/fontawesome-free'],
+                    },
+                },
             },
         },
     };
