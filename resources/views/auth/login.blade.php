@@ -1,118 +1,141 @@
 <x-guest-layout>
-    <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gradient-to-br from-blue-50 to-gray-50">
-        <div class="w-full sm:max-w-md px-6 py-8 bg-white shadow-lg overflow-hidden sm:rounded-xl">
-            <!-- Logo -->
-            <div class="flex justify-center mb-8">
-                <a href="{{ route('dashboard') }}" class="flex items-center space-x-2">
-                    <x-application-logo class="h-12 w-auto text-primary-600" />
-                    <span class="text-2xl font-bold text-gray-900">{{ config('app.name', 'Allo Tawjih') }}</span>
-                </a>
-            </div>
-
-            <!-- Titre -->
-            <h2 class="text-center text-2xl font-bold text-gray-900 mb-8">
-                Connexion à votre espace
-            </h2>
-
-            <!-- Session Status -->
-            <x-auth-session-status class="mb-6" :status="session('status')" />
-
-            <!-- Formulaire -->
-            <form method="POST" action="{{ route('login') }}" class="space-y-6">
-                @csrf
-
-                <!-- Email -->
-                <div>
-                    <x-input-label for="email" :value="__('Adresse email')" class="block text-sm font-medium text-gray-700" />
-                    <div class="mt-1 relative rounded-md shadow-sm">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fas fa-envelope text-gray-400"></i>
+    <div class="min-h-screen flex flex-col justify-center items-center p-4">
+        <div class="w-full max-w-md fade-in">
+            <!-- Carte principale -->
+            <div class="bg-white rounded-xl shadow-xl overflow-hidden">
+                <!-- En-tête avec dégradé -->
+                <div class="bg-gradient-to-r from-primary-600 to-primary-800 p-6 text-center">
+                    <div class="flex justify-center mb-4">
+                        <a href="{{ route('dashboard') }}" class="flex items-center space-x-3">
+                            <x-application-logo class="h-10 w-auto text-white" />
+                            <span class="text-2xl font-bold text-white">Welcome To Allo Tawjih</span>
+                        </a>
+                    </div>
+                    <p class="text-primary-100 text-sm">Accédez à votre espace personnel</p>
+                </div>
+                
+                <!-- Contenu -->
+                <div class="p-8">
+                    <!-- Message de statut -->
+                    @if (session('status'))
+                        <div class="mb-6 p-4 bg-green-50 text-green-700 rounded-lg text-sm">
+                            {{ session('status') }}
                         </div>
-                        <x-text-input 
-                            id="email" 
-                            type="email" 
-                            name="email" 
-                            :value="old('email')" 
-                            required 
-                            autofocus 
-                            autocomplete="email" 
-                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                            placeholder="votre@email.com"
-                        />
-                    </div>
-                    <x-input-error :messages="$errors->get('email')" class="mt-1 text-sm text-red-600" />
-                </div>
-
-                <!-- Mot de passe -->
-                <div>
-                    <div class="flex items-center justify-between">
-                        <x-input-label for="password" :value="__('Mot de passe')" class="block text-sm font-medium text-gray-700" />
-                        @if (Route::has('password.request'))
-                            <a href="{{ route('password.request') }}" class="text-sm font-medium text-primary-600 hover:text-primary-500">
-                                Mot de passe oublié ?
-                            </a>
-                        @endif
-                    </div>
-                    <div class="mt-1 relative rounded-md shadow-sm">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fas fa-lock text-gray-400"></i>
+                    @endif
+                    
+                    <!-- Formulaire -->
+                    <form method="POST" action="{{ route('login') }}" class="space-y-6">
+                        @csrf
+                        
+                        <!-- Champ email -->
+                        <div class="space-y-2">
+                            <label for="email" class="block text-sm font-medium text-gray-700">
+                                Adresse email
+                            </label>
+                            <div class="input-group">
+                                <div class="input-icon">
+                                    <i class="fas fa-envelope"></i>
+                                </div>
+                                <input 
+                                    id="email" 
+                                    type="email" 
+                                    name="email" 
+                                    value="{{ old('email') }}"
+                                    required 
+                                    autofocus 
+                                    autocomplete="email" 
+                                    class="input-field"
+                                    placeholder="votre@email.com"
+                                >
+                            </div>
+                            @error('email')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
                         </div>
-                        <x-text-input 
-                            id="password" 
-                            type="password" 
-                            name="password" 
-                            required 
-                            autocomplete="current-password" 
-                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                            placeholder="••••••••"
-                        />
+                        
+                        <!-- Champ mot de passe -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label for="password" class="block text-sm font-medium text-gray-700">
+                                    Mot de passe
+                                </label>
+                                @if (Route::has('password.request'))
+                                    <a href="{{ route('password.request') }}" class="text-sm font-medium text-primary-600 hover:text-primary-500 transition-colors">
+                                        Mot de passe oublié ?
+                                    </a>
+                                @endif
+                            </div>
+                            <div class="input-group">
+                                <div class="input-icon">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                                <input 
+                                    id="password" 
+                                    type="password" 
+                                    name="password" 
+                                    required 
+                                    autocomplete="current-password" 
+                                    class="input-field"
+                                    placeholder="••••••••"
+                                >
+                            </div>
+                            @error('password')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        
+                        <!-- Se souvenir de moi -->
+                        <div class="flex items-center">
+                            <input 
+                                id="remember_me" 
+                                name="remember" 
+                                type="checkbox" 
+                                class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                            >
+                            <label for="remember_me" class="ml-2 block text-sm text-gray-700">
+                                Se souvenir de moi
+                            </label>
+                        </div>
+                        
+                        <!-- Bouton de connexion -->
+                        <div>
+                            <button type="submit" class="w-full btn-primary">
+                                <span>Se connecter</span>
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <!-- Séparateur -->
+                    <div class="relative my-6">
+                        <div class="absolute inset-0 flex items-center">
+                            <div class="w-full border-t border-gray-200"></div>
+                        </div>
+                        <div class="relative flex justify-center text-sm">
+                            <span class="px-2 bg-white text-gray-500">
+                                Nouveau sur Allo Tawjih ?
+                            </span>
+                        </div>
                     </div>
-                    <x-input-error :messages="$errors->get('password')" class="mt-1 text-sm text-red-600" />
-                </div>
-
-                <!-- Se souvenir de moi -->
-                <div class="flex items-center">
-                    <input 
-                        id="remember_me" 
-                        name="remember" 
-                        type="checkbox" 
-                        class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                    >
-                    <label for="remember_me" class="ml-2 block text-sm text-gray-700">
-                        {{ __('Se souvenir de moi') }}
-                    </label>
-                </div>
-
-                <!-- Bouton de connexion -->
-                <div>
-                    <x-primary-button class="w-full justify-center py-2.5 text-base font-medium rounded-lg">
-                        {{ __('Se connecter') }}
-                        <i class="fas fa-arrow-right ml-2"></i>
-                    </x-primary-button>
-                </div>
-            </form>
-
-            <!-- Ligne de séparation -->
-            <div class="mt-8 relative">
-                <div class="absolute inset-0 flex items-center">
-                    <div class="w-full border-t border-gray-200"></div>
-                </div>
-                <div class="relative flex justify-center text-sm">
-                    <span class="px-2 bg-white text-gray-500">
-                        Vous n'avez pas de compte ?
-                    </span>
+                    
+                    <!-- Lien d'inscription -->
+                    <div>
+                        <a href="{{ route('register') }}" class="w-full flex items-center justify-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                            Créer un compte
+                        </a>
+                    </div>
                 </div>
             </div>
-
-            <!-- Lien d'inscription -->
-            <div class="mt-4 text-center">
-                <a href="{{ route('register') }}" class="font-medium text-primary-600 hover:text-primary-500">
-                    Créer un compte
-                </a>
+            
+            <!-- Pied de page -->
+            <div class="mt-6 text-center">
+                <p class="text-xs text-gray-500">
+                    &copy; {{ date('Y') }} {{ config('app.name') }}. Tous droits réservés.
+                </p>
             </div>
         </div>
     </div>
-
+    
     @if(session('logout'))
         <script>
             if (window.history.replaceState) {
