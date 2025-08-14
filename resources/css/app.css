@@ -11,19 +11,20 @@
 
 /* Styles pour les pages d'authentification */
 .auth-page {
-    @apply min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-blue-50 to-gray-50;
+    @apply min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-blue-50 to-gray-100;
 }
 
 .auth-card {
-    @apply w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden fade-in;
+    @apply w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100;
+    animation: fadeIn 0.5s ease-out forwards;
 }
 
 .auth-header {
-    @apply bg-gradient-to-r from-primary-600 to-primary-800 p-6 text-center;
+    @apply bg-gradient-to-r from-primary-600 to-primary-700 p-6 text-center;
 }
 
 .auth-logo {
-    @apply h-10 w-auto text-white;
+    @apply h-12 w-auto text-white;
 }
 
 .auth-title {
@@ -31,15 +32,16 @@
 }
 
 .auth-subtitle {
-    @apply text-primary-100 text-sm;
+    @apply text-primary-100 text-sm mt-1;
 }
 
 .auth-content {
-    @apply p-8;
+    @apply p-8 space-y-6;
 }
 
+/* Styles des champs de formulaire */
 .input-group {
-    @apply relative rounded-md shadow-sm;
+    @apply relative rounded-lg overflow-hidden transition-all duration-200 border border-gray-200 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-100;
 }
 
 .input-icon {
@@ -47,15 +49,73 @@
 }
 
 .input-field {
-    @apply block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition duration-150;
+    @apply block w-full pl-10 pr-4 py-3 border-0 focus:ring-0 focus:outline-none text-gray-700 placeholder-gray-400 bg-white rounded-lg transition-all duration-200;
 }
 
+.input-field:focus {
+    @apply ring-0;
+}
+
+/* Styles des boutons */
 .btn-primary {
     @apply w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2;
 }
 
+.btn-secondary {
+    @apply w-full bg-white border border-gray-300 text-gray-700 font-medium py-2.5 px-6 rounded-lg hover:bg-gray-50 transition-all duration-200 flex items-center justify-center space-x-2;
+}
+
 .btn-outline {
     @apply w-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium py-2.5 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2;
+}
+
+/* Styles des messages d'erreur */
+.error-message {
+    @apply mt-1 text-sm text-red-600 flex items-start space-x-1;
+}
+
+.error-message i {
+    @apply mt-0.5;
+}
+
+/* Styles des liens */
+.auth-link {
+    @apply text-primary-600 hover:text-primary-700 font-medium transition-colors duration-200;
+}
+
+/* Styles du séparateur */
+.divider {
+    @apply relative my-6;
+}
+
+.divider::before {
+    @apply absolute inset-0 flex items-center;
+    content: '';
+    border-top: 1px solid #e5e7eb;
+    z-index: 1;
+}
+
+.divider span {
+    @apply relative z-10 px-4 bg-white text-sm text-gray-500;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Animation de chargement */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+    @apply animate-spin h-5 w-5 text-white;
 }
 
 /* Désactiver les styles problématiques d'AdminLTE */

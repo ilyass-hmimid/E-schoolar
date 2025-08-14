@@ -19,10 +19,10 @@ return [
     ],
 
     'server' => [
-        'host' => env('VITE_APP_HOST', 'localhost'),
+        'host' => env('VITE_APP_HOST', '127.0.0.1'),
         'port' => env('VITE_APP_PORT', 5173),
         'hmr' => env('VITE_DEV_SERVER_URL') ? [
-            'host' => 'localhost',
+            'host' => '127.0.0.1',
             'protocol' => 'ws',
             'port' => env('VITE_APP_PORT', 5173),
         ] : null,
