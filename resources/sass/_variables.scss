@@ -1,0 +1,185 @@
+// ================================================
+// ==  Variables SCSS - Système de Design         ==
+// ================================================
+
+// 1. Variables de couleur
+// ================================================
+
+// Couleurs principales
+$primary:       #0d6efd;
+$secondary:     #6c757d;
+$success:       #198754;
+$info:          #0dcaf0;
+$warning:       #ffc107;
+$danger:        #dc3545;
+$light:         #f8f9fa;
+$dark:          #212529;
+$white:         #ffffff;
+$black:         #000000;
+
+// Nuances de gris
+$gray-100:      #f8f9fa;
+$gray-200:      #e9ecef;
+$gray-300:      #dee2e6;
+$gray-400:      #ced4da;
+$gray-500:      #adb5bd;
+$gray-600:      #6c757d;
+$gray-700:      #495057;
+$gray-800:      #343a40;
+$gray-900:      #212529;
+
+// Couleurs de thème
+$theme-colors: (
+  "primary":    $primary,
+  "secondary":  $secondary,
+  "success":    $success,
+  "info":       $info,
+  "warning":    $warning,
+  "danger":     $danger,
+  "light":      $light,
+  "dark":       $dark
+);
+
+// Couleurs de texte
+$body-color:                  $gray-900;
+$text-muted:                  $gray-600;
+$text-muted-light:            rgba($white, 0.7);
+$text-muted-dark:             rgba($black, 0.7);
+
+// Couleurs de fond
+$body-bg:                     $white;
+$body-bg-dark:                $gray-900;
+
+// 2. Typographie
+// ================================================
+$font-family-sans-serif:      'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+$font-family-monospace:       SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+$font-family-base:            $font-family-sans-serif;
+$font-family-code:            $font-family-monospace;
+
+// Taille de police de base
+$font-size-root:              null;
+$font-size-base:              1rem; // 16px par défaut
+$font-size-sm:                $font-size-base * .875;
+$font-size-lg:                $font-size-base * 1.25;
+
+// Poids de police
+$font-weight-lighter:         lighter;
+$font-weight-light:           300;
+$font-weight-normal:          400;
+$font-weight-medium:          500;
+$font-weight-semibold:        600;
+$font-weight-bold:            700;
+$font-weight-bolder:          bolder;
+$font-weight-base:            $font-weight-normal;
+
+// Hauteur de ligne
+$line-height-base:            1.5;
+$line-height-sm:              1.25;
+$line-height-lg:              2;
+
+// Tailles de titres
+$h1-font-size:                $font-size-base * 2.5;
+$h2-font-size:                $font-size-base * 2;
+$h3-font-size:                $font-size-base * 1.75;
+$h4-font-size:                $font-size-base * 1.5;
+$h5-font-size:                $font-size-base * 1.25;
+$h6-font-size:                $font-size-base;
+
+// 3. Espacements et grille
+// ================================================
+$spacer: 1rem;
+$spacers: (
+  0: 0,
+  1: $spacer * 0.25,    // 4px
+  2: $spacer * 0.5,     // 8px
+  3: $spacer,           // 16px
+  4: $spacer * 1.5,     // 24px
+  5: $spacer * 3,       // 48px
+  6: $spacer * 4,       // 64px
+  7: $spacer * 5,       // 80px
+  8: $spacer * 6.25,    // 100px
+  9: $spacer * 7.5,     // 120px
+  10: $spacer * 9.375   // 150px
+);
+
+// 4. Bordures
+// ================================================
+$border-width:                1px;
+$border-widths: (
+  1: 1px,
+  2: 2px,
+  3: 3px,
+  4: 4px,
+  5: 5px
+);
+
+$border-color:                $gray-300;
+$border-color-translucent:    rgba($black, 0.175);
+
+// Rayons de bordure
+$border-radius:               .375rem;
+$border-radius-sm:            .25rem;
+$border-radius-lg:            .5rem;
+$border-radius-xl:            1rem;
+$border-radius-xxl:           2rem;
+$border-radius-pill:          50rem;
+
+// 5. Ombre
+// ================================================
+$box-shadow:                  0 .5rem 1rem rgba($black, .15);
+$box-shadow-sm:              0 .125rem .25rem rgba($black, .075);
+$box-shadow-lg:              0 1rem 3rem rgba($black, .175);
+$box-shadow-inset:           inset 0 1px 2px rgba($black, .075);
+
+// 6. Transitions et animations
+// ================================================
+$transition-base:            all .2s ease-in-out;
+$transition-fade:            opacity .15s linear;
+$transition-collapse:        height .35s ease;
+$transition-collapse-width:  width .35s ease;
+
+// 7. Z-index
+// ================================================
+$zindex-dropdown:                   1000;
+$zindex-sticky:                     1020;
+$zindex-fixed:                      1030;
+$zindex-offcanvas-backdrop:         1040;
+$zindex-offcanvas:                  1045;
+$zindex-modal-backdrop:             1050;
+$zindex-modal:                      1055;
+$zindex-popover:                    1070;
+$zindex-tooltip:                    1080;
+$zindex-toast:                      1090;
+
+// 8. Breakpoints
+// ================================================
+$grid-breakpoints: (
+  xs: 0,
+  sm: 576px,
+  md: 768px,
+  lg: 992px,
+  xl: 1200px,
+  xxl: 1400px
+);
+
+@include _assert-ascending($grid-breakpoints, "$grid-breakpoints");
+@include _assert-starts-at-zero($grid-breakpoints, "$grid-breakpoints");
+
+// 9. Conteneurs
+// ================================================
+$container-max-widths: (
+  sm: 540px,
+  md: 720px,
+  lg: 960px,
+  xl: 1140px,
+  xxl: 1320px
+);
+
+@include _assert-ascending($container-max-widths, "$container-max-widths");
+
+// 10. Grille
+// ================================================
+$grid-columns:                12;
+$grid-gutter-width:           1.5rem;
+$grid-row-columns:            6;

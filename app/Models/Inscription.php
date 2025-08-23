@@ -11,7 +11,7 @@ use Laravel\Sanctum\HasApiTokens;
 class Inscription extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
-    protected $table = 'Inscription';
+    protected $table = 'inscriptions';
 
     /**
      * The attributes that are mass assignable.
@@ -19,16 +19,16 @@ class Inscription extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'IdEtu',
-        'IdMat',
-        'IdProf',
-        'IdNiv',
+        'IdEtudiant',
         'IdFil',
+        'DateInsc',
+        'Montant',
+        'ModePaiement',
+        'Statut',
+        'Commentaires',
         'pack_id',
         'heures_restantes',
-        'date_expiration',
-        'inscrit',
-        'dateInscription'
+        'date_expiration'
     ];
 
     /**
@@ -38,9 +38,9 @@ class Inscription extends Authenticatable
      */
     protected $casts = [
         'date_expiration' => 'date',
-        'dateInscription' => 'datetime',
+        'DateInsc' => 'date',
         'heures_restantes' => 'integer',
-        'inscrit' => 'boolean',
+        'Montant' => 'decimal:2'
     ];
 
     /**

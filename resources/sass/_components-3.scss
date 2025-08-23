@@ -1,0 +1,387 @@
+// ================================================
+// ==  Composants SCSS - Partie 3                ==
+// ================================================
+
+// 8. Barres de progression
+// ===============================================
+.progress {
+  display: flex;
+  height: $progress-height;
+  overflow: hidden;
+  font-size: $progress-font-size;
+  background-color: $progress-bg;
+  @include border-radius($progress-border-radius);
+  @include box-shadow($progress-box-shadow);
+  
+  &-bar {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    color: $progress-bar-color;
+    text-align: center;
+    white-space: nowrap;
+    background-color: $progress-bar-bg;
+    @include transition($progress-bar-transition);
+    
+    // Barres de progression avec étiquettes
+    &-label {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      transform: translateY(-50%);
+      font-size: $progress-bar-label-font-size;
+      font-weight: $progress-bar-label-font-weight;
+      color: $progress-bar-label-color;
+      text-align: center;
+      text-shadow: $progress-bar-label-text-shadow;
+      z-index: 1;
+    }
+    
+    // Barres de progression avec dégradé
+    &-striped {
+      @include gradient-striped();
+      background-size: $progress-height $progress-height;
+    }
+    
+    // Animation des barres de progression
+    &-animated {
+      animation: progress-bar-stripes $progress-bar-animation-timing;
+    }
+    
+    // Variations de couleurs
+    @each $color, $value in $theme-colors {
+      &-#{$color} {
+        @include gradient-bg($value);
+      }
+    }
+  }
+  
+  // Tailles
+  &-sm {
+    height: $progress-height-sm;
+    
+    .progress-bar {
+      &-label {
+        font-size: $progress-bar-label-font-size-sm;
+      }
+      
+      &-striped {
+        background-size: $progress-height-sm $progress-height-sm;
+      }
+    }
+  }
+  
+  &-lg {
+    height: $progress-height-lg;
+    
+    .progress-bar {
+      &-label {
+        font-size: $progress-bar-label-font-size-lg;
+      }
+      
+      &-striped {
+        background-size: $progress-height-lg $progress-height-lg;
+      }
+    }
+  }
+  
+  // Style avec étiquette à l'intérieur
+  &-with-label {
+    position: relative;
+    
+    .progress-bar {
+      position: relative;
+      overflow: visible;
+      
+      &::after {
+        content: attr(aria-valuenow)'%';
+        position: absolute;
+        top: 50%;
+        right: $progress-bar-label-offset;
+        transform: translateY(-50%);
+        font-size: $progress-bar-label-font-size;
+        font-weight: $progress-bar-label-font-weight;
+        color: $progress-bar-label-color;
+        text-shadow: $progress-bar-label-text-shadow;
+      }
+      
+      // Ajustement de la position pour les petites tailles
+      @for $i from 0 through 100 {
+        &[aria-valuenow="#{$i}"] {
+          &::after {
+            color: if($i > 50, $white, $body-color);
+          }
+        }
+      }
+    }
+  }
+  
+  // Style avec étiquette à l'extérieur
+  &-with-external-label {
+    margin-bottom: $spacer;
+    
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: $progress-label-margin-bottom;
+      font-size: $progress-label-font-size;
+      font-weight: $progress-label-font-weight;
+      color: $progress-label-color;
+      
+      span:last-child {
+        color: $progress-label-value-color;
+        font-weight: $progress-label-value-font-weight;
+      }
+    }
+  }
+  
+  // Style avec indicateur de progression
+  &-with-indicator {
+    position: relative;
+    height: $progress-indicator-height;
+    background-color: $progress-indicator-bg;
+    border-radius: $progress-indicator-border-radius;
+    
+    .progress-bar {
+      position: relative;
+      background-color: $progress-indicator-bar-bg;
+      border-radius: $progress-indicator-border-radius;
+      
+      &::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        right: 0;
+        width: $progress-indicator-size;
+        height: $progress-indicator-size;
+        background-color: $progress-indicator-color;
+        border: $progress-indicator-border-width solid $progress-indicator-border-color;
+        border-radius: 50%;
+        transform: translate(50%, -50%);
+      }
+      
+      &-label {
+        position: absolute;
+        top: auto;
+        bottom: 100%;
+        left: auto;
+        right: 0;
+        transform: translateX(50%);
+        margin-bottom: $progress-indicator-label-spacer;
+        padding: $progress-indicator-label-padding-y $progress-indicator-label-padding-x;
+        background-color: $progress-indicator-label-bg;
+        color: $progress-indicator-label-color;
+        font-size: $progress-indicator-label-font-size;
+        font-weight: $progress-indicator-label-font-weight;
+        border-radius: $progress-indicator-label-border-radius;
+        white-space: nowrap;
+        
+        &::after {
+          content: '';
+          position: absolute;
+          top: 100%;
+          left: 50%;
+          transform: translateX(-50%);
+          border-width: $progress-indicator-arrow-size;
+          border-style: solid;
+          border-color: $progress-indicator-label-bg transparent transparent transparent;
+        }
+      }
+    }
+  }
+}
+
+// 9. Listes
+// ===============================================
+.list-group {
+  display: flex;
+  flex-direction: column;
+  padding-left: 0;
+  margin-bottom: $list-group-margin-bottom;
+  
+  &-item {
+    position: relative;
+    display: block;
+    padding: $list-group-item-padding-y $list-group-item-padding-x;
+    color: $list-group-color;
+    background-color: $list-group-bg;
+    border: $list-group-border-width solid $list-group-border-color;
+    
+    &:first-child {
+      @include border-top-radius($list-group-border-radius);
+    }
+    
+    &:last-child {
+      @include border-bottom-radius($list-group-border-radius);
+    }
+    
+    // États de survol et de focus
+    &:hover,
+    &:focus {
+      z-index: 1;
+      text-decoration: none;
+      background-color: $list-group-hover-bg;
+    }
+    
+    // États actif et sélectionné
+    &.active {
+      z-index: 2;
+      color: $list-group-active-color;
+      background-color: $list-group-active-bg;
+      border-color: $list-group-active-border-color;
+    }
+    
+    // État désactivé
+    &.disabled,
+    &:disabled {
+      color: $list-group-disabled-color;
+      background-color: $list-group-disabled-bg;
+    }
+    
+    // Icônes dans les éléments de liste
+    .list-icon {
+      margin-right: $list-group-icon-spacer;
+      color: $list-group-icon-color;
+    }
+    
+    // Actions dans les éléments de liste
+    .list-action {
+      float: right;
+      margin-left: $list-group-action-spacer;
+      color: $list-group-action-color;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      
+      &:hover {
+        color: $list-group-action-hover-color;
+        text-decoration: none;
+      }
+    }
+    
+    // Afficher les actions au survol
+    &:hover .list-action {
+      opacity: 1;
+    }
+    
+    // Badges dans les éléments de liste
+    .badge {
+      float: right;
+    }
+    
+    // Éléments de liste personnalisés
+    &-custom {
+      display: flex;
+      align-items: center;
+      padding: $list-group-custom-padding-y $list-group-custom-padding-x;
+      
+      .list-icon {
+        flex: 0 0 $list-group-custom-icon-size;
+        width: $list-group-custom-icon-size;
+        height: $list-group-custom-icon-size;
+        margin-right: $list-group-custom-icon-spacer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: $list-group-custom-icon-font-size;
+        color: $list-group-custom-icon-color;
+        background-color: $list-group-custom-icon-bg;
+        border-radius: $list-group-custom-icon-border-radius;
+      }
+      
+      .list-content {
+        flex: 1;
+        min-width: 0;
+      }
+      
+      .list-title {
+        margin-bottom: $list-group-custom-title-spacer;
+        font-size: $list-group-custom-title-font-size;
+        font-weight: $list-group-custom-title-font-weight;
+        color: $list-group-custom-title-color;
+      }
+      
+      .list-text {
+        font-size: $list-group-custom-text-font-size;
+        color: $list-group-custom-text-color;
+        @include text-truncate();
+      }
+      
+      .list-action {
+        margin-left: $list-group-custom-action-spacer;
+      }
+    }
+    
+    // Variations de couleurs
+    @each $color, $value in $theme-colors {
+      &-#{$color} {
+        color: $value;
+        background-color: rgba($value, 0.1);
+        
+        &.list-group-item-action {
+          @include hover-focus() {
+            color: darken($value, 10%);
+            background-color: rgba($value, 0.2);
+          }
+          
+          &.active {
+            color: $white;
+            background-color: $value;
+            border-color: $value;
+          }
+        }
+      }
+    }
+  }
+  
+  // Liste groupée avec bordures
+  &-bordered {
+    .list-group-item {
+      margin-bottom: -$list-group-border-width;
+      
+      &:first-child {
+        border-top-width: $list-group-border-width;
+      }
+    }
+  }
+  
+  // Liste groupée sans bordures
+  &-flush {
+    .list-group-item {
+      border-right: 0;
+      border-left: 0;
+      @include border-radius(0);
+      
+      &:first-child {
+        border-top: 0;
+      }
+    }
+  }
+  
+  // Liste groupée avec espacement
+  &-spaced {
+    .list-group-item {
+      margin-bottom: $list-group-spacer-y;
+      @include border-radius($list-group-border-radius);
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+  
+  // Liste groupée avec statut
+  &-status {
+    .list-group-item {
+      padding-left: $list-group-status-spacer;
+      border-left-width: $list-group-status-width;
+      border-left-style: solid;
+      
+      @each $status, $color in $status-colors {
+        &-#{$status} {
+          border-left-color: $color;
+        }
+      }
+    }
+  }
+}

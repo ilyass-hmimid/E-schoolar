@@ -2,632 +2,568 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\Absence;
-use App\Models\Etudiant;
-use App\Models\Professeur;
+use App\Models\Paiement;
+use App\Models\Salaire;
 use App\Models\Matiere;
-use App\Models\Classe;
-use App\Models\Paiment;
-use App\Models\Salaires;
-use App\Models\Pack;
-use App\Models\Inscription;
+use App\Models\Niveau;
+use App\Models\Filiere;
+use App\Enums\RoleType;
+use App\Services\PdfExportService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RapportController extends Controller
 {
-    /**
-     * Affiche la page de génération de rapports
-     */
     public function index()
     {
-        $this->authorize('viewAny', self::class);
+        $user = Auth::user();
         
+        if ($user->role !== RoleType::ADMIN) {
+            abort(403, 'Accès non autorisé');
+        }
+
         return Inertia::render('Rapports/Index', [
-            'matieres' => Matiere::select('id', 'Libelle')
-                ->orderBy('Libelle')
-                ->get(),
-            'classes' => Classe::select('id', 'Libelle')
-                ->orderBy('Libelle')
-                ->get(),
-            'types_rapport' => [
-                ['id' => 'absences', 'libelle' => 'Rapport des absences'],
-                ['id' => 'paiements', 'libelle' => 'Rapport des paiements'],
-                ['id' => 'salaires', 'libelle' => 'Rapport des salaires'],
-                ['id' => 'inscriptions', 'libelle' => 'Rapport des inscriptions'],
-                ['id' => 'resultats', 'libelle' => 'Rapport des résultats'],
-                ['id' => 'effectifs', 'libelle' => 'Effectifs par classe'],
-            ],
-            'formats_export' => [
-                ['id' => 'csv', 'libelle' => 'CSV (Excel)'],
-                ['id' => 'pdf', 'libelle' => 'PDF'],
-                ['id' => 'excel', 'libelle' => 'Excel (XLSX)'],
-            ],
+            'stats' => $this->getGlobalStats(),
+            'charts' => $this->getChartData(),
         ]);
     }
-    
-    /**
-     * Génère un rapport en fonction des critères sélectionnés
-     */
-    public function genererRapport(Request $request)
+
+    public function absences(Request $request)
     {
-        $this->authorize('generate', self::class);
+        $user = Auth::user();
         
-        $validated = $request->validate([
-            'type_rapport' => 'required|in:absences,paiements,salaires,inscriptions,resultats,effectifs',
-            'format_export' => 'required|in:csv,pdf,excel',
-            'date_debut' => 'nullable|date',
-            'date_fin' => 'nullable|date|after_or_equal:date_debut',
-            'matiere_id' => 'nullable|exists:Matiere,id',
-            'classe_id' => 'nullable|exists:Classe,id',
-        ]);
-        
-        $dateDebut = !empty($validated['date_debut']) 
-            ? Carbon::parse($validated['date_debut'])
-            : Carbon::now()->startOfMonth();
-            
-        $dateFin = !empty($validated['date_fin'])
-            ? Carbon::parse($validated['date_fin'])
-            : Carbon::now();
-        
-        $donnees = [];
-        $nomFichier = '';
-        $entetes = [];
-        
-        switch ($validated['type_rapport']) {
-            case 'absences':
-                list($donnees, $entetes, $nomFichier) = $this->genererRapportAbsences(
-                    $dateDebut, 
-                    $dateFin,
-                    $validated['classe_id'] ?? null,
-                    $validated['matiere_id'] ?? null
-                );
-                break;
-                
-            case 'paiements':
-                list($donnees, $entetes, $nomFichier) = $this->genererRapportPaiements(
-                    $dateDebut,
-                    $dateFin,
-                    $validated['classe_id'] ?? null
-                );
-                break;
-                
-            case 'salaires':
-                list($donnees, $entetes, $nomFichier) = $this->genererRapportSalaires(
-                    $dateDebut,
-                    $dateFin
-                );
-                break;
-                
-            case 'inscriptions':
-                list($donnees, $entetes, $nomFichier) = $this->genererRapportInscriptions(
-                    $dateDebut,
-                    $dateFin,
-                    $validated['classe_id'] ?? null
-                );
-                break;
-                
-            case 'resultats':
-                list($donnees, $entetes, $nomFichier) = $this->genererRapportResultats(
-                    $dateDebut,
-                    $dateFin,
-                    $validated['classe_id'] ?? null,
-                    $validated['matiere_id'] ?? null
-                );
-                break;
-                
-            case 'effectifs':
-                list($donnees, $entetes, $nomFichier) = $this->genererRapportEffectifs();
-                break;
+        if (!in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT])) {
+            abort(403, 'Accès non autorisé');
         }
+
+        $filters = $request->only(['date_debut', 'date_fin', 'niveau_id', 'filiere_id', 'matiere_id']);
         
-        $nomFichier .= '_' . now()->format('Y-m-d_His') . '.' . $validated['format_export'];
-        
-        // Pour l'instant, on ne gère que le format CSV
-        // Dans une version ultérieure, on pourrait ajouter la génération de PDF et Excel
-        if ($validated['format_export'] === 'csv') {
-            return $this->exporterEnCSV($donnees, $entetes, $nomFichier);
-        }
-        
-        // Pour les autres formats, on retourne les données en JSON pour l'instant
-        return response()->json([
-            'message' => 'Export en ' . strtoupper($validated['format_export']) . ' non implémenté pour le moment',
-            'donnees' => $donnees,
-            'entetes' => $entetes,
-            'nom_fichier' => $nomFichier,
+        return Inertia::render('Rapports/Absences', [
+            'stats' => $this->getAbsenceStats($filters),
+            'charts' => $this->getAbsenceChartData($filters),
+            'filters' => $filters,
+            'niveaux' => Niveau::all(['id', 'nom']),
+            'filieres' => Filiere::all(['id', 'nom']),
+            'matieres' => Matiere::actifs()->get(['id', 'nom']),
         ]);
     }
-    
-    /**
-     * Génère un rapport des absences
-     */
-    private function genererRapportAbsences($dateDebut, $dateFin, $classeId = null, $matiereId = null)
+
+    public function paiements(Request $request)
     {
-        $query = Absence::with([
-                'etudiant:id,Nom,Prenom',
-                'seance.matiere:id,Libelle',
-                'seance.professeur:id,Nom,Prenom'
-            ])
-            ->whereBetween('date_absence', [$dateDebut, $dateFin]);
-            
-        if ($classeId) {
-            $query->whereHas('etudiant', function($q) use ($classeId) {
-                $q->where('IdClasse', $classeId);
-            });
+        $user = Auth::user();
+        
+        if (!in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT])) {
+            abort(403, 'Accès non autorisé');
         }
+
+        $filters = $request->only(['date_debut', 'date_fin', 'statut', 'niveau_id']);
         
-        if ($matiereId) {
-            $query->whereHas('seance', function($q) use ($matiereId) {
-                $q->where('IdMat', $matiereId);
-            });
+        return Inertia::render('Rapports/Paiements', [
+            'stats' => $this->getPaymentStats($filters),
+            'charts' => $this->getPaymentChartData($filters),
+            'filters' => $filters,
+            'niveaux' => Niveau::all(['id', 'nom']),
+        ]);
+    }
+
+    public function salaires(Request $request)
+    {
+        $user = Auth::user();
+        
+        if (!in_array($user->role, [RoleType::ADMIN])) {
+            abort(403, 'Accès non autorisé');
         }
+
+        $filters = $request->only(['mois', 'annee', 'professeur_id', 'matiere_id']);
         
-        $absences = $query->orderBy('date_absence')
-            ->get()
-            ->map(function($absence) {
-                return [
-                    'date' => $absence->date_absence->format('d/m/Y H:i'),
-                    'etudiant' => $absence->etudiant ? $absence->etudiant->Nom . ' ' . $absence->etudiant->Prenom : 'Inconnu',
-                    'matiere' => $absence->seance && $absence->seance->matiere ? $absence->seance->matiere->Libelle : 'Inconnue',
-                    'professeur' => $absence->seance && $absence->seance->professeur 
-                        ? $absence->seance->professeur->Nom . ' ' . $absence->seance->professeur->Prenom 
-                        : 'Inconnu',
-                    'justifiee' => !empty($absence->justificatif) ? 'Oui' : 'Non',
-                    'commentaire' => $absence->commentaire ?? '',
-                ];
-            });
-            
-        $entetes = [
-            'Date et heure',
-            'Étudiant',
-            'Matière',
-            'Professeur',
-            'Justifiée',
-            'Commentaire'
-        ];
-        
-        $nomFichier = 'rapport_absences';
-        $nomFichier .= $classeId ? '_classe_' . $classeId : '';
-        $nomFichier .= $matiereId ? '_matiere_' . $matiereId : '';
-        
-        return [$absences, $entetes, $nomFichier];
+        return Inertia::render('Rapports/Salaires', [
+            'stats' => $this->getSalaryStats($filters),
+            'charts' => $this->getSalaryChartData($filters),
+            'filters' => $filters,
+            'professeurs' => User::professeurs()->get(['id', 'name']),
+            'matieres' => Matiere::actifs()->get(['id', 'nom']),
+        ]);
     }
-    
-    /**
-     * Génère un rapport des paiements
-     */
-    private function genererRapportPaiements($dateDebut, $dateFin, $classeId = null)
+
+    public function exportAbsences(Request $request)
     {
-        $query = Paiment::with([
-                'etudiant:id,Nom,Prenom',
-                'inscription.pack:id,Libelle'
-            ])
-            ->whereBetween('Date_Paiment', [$dateDebut, $dateFin]);
-            
-        if ($classeId) {
-            $query->whereHas('etudiant', function($q) use ($classeId) {
-                $q->where('IdClasse', $classeId);
-            });
+        $user = Auth::user();
+        
+        if (!in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT])) {
+            abort(403, 'Accès non autorisé');
         }
+
+        $filters = $request->only(['date_debut', 'date_fin', 'niveau_id', 'filiere_id', 'matiere_id']);
         
-        $paiements = $query->orderBy('Date_Paiment')
-            ->get()
-            ->map(function($paiement) {
-                return [
-                    'date' => $paiement->Date_Paiment->format('d/m/Y'),
-                    'etudiant' => $paiement->etudiant ? $paiement->etudiant->Nom . ' ' . $paiement->etudiant->Prenom : 'Inconnu',
-                    'pack' => $paiement->inscription && $paiement->inscription->pack 
-                        ? $paiement->inscription->pack->Libelle 
-                        : 'Inconnu',
-                    'montant' => number_format($paiement->Montant, 2, ',', ' '),
-                    'somme_payee' => number_format($paiement->SommeApaye, 2, ',', ' '),
-                    'reste_a_payer' => number_format($paiement->ResteAPayer, 2, ',', ' '),
-                    'mode_paiement' => $paiement->Mode_Paiment,
-                ];
-            });
-            
-        $entetes = [
-            'Date',
-            'Étudiant',
-            'Pack',
-            'Montant total',
-            'Somme payée',
-            'Reste à payer',
-            'Mode de paiement'
-        ];
+        $pdfService = new PdfExportService();
+        $pdf = $pdfService->generateAbsenceReport($filters);
         
-        $nomFichier = 'rapport_paiements';
-        $nomFichier .= $classeId ? '_classe_' . $classeId : '';
+        $filename = 'rapport_absences_' . date('Y-m-d_H-i-s') . '.pdf';
         
-        return [$paiements, $entetes, $nomFichier];
+        return $pdf->download($filename);
     }
-    
-    /**
-     * Génère un rapport des salaires
-     */
-    private function genererRapportSalaires($dateDebut, $dateFin)
+
+    public function exportPaiements(Request $request)
     {
-        $salaires = Salaires::with(['professeur:id,Nom,Prenom'])
-            ->whereBetween('Date_Salaire', [$dateDebut, $dateFin])
-            ->orderBy('Date_Salaire')
-            ->get()
-            ->map(function($salaire) {
-                return [
-                    'date' => $salaire->Date_Salaire->format('m/Y'),
-                    'professeur' => $salaire->professeur 
-                        ? $salaire->professeur->Nom . ' ' . $salaire->professeur->Prenom 
-                        : 'Inconnu',
-                    'montant_total' => number_format($salaire->Montant_actuel, 2, ',', ' '),
-                    'montant_paye' => number_format($salaire->Montant_paye, 2, ',', ' '),
-                    'reste_a_payer' => number_format($salaire->Reste_a_payer, 2, ',', ' '),
-                    'pourcentage' => $salaire->Pourcentage . '%',
-                    'etat' => $salaire->Etat,
-                ];
-            });
-            
-        $entetes = [
-            'Période',
-            'Professeur',
-            'Montant total',
-            'Montant payé',
-            'Reste à payer',
-            'Pourcentage',
-            'État'
-        ];
+        $user = Auth::user();
         
-        $nomFichier = 'rapport_salaires';
-        
-        return [$salaires, $entetes, $nomFichier];
-    }
-    
-    /**
-     * Génère un rapport des inscriptions
-     */
-    private function genererRapportInscriptions($dateDebut, $dateFin, $classeId = null)
-    {
-        $query = Inscription::with([
-                'etudiant:id,Nom,Prenom',
-                'pack:id,Libelle',
-                'classe:id,Libelle'
-            ])
-            ->whereBetween('dateInscription', [$dateDebut, $dateFin]);
-            
-        if ($classeId) {
-            $query->where('IdClasse', $classeId);
+        if (!in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT])) {
+            abort(403, 'Accès non autorisé');
         }
+
+        $filters = $request->only(['date_debut', 'date_fin', 'statut', 'niveau_id']);
         
-        $inscriptions = $query->orderBy('dateInscription')
-            ->get()
-            ->map(function($inscription) {
-                return [
-                    'date' => $inscription->dateInscription->format('d/m/Y'),
-                    'etudiant' => $inscription->etudiant 
-                        ? $inscription->etudiant->Nom . ' ' . $inscription->etudiant->Prenom 
-                        : 'Inconnu',
-                    'classe' => $inscription->classe ? $inscription->classe->Libelle : 'Inconnue',
-                    'pack' => $inscription->pack ? $inscription->pack->Libelle : 'Aucun',
-                    'heures_restantes' => $inscription->heures_restantes ?? 0,
-                    'date_expiration' => $inscription->date_expiration 
-                        ? $inscription->date_expiration->format('d/m/Y') 
-                        : 'Illimitée',
-                    'statut' => $inscription->statut,
-                ];
-            });
-            
-        $entetes = [
-            'Date d\'inscription',
-            'Étudiant',
-            'Classe',
-            'Pack',
-            'Heures restantes',
-            'Date d\'expiration',
-            'Statut'
-        ];
+        $paiements = Paiement::with(['etudiant', 'matiere'])
+            ->when($filters['date_debut'] ?? null, function ($query, $date) {
+                return $query->where('date_paiement', '>=', $date);
+            })
+            ->when($filters['date_fin'] ?? null, function ($query, $date) {
+                return $query->where('date_paiement', '<=', $date);
+            })
+            ->when($filters['statut'] ?? null, function ($query, $statut) {
+                return $query->where('statut', $statut);
+            })
+            ->when($filters['niveau_id'] ?? null, function ($query, $niveauId) {
+                return $query->whereHas('etudiant', function ($q) use ($niveauId) {
+                    $q->where('niveau_id', $niveauId);
+                });
+            })
+            ->orderBy('date_paiement', 'desc')
+            ->get();
+
+        $filename = 'rapport_paiements_' . date('Y-m-d_H-i-s') . '.csv';
         
-        $nomFichier = 'rapport_inscriptions';
-        $nomFichier .= $classeId ? '_classe_' . $classeId : '';
-        
-        return [$inscriptions, $entetes, $nomFichier];
-    }
-    
-    /**
-     * Génère un rapport des résultats
-     */
-    private function genererRapportResultats($dateDebut, $dateFin, $classeId = null, $matiereId = null)
-    {
-        $query = DB::table('Note')
-            ->join('Etudiant', 'Note.IdEtu', '=', 'Etudiant.id')
-            ->join('Matiere', 'Note.IdMat', '=', 'Matiere.id')
-            ->join('Type_Evaluation', 'Note.IdTypeEval', '=', 'Type_Evaluation.id')
-            ->leftJoin('Classe', 'Etudiant.IdClasse', '=', 'Classe.id')
-            ->select(
-                'Etudiant.Nom',
-                'Etudiant.Prenom',
-                'Classe.Libelle as Classe',
-                'Matiere.Libelle as Matiere',
-                'Type_Evaluation.Libelle as TypeEvaluation',
-                'Type_Evaluation.Coefficient',
-                'Type_Evaluation.NoteMaximale',
-                'Note.Note',
-                'Note.Date_Eval',
-                DB::raw('(Note.Note / Type_Evaluation.NoteMaximale * 20) as NoteSur20')
-            )
-            ->whereBetween('Note.Date_Eval', [$dateDebut, $dateFin]);
-            
-        if ($classeId) {
-            $query->where('Etudiant.IdClasse', $classeId);
-        }
-        
-        if ($matiereId) {
-            $query->where('Matiere.id', $matiereId);
-        }
-        
-        $resultats = $query->orderBy('Etudiant.Nom')
-            ->orderBy('Etudiant.Prenom')
-            ->orderBy('Matiere.Libelle')
-            ->orderBy('Note.Date_Eval')
-            ->get()
-            ->map(function($resultat) {
-                return [
-                    'etudiant' => $resultat->Nom . ' ' . $resultat->Prenom,
-                    'classe' => $resultat->Classe ?? 'Inconnue',
-                    'matiere' => $resultat->Matiere,
-                    'type_evaluation' => $resultat->TypeEvaluation,
-                    'coefficient' => $resultat->Coefficient,
-                    'note' => number_format($resultat->Note, 2, ',', ' '),
-                    'note_sur_20' => number_format($resultat->NoteSur20, 2, ',', ' '),
-                    'date_evaluation' => (new Carbon($resultat->Date_Eval))->format('d/m/Y'),
-                ];
-            });
-            
-        $entetes = [
-            'Étudiant',
-            'Classe',
-            'Matière',
-            'Type d\'évaluation',
-            'Coefficient',
-            'Note',
-            'Note sur 20',
-            'Date d\'évaluation'
-        ];
-        
-        $nomFichier = 'rapport_resultats';
-        $nomFichier .= $classeId ? '_classe_' . $classeId : '';
-        $nomFichier .= $matiereId ? '_matiere_' . $matiereId : '';
-        
-        return [$resultats, $entetes, $nomFichier];
-    }
-    
-    /**
-     * Génère un rapport des effectifs par classe
-     */
-    private function genererRapportEffectifs()
-    {
-        $effectifs = Classe::withCount('etudiants')
-            ->orderBy('Libelle')
-            ->get()
-            ->map(function($classe) {
-                return [
-                    'classe' => $classe->Libelle,
-                    'effectif' => $classe->etudiants_count,
-                ];
-            });
-            
-        $entetes = [
-            'Classe',
-            'Effectif'
-        ];
-        
-        $nomFichier = 'rapport_effectifs';
-        
-        return [$effectifs, $entetes, $nomFichier];
-    }
-    
-    /**
-     * Exporte les données au format CSV
-     */
-    private function exporterEnCSV($donnees, $entetes, $nomFichier)
-    {
         $headers = [
-            "Content-type" => "text/csv",
-            "Content-Disposition" => "attachment; filename=\"$nomFichier\"",
-            "Pragma" => "no-cache",
-            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
-            "Expires" => "0"
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ];
 
-        $callback = function() use ($donnees, $entetes) {
+        $callback = function() use ($paiements) {
             $file = fopen('php://output', 'w');
             
-            // Ajout de l'encodage UTF-8 BOM pour un bon affichage des caractères spéciaux dans Excel
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-            
-            // En-tête du CSV
-            fputcsv($file, $entetes, ';');
-            
-            // Données
-            foreach ($donnees as $ligne) {
-                // Convertir les valeurs en chaînes de caractères et gérer l'encodage
-                $ligneEncodée = array_map(function($valeur) {
-                    // Si la valeur est un tableau ou un objet, la convertir en JSON
-                    if (is_array($valeur) || is_object($valeur)) {
-                        return json_encode($valeur, JSON_UNESCAPED_UNICODE);
-                    }
-                    // Sinon, retourner la valeur telle quelle
-                    return $valeur;
-                }, (array)$ligne);
-                
-                fputcsv($file, $ligneEncodée, ';');
+            fputcsv($file, [
+                'Étudiant', 'Matière', 'Montant', 'Date', 'Statut', 'Méthode'
+            ]);
+
+            foreach ($paiements as $paiement) {
+                fputcsv($file, [
+                    $paiement->etudiant->name,
+                    $paiement->matiere->nom,
+                    number_format($paiement->montant, 2) . ' DH',
+                    $paiement->date_paiement->format('d/m/Y'),
+                    $paiement->statut,
+                    $paiement->methode_paiement,
+                ]);
             }
-            
+
             fclose($file);
         };
 
-        return new StreamedResponse($callback, 200, $headers);
+        return response()->stream($callback, 200, $headers);
     }
-    
-    /**
-     * Affiche la page de statistiques
-     */
-    public function statistiques()
+
+    public function exportGlobal(Request $request)
     {
-        $this->authorize('viewStats', self::class);
+        $user = Auth::user();
         
-        // Statistiques générales
-        $stats = [
-            'total_etudiants' => Etudiant::count(),
-            'total_professeurs' => Professeur::count(),
-            'total_matieres' => Matiere::count(),
-            'total_classes' => Classe::count(),
-            'total_paiements_mois' => Paiment::whereMonth('Date_Paiment', now()->month)
-                ->whereYear('Date_Paiment', now()->year)
-                ->sum('SommeApaye'),
-            'total_salaires_mois' => Salaires::whereMonth('Date_Salaire', now()->month)
-                ->whereYear('Date_Salaire', now()->year)
-                ->sum('Montant_actuel'),
-            'taux_absenteisme' => $this->calculerTauxAbsenteismeMois(),
+        if ($user->role !== RoleType::ADMIN) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $pdfService = new PdfExportService();
+        $pdf = $pdfService->generateGlobalReport();
+        
+        $filename = 'rapport_global_' . date('Y-m-d_H-i-s') . '.pdf';
+        
+        return $pdf->download($filename);
+    }
+
+    public function exportSalaires(Request $request)
+    {
+        $user = Auth::user();
+        
+        if (!in_array($user->role, [RoleType::ADMIN, RoleType::PROFESSEUR])) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $filters = $request->only(['mois', 'annee', 'professeur_id', 'matiere_id', 'statut']);
+        
+        $pdfService = new PdfExportService();
+        $pdf = $pdfService->generateSalaryReport($filters);
+        
+        $filename = 'rapport_salaires_' . date('Y-m-d_H-i-s') . '.pdf';
+        
+        return $pdf->download($filename);
+    }
+
+    public function exportSalarySlip(Request $request, Salaire $salaire)
+    {
+        $user = Auth::user();
+        
+        // Vérifier que l'utilisateur peut accéder à ce bulletin
+        if ($user->role === RoleType::PROFESSEUR && $salaire->professeur_id !== $user->id) {
+            abort(403, 'Accès non autorisé');
+        }
+        
+        if (!in_array($user->role, [RoleType::ADMIN, RoleType::PROFESSEUR])) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $pdfService = new PdfExportService();
+        $pdf = $pdfService->generateSalarySlip($salaire);
+        
+        $filename = 'bulletin_salaire_' . $salaire->professeur->name . '_' . $salaire->mois . '_' . $salaire->annee . '.pdf';
+        
+        return $pdf->download($filename);
+    }
+
+    private function getGlobalStats()
+    {
+        $now = Carbon::now();
+        $startOfMonth = $now->copy()->startOfMonth();
+        $startOfYear = $now->copy()->startOfYear();
+
+        return [
+            'total_eleves' => User::eleves()->count(),
+            'total_professeurs' => User::professeurs()->count(),
+            'total_assistants' => User::assistants()->count(),
+            'total_paiements_mois' => Paiement::where('date_paiement', '>=', $startOfMonth)->sum('montant'),
+            'total_paiements_annee' => Paiement::where('date_paiement', '>=', $startOfYear)->sum('montant'),
+            'absences_mois' => Absence::where('date_absence', '>=', $startOfMonth)->count(),
+            'absences_justifiees_mois' => Absence::where('date_absence', '>=', $startOfMonth)
+                ->where('justifie', true)->count(),
+            'taux_presence_mois' => $this->calculateAttendanceRate($startOfMonth),
         ];
-        
-        // Évolution des inscriptions sur 12 mois
-        $inscriptionsParMois = $this->getInscriptionsParMois(12);
-        
-        // Répartition des étudiants par classe
-        $repartitionClasses = $this->getRepartitionParClasse();
-        
-        // Taux de réussite par matière (exemple avec les 5 premières matières)
-        $tauxReussiteParMatiere = $this->getTauxReussiteParMatiere(5);
-        
-        return Inertia::render('Rapports/Statistiques', [
-            'stats' => $stats,
-            'inscriptionsParMois' => $inscriptionsParMois,
-            'repartitionClasses' => $repartitionClasses,
-            'tauxReussiteParMatiere' => $tauxReussiteParMatiere,
-        ]);
     }
-    
-    /**
-     * Calcule le taux d'absentéisme du mois en cours
-     */
-    private function calculerTauxAbsenteismeMois(): float
+
+    private function getChartData()
     {
-        $dateDebut = now()->startOfMonth();
-        $dateFin = now()->endOfMonth();
-        
-        $totalSeances = DB::table('Seance')
-            ->whereBetween('Date_Seance', [$dateDebut, $dateFin])
-            ->count();
-            
-        if ($totalSeances === 0) {
-            return 0;
+        // Évolution des paiements sur 12 mois
+        $paiementsData = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $date = Carbon::now()->subMonths($i);
+            $paiementsData[] = [
+                'mois' => $date->format('M Y'),
+                'montant' => Paiement::whereYear('date_paiement', $date->year)
+                    ->whereMonth('date_paiement', $date->month)
+                    ->sum('montant')
+            ];
         }
-        
-        $totalAbsences = Absence::whereBetween('date_absence', [$dateDebut, $dateFin])
-            ->count();
-            
-        return round(($totalAbsences / $totalSeances) * 100, 2);
-    }
-    
-    /**
-     * Récupère le nombre d'inscriptions par mois sur une période donnée
-     */
-    private function getInscriptionsParMois(int $nbMois)
-    {
-        $dateDebut = now()->subMonths($nbMois - 1)->startOfMonth();
-        
-        $inscriptions = DB::table('Inscription')
-            ->select(
-                DB::raw('YEAR(dateInscription) as annee'),
-                DB::raw('MONTH(dateInscription) as mois'),
-                DB::raw('COUNT(*) as total')
-            )
-            ->where('dateInscription', '>=', $dateDebut)
-            ->groupBy('annee', 'mois')
-            ->orderBy('annee')
-            ->orderBy('mois')
+
+        // Répartition des absences par type
+        $absencesParType = Absence::select('type_absence', DB::raw('count(*) as total'))
+            ->groupBy('type_absence')
             ->get();
-            
-        // Créer un tableau avec tous les mois de la période
-        $periodes = collect();
-        $dateCourante = $dateDebut->copy();
-        
-        while ($dateCourante <= now()) {
-            $periodes->push([
-                'annee' => $dateCourante->year,
-                'mois' => $dateCourante->month,
-                'libelle' => $dateCourante->translatedFormat('M Y'),
-                'total' => 0
-            ]);
-            
-            $dateCourante->addMonth();
-        }
-        
-        // Mettre à jour les totaux pour les mois avec des inscriptions
-        foreach ($inscriptions as $inscription) {
-            $index = $periodes->search(function($item) use ($inscription) {
-                return $item['annee'] == $inscription->annee && $item['mois'] == $inscription->mois;
-            });
-            
-            if ($index !== false) {
-                $periodes[$index]['total'] = $inscription->total;
-            }
-        }
-        
-        return $periodes->values();
+
+        // Répartition des paiements par statut
+        $paiementsParStatut = Paiement::select('statut', DB::raw('count(*) as total'))
+            ->groupBy('statut')
+            ->get();
+
+        return [
+            'evolution_paiements' => [
+                'labels' => array_column($paiementsData, 'mois'),
+                'datasets' => [[
+                    'label' => 'Montant des paiements (DH)',
+                    'data' => array_column($paiementsData, 'montant'),
+                    'borderColor' => 'rgb(59, 130, 246)',
+                    'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
+                    'tension' => 0.1
+                ]]
+            ],
+            'absences_par_type' => [
+                'labels' => $absencesParType->pluck('type_absence')->toArray(),
+                'datasets' => [[
+                    'data' => $absencesParType->pluck('total')->toArray(),
+                    'backgroundColor' => [
+                        'rgba(239, 68, 68, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                        'rgba(59, 130, 246, 0.8)',
+                    ]
+                ]]
+            ],
+            'paiements_par_statut' => [
+                'labels' => $paiementsParStatut->pluck('statut')->toArray(),
+                'datasets' => [[
+                    'data' => $paiementsParStatut->pluck('total')->toArray(),
+                    'backgroundColor' => [
+                        'rgba(34, 197, 94, 0.8)',
+                        'rgba(239, 68, 68, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                    ]
+                ]]
+            ]
+        ];
     }
-    
-    /**
-     * Récupère la répartition des étudiants par classe
-     */
-    private function getRepartitionParClasse()
+
+    private function getAbsenceStats($filters)
     {
-        return Classe::withCount('etudiants')
-            ->orderBy('Libelle')
-            ->get()
-            ->map(function($classe) {
-                return [
-                    'classe' => $classe->Libelle,
-                    'effectif' => $classe->etudiants_count,
-                ];
-            });
+        $query = Absence::query();
+
+        $this->applyAbsenceFilters($query, $filters);
+
+        $total = $query->count();
+        $justifiees = (clone $query)->where('justifie', true)->count();
+        $nonJustifiees = (clone $query)->where('justifie', false)->count();
+
+        return [
+            'total' => $total,
+            'justifiees' => $justifiees,
+            'non_justifiees' => $nonJustifiees,
+            'taux_justification' => $total > 0 ? round(($justifiees / $total) * 100, 2) : 0,
+        ];
     }
-    
-    /**
-     * Calcule le taux de réussite par matière
-     */
-    private function getTauxReussiteParMatiere($limit = null)
+
+    private function getAbsenceChartData($filters)
     {
-        $query = DB::table('Note')
-            ->join('Matiere', 'Note.IdMat', '=', 'Matiere.id')
-            ->join('Type_Evaluation', 'Note.IdTypeEval', '=', 'Type_Evaluation.id')
-            ->select(
-                'Matiere.id',
-                'Matiere.Libelle',
-                DB::raw('COUNT(*) as total_notes'),
-                DB::raw('SUM(CASE WHEN (Note.Note / Type_Evaluation.NoteMaximale * 20) >= 10 THEN 1 ELSE 0 END) as notes_reussies')
-            )
-            ->groupBy('Matiere.id', 'Matiere.Libelle')
-            ->having('total_notes', '>', 0)
-            ->orderBy('Matiere.Libelle');
-            
-        if ($limit) {
-            $query->limit($limit);
+        $query = Absence::query();
+        $this->applyAbsenceFilters($query, $filters);
+
+        // Absences par jour sur 30 jours
+        $absencesParJour = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i);
+            $count = (clone $query)->whereDate('date_absence', $date)->count();
+            $absencesParJour[] = [
+                'date' => $date->format('d/m'),
+                'total' => $count
+            ];
         }
-        
-        return $query->get()
-            ->map(function($item) {
-                $tauxReussite = $item->total_notes > 0 
-                    ? round(($item->notes_reussies / $item->total_notes) * 100, 2)
-                    : 0;
-                    
-                return [
-                    'matiere' => $item->Libelle,
-                    'total_notes' => $item->total_notes,
-                    'notes_reussies' => $item->notes_reussies,
-                    'taux_reussite' => $tauxReussite,
-                ];
+
+        // Absences par matière
+        $absencesParMatiere = (clone $query)
+            ->join('matieres', 'absences.matiere_id', '=', 'matieres.id')
+            ->select('matieres.nom', DB::raw('count(*) as total'))
+            ->groupBy('matieres.id', 'matieres.nom')
+            ->orderBy('total', 'desc')
+            ->limit(10)
+            ->get();
+
+        return [
+            'evolution_quotidienne' => [
+                'labels' => array_column($absencesParJour, 'date'),
+                'datasets' => [[
+                    'label' => 'Nombre d\'absences',
+                    'data' => array_column($absencesParJour, 'total'),
+                    'borderColor' => 'rgb(239, 68, 68)',
+                    'backgroundColor' => 'rgba(239, 68, 68, 0.1)',
+                    'tension' => 0.1
+                ]]
+            ],
+            'par_matiere' => [
+                'labels' => $absencesParMatiere->pluck('nom')->toArray(),
+                'datasets' => [[
+                    'label' => 'Absences par matière',
+                    'data' => $absencesParMatiere->pluck('total')->toArray(),
+                    'backgroundColor' => 'rgba(59, 130, 246, 0.8)',
+                ]]
+            ]
+        ];
+    }
+
+    private function getPaymentStats($filters)
+    {
+        $query = Paiement::query();
+        $this->applyPaymentFilters($query, $filters);
+
+        $total = $query->sum('montant');
+        $valides = (clone $query)->where('statut', 'validé')->sum('montant');
+        $en_attente = (clone $query)->where('statut', 'en_attente')->sum('montant');
+        $annules = (clone $query)->where('statut', 'annulé')->sum('montant');
+
+        return [
+            'total' => $total,
+            'valides' => $valides,
+            'en_attente' => $en_attente,
+            'annules' => $annules,
+            'taux_validation' => $total > 0 ? round(($valides / $total) * 100, 2) : 0,
+        ];
+    }
+
+    private function getPaymentChartData($filters)
+    {
+        $query = Paiement::query();
+        $this->applyPaymentFilters($query, $filters);
+
+        // Évolution des paiements sur 30 jours
+        $paiementsParJour = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i);
+            $montant = (clone $query)->whereDate('date_paiement', $date)->sum('montant');
+            $paiementsParJour[] = [
+                'date' => $date->format('d/m'),
+                'montant' => $montant
+            ];
+        }
+
+        // Paiements par méthode
+        $paiementsParMethode = (clone $query)
+            ->select('methode_paiement', DB::raw('count(*) as total'))
+            ->groupBy('methode_paiement')
+            ->get();
+
+        return [
+            'evolution_quotidienne' => [
+                'labels' => array_column($paiementsParJour, 'date'),
+                'datasets' => [[
+                    'label' => 'Montant des paiements (DH)',
+                    'data' => array_column($paiementsParJour, 'montant'),
+                    'borderColor' => 'rgb(34, 197, 94)',
+                    'backgroundColor' => 'rgba(34, 197, 94, 0.1)',
+                    'tension' => 0.1
+                ]]
+            ],
+            'par_methode' => [
+                'labels' => $paiementsParMethode->pluck('methode_paiement')->toArray(),
+                'datasets' => [[
+                    'data' => $paiementsParMethode->pluck('total')->toArray(),
+                    'backgroundColor' => [
+                        'rgba(34, 197, 94, 0.8)',
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                        'rgba(168, 85, 247, 0.8)',
+                    ]
+                ]]
+            ]
+        ];
+    }
+
+    private function getSalaryStats($filters)
+    {
+        $query = Salaire::query();
+        $this->applySalaryFilters($query, $filters);
+
+        $total = $query->sum('montant_brut');
+        $payes = (clone $query)->where('statut', 'payé')->sum('montant_brut');
+        $en_attente = (clone $query)->where('statut', 'en_attente')->sum('montant_brut');
+
+        return [
+            'total' => $total,
+            'payes' => $payes,
+            'en_attente' => $en_attente,
+            'taux_paiement' => $total > 0 ? round(($payes / $total) * 100, 2) : 0,
+        ];
+    }
+
+    private function getSalaryChartData($filters)
+    {
+        $query = Salaire::query();
+        $this->applySalaryFilters($query, $filters);
+
+        // Salaires par professeur
+        $salairesParProfesseur = (clone $query)
+            ->join('users', 'salaires.professeur_id', '=', 'users.id')
+            ->select('users.name', DB::raw('sum(salaires.montant_brut) as total'))
+            ->groupBy('users.id', 'users.name')
+            ->orderBy('total', 'desc')
+            ->limit(10)
+            ->get();
+
+        // Évolution des salaires sur 12 mois
+        $salairesParMois = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $date = Carbon::now()->subMonths($i);
+            $montant = (clone $query)
+                ->whereYear('mois_periode', $date->year)
+                ->whereMonth('mois_periode', $date->month)
+                ->sum('montant_brut');
+            $salairesParMois[] = [
+                'mois' => $date->format('M Y'),
+                'montant' => $montant
+            ];
+        }
+
+        return [
+            'par_professeur' => [
+                'labels' => $salairesParProfesseur->pluck('name')->toArray(),
+                'datasets' => [[
+                    'label' => 'Salaires par professeur (DH)',
+                    'data' => $salairesParProfesseur->pluck('total')->toArray(),
+                    'backgroundColor' => 'rgba(59, 130, 246, 0.8)',
+                ]]
+            ],
+            'evolution_mensuelle' => [
+                'labels' => array_column($salairesParMois, 'mois'),
+                'datasets' => [[
+                    'label' => 'Total des salaires (DH)',
+                    'data' => array_column($salairesParMois, 'montant'),
+                    'borderColor' => 'rgb(168, 85, 247)',
+                    'backgroundColor' => 'rgba(168, 85, 247, 0.1)',
+                    'tension' => 0.1
+                ]]
+            ]
+        ];
+    }
+
+    private function applyAbsenceFilters($query, $filters)
+    {
+        if ($filters['date_debut'] ?? null) {
+            $query->where('date_absence', '>=', $filters['date_debut']);
+        }
+        if ($filters['date_fin'] ?? null) {
+            $query->where('date_absence', '<=', $filters['date_fin']);
+        }
+        if ($filters['niveau_id'] ?? null) {
+            $query->whereHas('etudiant', function ($q) use ($filters) {
+                $q->where('niveau_id', $filters['niveau_id']);
             });
+        }
+        if ($filters['filiere_id'] ?? null) {
+            $query->whereHas('etudiant', function ($q) use ($filters) {
+                $q->where('filiere_id', $filters['filiere_id']);
+            });
+        }
+        if ($filters['matiere_id'] ?? null) {
+            $query->where('matiere_id', $filters['matiere_id']);
+        }
+    }
+
+    private function applyPaymentFilters($query, $filters)
+    {
+        if ($filters['date_debut'] ?? null) {
+            $query->where('date_paiement', '>=', $filters['date_debut']);
+        }
+        if ($filters['date_fin'] ?? null) {
+            $query->where('date_paiement', '<=', $filters['date_fin']);
+        }
+        if ($filters['statut'] ?? null) {
+            $query->where('statut', $filters['statut']);
+        }
+        if ($filters['niveau_id'] ?? null) {
+            $query->whereHas('etudiant', function ($q) use ($filters) {
+                $q->where('niveau_id', $filters['niveau_id']);
+            });
+        }
+    }
+
+    private function applySalaryFilters($query, $filters)
+    {
+        if ($filters['mois'] ?? null) {
+            $query->whereMonth('mois_periode', $filters['mois']);
+        }
+        if ($filters['annee'] ?? null) {
+            $query->whereYear('mois_periode', $filters['annee']);
+        }
+        if ($filters['professeur_id'] ?? null) {
+            $query->where('professeur_id', $filters['professeur_id']);
+        }
+        if ($filters['matiere_id'] ?? null) {
+            $query->where('matiere_id', $filters['matiere_id']);
+        }
+    }
+
+    private function calculateAttendanceRate($startDate)
+    {
+        $totalSeances = 1000; // À calculer selon votre logique métier
+        $absences = Absence::where('date_absence', '>=', $startDate)->count();
+        
+        if ($totalSeances === 0) return 100;
+        
+        return round((($totalSeances - $absences) / $totalSeances) * 100, 2);
     }
 }

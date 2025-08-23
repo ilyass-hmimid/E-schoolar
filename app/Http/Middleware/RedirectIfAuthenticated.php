@@ -21,7 +21,21 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
-                return redirect(RouteServiceProvider::HOME);
+                $user = Auth::guard($guard)->user();
+                
+                // Vérifier que l'utilisateur est actif
+                if ($user && $user->is_active) {
+                    // Si l'utilisateur est connecté et actif, le rediriger vers son dashboard
+                    // Mais seulement si il essaie d'accéder aux pages d'authentification
+                    if ($request->is('login') || $request->is('register') || $request->is('forgot-password') || $request->is('reset-password*')) {
+                        return redirect()->route('dashboard');
+                    }
+                } else {
+                    // Si l'utilisateur n'est pas actif, le déconnecter
+                    Auth::guard($guard)->logout();
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+                }
             }
         }
 

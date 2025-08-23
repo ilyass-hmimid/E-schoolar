@@ -18,6 +18,8 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->integer('coefficient')->default(1);
             $table->integer('nombre_heures');
+            $table->decimal('prix_mensuel', 10, 2)->default(0); // Prix par mois par élève
+            $table->decimal('commission_prof', 5, 2)->default(30.00); // Pourcentage commission prof (ex: 30.00 = 30%)
             $table->boolean('est_actif')->default(true);
             $table->timestamps();
             $table->softDeletes();

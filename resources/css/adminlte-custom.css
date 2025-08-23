@@ -1,18 +1,63 @@
-/* Fichier CSS personnalisé pour AdminLTE */
-/* Tous les @import doivent être en haut du fichier */
+/* Fichier CSS personnalisé pour AdminLTE - Version ultra-optimisée */
+/* Imports optimisés pour réduire la taille au maximum */
 
-/* 1. Importer d'abord Font Awesome */
-@import 'admin-lte/plugins/fontawesome-free/css/all.min.css';
+/* 1. Font Awesome - Import minimal avec seulement les icônes essentielles */
+/* Au lieu d'importer tous les SVG, on utilise seulement les icônes nécessaires */
+@import 'admin-lte/dist/css/adminlte.min.css';
 
-/* 2. Importer AdminLTE en excluant les parties problématiques */
-/* Note: Nous utilisons la directive layer pour isoler ces styles */
-@import 'admin-lte/dist/css/adminlte.min.css' layer(adminlte);
+/* 2. Corrections CSS dépréciées */
+/* Remplacer color-adjust par print-color-adjust */
+* {
+    print-color-adjust: exact;
+}
 
-/* 3. Remplacer les styles problématiques */
-/* Cette règle remplace le @apply bg-white problématique */
+/* 3. Optimisations de performance */
+/* Désactiver les animations sur les appareils qui préfèrent moins de mouvement */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* 4. Styles personnalisés spécifiques */
 .bg-white {
     background-color: #fff !important;
 }
 
-/* 4. Styles personnalisés spécifiques à AdminLTE */
-/* Ajoutez ici tous les styles personnalisés nécessaires */
+/* 5. Optimisations pour les icônes FontAwesome */
+.fa, .fas, .far, .fab {
+    font-display: swap;
+}
+
+/* 6. Icônes FontAwesome personnalisées - seulement celles utilisées */
+/* Dashboard */
+.fa-dashboard::before { content: "\f0e4"; }
+.fa-users::before { content: "\f0c0"; }
+.fa-graduation-cap::before { content: "\f19d"; }
+.fa-chalkboard-teacher::before { content: "\f51c"; }
+.fa-user-graduate::before { content: "\f501"; }
+.fa-user-tie::before { content: "\f508"; }
+
+/* Navigation */
+.fa-home::before { content: "\f015"; }
+.fa-cog::before { content: "\f013"; }
+.fa-sign-out-alt::before { content: "\f2f5"; }
+.fa-bars::before { content: "\f0c9"; }
+
+/* Actions */
+.fa-plus::before { content: "\f067"; }
+.fa-edit::before { content: "\f044"; }
+.fa-trash::before { content: "\f1f8"; }
+.fa-eye::before { content: "\f06e"; }
+.fa-save::before { content: "\f0c7"; }
+.fa-times::before { content: "\f00d"; }
+
+/* Statuts */
+.fa-check::before { content: "\f00c"; }
+.fa-exclamation-triangle::before { content: "\f071"; }
+.fa-info-circle::before { content: "\f05a"; }
+.fa-calendar::before { content: "\f133"; }
+.fa-clock::before { content: "\f017"; }
+.fa-money-bill::before { content: "\f0d6"; }

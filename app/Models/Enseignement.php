@@ -2,16 +2,16 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Enseignement extends Authenticatable
+class Enseignement extends Model
 {
-    use HasApiTokens, HasFactory, Notifiable;
-    protected $table = 'Enseignement';
+    use HasFactory, SoftDeletes;
+
+    protected $table = 'enseignements';
 
     /**
      * The attributes that are mass assignable.
@@ -19,30 +19,82 @@ class Enseignement extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'IdProf',
-        'IdFil',
-        'IdMat',
-        'IdNiv',
-        'NbrEtu',
-        'SalaireParEtu',
-        'Somme',
-        'Date_debut',
-
-
-
+        'professeur_id',
+        'matiere_id',
+        'niveau_id',
+        'filiere_id',
+        'nombre_heures_semaine',
+        'jour_cours',
+        'heure_debut',
+        'heure_fin',
+        'est_actif',
     ];
-
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
-
 
     /**
      * The attributes that should be cast.
      *
      * @var array<string, string>
      */
+    protected $casts = [
+        'nombre_heures_semaine' => 'integer',
+        'heure_debut' => 'datetime:H:i',
+        'heure_fin' => 'datetime:H:i',
+        'est_actif' => 'boolean',
+    ];
 
+    /**
+     * Relations
+     */
+    public function professeur(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'professeur_id');
+    }
+
+    public function matiere(): BelongsTo
+    {
+        return $this->belongsTo(Matiere::class);
+    }
+
+    public function niveau(): BelongsTo
+    {
+        return $this->belongsTo(Niveau::class);
+    }
+
+    public function filiere(): BelongsTo
+    {
+        return $this->belongsTo(Filiere::class);
+    }
+
+    /**
+     * Scopes
+     */
+    public function scopeActifs($query)
+    {
+        return $query->where('est_actif', true);
+    }
+
+    public function scopeParProfesseur($query, $professeurId)
+    {
+        return $query->where('professeur_id', $professeurId);
+    }
+
+    public function scopeParMatiere($query, $matiereId)
+    {
+        return $query->where('matiere_id', $matiereId);
+    }
+
+    public function scopeParNiveau($query, $niveauId)
+    {
+        return $query->where('niveau_id', $niveauId);
+    }
+
+    public function scopeParFiliere($query, $filiereId)
+    {
+        return $query->where('filiere_id', $filiereId);
+    }
+
+    public function scopeParJour($query, $jour)
+    {
+        return $query->where('jour_cours', $jour);
+    }
 }

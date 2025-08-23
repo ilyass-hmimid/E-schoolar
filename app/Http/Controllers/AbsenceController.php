@@ -3,114 +3,83 @@
 namespace App\Http\Controllers;
 
 use App\Models\Absence;
-use App\Models\Etudiant;
-use App\Models\Seance;
+use App\Models\User;
 use App\Models\Matiere;
-use App\Models\Classe;
-use App\Services\AbsenceService;
+use App\Models\Enseignement;
+use App\Enums\RoleType;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class AbsenceController extends Controller
 {
-    protected $absenceService;
-
-    public function __construct(AbsenceService $absenceService)
-    {
-        $this->absenceService = $absenceService;
-    }
-
     /**
      * Affiche la liste des absences avec filtres
      */
     public function index(Request $request)
     {
-        $this->authorize('viewAny', Absence::class);
-        
-        $filters = $request->only([
-            'etudiant_id', 'matiere_id', 'classe_id', 'professeur_id', 
-            'date_debut', 'date_fin', 'justifiee'
-        ]);
+        $user = Auth::user();
+        $query = Absence::with(['etudiant:id,name,email', 'matiere:id,nom', 'professeur:id,name', 'assistant:id,name']);
 
-        $query = Absence::with([
-            'etudiant:id,Nom,Prenom', 
-            'seance.matiere:id,Libelle',
-            'seance.professeur:id,Nom,Prenom'
-        ]);
-
-        // Appliquer les filtres
-        if (!empty($filters['etudiant_id'])) {
-            $query->where('IdEtu', $filters['etudiant_id']);
+        // Filtres selon le rôle
+        if ($user->role === RoleType::PROFESSEUR) {
+            $query->where('professeur_id', $user->id);
+        } elseif ($user->role === RoleType::ASSISTANT) {
+            $query->where('assistant_id', $user->id);
+        } elseif ($user->role === RoleType::ELEVE) {
+            $query->where('etudiant_id', $user->id);
         }
 
-        if (!empty($filters['matiere_id'])) {
-            $query->whereHas('seance', function($q) use ($filters) {
-                $q->where('IdMat', $filters['matiere_id']);
+        // Filtres de recherche
+        $filters = $request->only(['search', 'matiere_id', 'type', 'justifiee', 'date_debut', 'date_fin']);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('etudiant', function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
-        if (!empty($filters['classe_id'])) {
-            $query->whereHas('etudiant', function($q) use ($filters) {
-                $q->where('IdClasse', $filters['classe_id']);
-            });
+        if ($request->filled('matiere_id')) {
+            $query->where('matiere_id', $request->matiere_id);
         }
 
-        if (!empty($filters['professeur_id'])) {
-            $query->whereHas('seance', function($q) use ($filters) {
-                $q->where('IdProf', $filters['professeur_id']);
-            });
-        }
-
-        if (!empty($filters['date_debut'])) {
-            $query->whereDate('date_absence', '>=', $filters['date_debut']);
-        }
-
-        if (!empty($filters['date_fin'])) {
-            $query->whereDate('date_absence', '<=', $filters['date_fin']);
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
         }
 
         if (isset($filters['justifiee']) && $filters['justifiee'] !== '') {
-            if ($filters['justifiee']) {
-                $query->whereNotNull('justificatif');
-            } else {
-                $query->whereNull('justificatif');
-            }
+            $query->where('justifiee', $filters['justifiee']);
         }
 
-        $absences = $query->latest('date_absence')
-            ->paginate(15)
-            ->withQueryString()
-            ->through(function ($absence) {
-                return [
-                    'id' => $absence->id,
-                    'etudiant' => $absence->etudiant ? $absence->etudiant->Nom . ' ' . $absence->etudiant->Prenom : 'Inconnu',
-                    'matiere' => $absence->seance && $absence->seance->matiere ? $absence->seance->matiere->Libelle : 'Inconnue',
-                    'professeur' => $absence->seance && $absence->seance->professeur ? 
-                        $absence->seance->professeur->Nom . ' ' . $absence->seance->professeur->Prenom : 'Inconnu',
-                    'date_absence' => $absence->date_absence->format('d/m/Y H:i'),
-                    'est_justifiee' => !is_null($absence->justificatif),
-                    'commentaire' => $absence->commentaire,
-                    'justificatif' => $absence->justificatif,
-                    'created_at' => $absence->created_at->format('d/m/Y H:i'),
-                ];
-            });
+        if ($request->filled('date_debut')) {
+            $query->where('date_absence', '>=', $request->date_debut);
+        }
+
+        if ($request->filled('date_fin')) {
+            $query->where('date_absence', '<=', $request->date_fin);
+        }
+
+        $absences = $query->orderBy('date_absence', 'desc')->paginate(15);
+
+        // Statistiques
+        $stats = [
+            'total_absences' => $query->count(),
+            'absences_justifiees' => $query->where('justifiee', true)->count(),
+            'absences_non_justifiees' => $query->where('justifiee', false)->count(),
+            'retards' => $query->where('type', 'retard')->count(),
+        ];
 
         return Inertia::render('Absences/Index', [
             'absences' => $absences,
+            'stats' => $stats,
             'filters' => $filters,
-            'matieres' => Matiere::select('id', 'Libelle')
-                ->orderBy('Libelle')
-                ->get(),
-            'classes' => Classe::select('id', 'Libelle')
-                ->orderBy('Libelle')
-                ->get(),
-            'can' => [
-                'create' => auth()->user()->can('create', Absence::class),
-                'edit' => auth()->user()->can('update', Absence::class),
-                'delete' => auth()->user()->can('delete', Absence::class),
-            ]
+            'matieres' => Matiere::actifs()->get(['id', 'nom']),
+            'canCreate' => in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT, RoleType::PROFESSEUR]),
+            'canJustify' => in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT]),
         ]);
     }
 
@@ -119,21 +88,23 @@ class AbsenceController extends Controller
      */
     public function create()
     {
-        $this->authorize('create', Absence::class);
+        $user = Auth::user();
         
+        if (!in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT, RoleType::PROFESSEUR])) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $eleves = User::eleves()->actifs()->get(['id', 'name', 'email', 'niveau_id', 'filiere_id']);
+        $matieres = Matiere::actifs()->get(['id', 'nom']);
+
         return Inertia::render('Absences/Create', [
-            'etudiants' => Etudiant::select('id', 'Nom', 'Prenom')
-                ->orderBy('Nom')
-                ->get()
-                ->map(function($etudiant) {
-                    return [
-                        'id' => $etudiant->id,
-                        'nom_complet' => $etudiant->Nom . ' ' . $etudiant->Prenom,
-                    ];
-                }),
-            'matieres' => Matiere::select('id', 'Libelle')
-                ->orderBy('Libelle')
-                ->get(),
+            'eleves' => $eleves,
+            'matieres' => $matieres,
+            'types_absence' => [
+                'absence' => 'Absence',
+                'retard' => 'Retard',
+                'sortie_anticipée' => 'Sortie anticipée',
+            ],
         ]);
     }
 
@@ -142,25 +113,48 @@ class AbsenceController extends Controller
      */
     public function store(Request $request)
     {
-        $this->authorize('create', Absence::class);
+        $user = Auth::user();
         
+        if (!in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT, RoleType::PROFESSEUR])) {
+            abort(403, 'Accès non autorisé');
+        }
+
         $validated = $request->validate([
-            'etudiant_id' => 'required|exists:Etudiant,id',
-            'seance_id' => 'required|exists:Seance,id',
+            'etudiant_id' => 'required|exists:users,id',
+            'matiere_id' => 'required|exists:matieres,id',
             'date_absence' => 'required|date',
-            'justificatif' => 'nullable|string|max:255',
-            'commentaire' => 'nullable|string|max:1000',
+            'type' => 'required|in:absence,retard,sortie_anticipée',
+            'duree_retard' => 'nullable|integer|min:1|max:480', // en minutes
+            'motif' => 'nullable|string|max:500',
+            'justifiee' => 'boolean',
+            'justification' => 'nullable|string|max:1000',
         ]);
 
-        $absence = $this->absenceService->enregistrerAbsence(
-            $validated['etudiant_id'],
-            $validated['seance_id'],
-            $validated['justificatif'] ?? null,
-            $validated['commentaire'] ?? null
-        );
+        try {
+            DB::beginTransaction();
 
-        return redirect()->route('absences.show', $absence)
-            ->with('success', 'L\'absence a été enregistrée avec succès.');
+            $absence = Absence::create([
+                'etudiant_id' => $validated['etudiant_id'],
+                'matiere_id' => $validated['matiere_id'],
+                'professeur_id' => $user->role === RoleType::PROFESSEUR ? $user->id : null,
+                'assistant_id' => $user->role === RoleType::ASSISTANT ? $user->id : null,
+                'date_absence' => $validated['date_absence'],
+                'type' => $validated['type'],
+                'duree_retard' => $validated['duree_retard'],
+                'motif' => $validated['motif'],
+                'justifiee' => $validated['justifiee'] ?? false,
+                'justification' => $validated['justification'],
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('absences.index')
+                ->with('success', 'Absence enregistrée avec succès.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Erreur lors de l\'enregistrement: ' . $e->getMessage()]);
+        }
     }
 
     /**
@@ -168,35 +162,27 @@ class AbsenceController extends Controller
      */
     public function show(Absence $absence)
     {
-        $this->authorize('view', $absence);
+        $user = Auth::user();
         
-        $absence->load([
-            'etudiant:id,Nom,Prenom,Email,Telephone',
-            'seance.matiere:id,Libelle',
-            'seance.professeur:id,Nom,Prenom',
-            'seance.classe:id,Libelle',
-        ]);
+        // Vérifier les permissions
+        if ($user->role === RoleType::ELEVE && $absence->etudiant_id !== $user->id) {
+            abort(403, 'Accès non autorisé');
+        }
+        
+        if ($user->role === RoleType::PROFESSEUR && $absence->professeur_id !== $user->id) {
+            abort(403, 'Accès non autorisé');
+        }
+        
+        if ($user->role === RoleType::ASSISTANT && $absence->assistant_id !== $user->id) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $absence->load(['etudiant:id,name,email,phone', 'matiere:id,nom', 'professeur:id,name', 'assistant:id,name']);
 
         return Inertia::render('Absences/Show', [
-            'absence' => [
-                'id' => $absence->id,
-                'etudiant' => [
-                    'id' => $absence->etudiant->id,
-                    'nom_complet' => $absence->etudiant->Nom . ' ' . $absence->etudiant->Prenom,
-                    'email' => $absence->etudiant->Email,
-                    'telephone' => $absence->etudiant->Telephone,
-                ],
-                'matiere' => $absence->seance->matiere->Libelle,
-                'professeur' => $absence->seance->professeur ? 
-                    $absence->seance->professeur->Nom . ' ' . $absence->seance->professeur->Prenom : 'Inconnu',
-                'classe' => $absence->seance->classe->Libelle,
-                'date_absence' => $absence->date_absence->format('d/m/Y H:i'),
-                'est_justifiee' => !is_null($absence->justificatif),
-                'justificatif' => $absence->justificatif,
-                'commentaire' => $absence->commentaire,
-                'created_at' => $absence->created_at->format('d/m/Y H:i'),
-                'updated_at' => $absence->updated_at->format('d/m/Y H:i'),
-            ]
+            'absence' => $absence,
+            'canEdit' => in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT]),
+            'canJustify' => in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT]) && !$absence->justifiee,
         ]);
     }
 
@@ -205,23 +191,21 @@ class AbsenceController extends Controller
      */
     public function edit(Absence $absence)
     {
-        $this->authorize('update', $absence);
+        $user = Auth::user();
         
-        $absence->load([
-            'etudiant:id,Nom,Prenom',
-            'seance.matiere:id,Libelle',
-        ]);
+        if (!in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT])) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $absence->load(['etudiant:id,name,email', 'matiere:id,nom']);
 
         return Inertia::render('Absences/Edit', [
-            'absence' => [
-                'id' => $absence->id,
-                'etudiant_id' => $absence->IdEtu,
-                'etudiant_nom' => $absence->etudiant ? $absence->etudiant->Nom . ' ' . $absence->etudiant->Prenom : 'Inconnu',
-                'matiere' => $absence->seance && $absence->seance->matiere ? $absence->seance->matiere->Libelle : 'Inconnue',
-                'date_absence' => $absence->date_absence->format('Y-m-d\TH:i'),
-                'justificatif' => $absence->justificatif,
-                'commentaire' => $absence->commentaire,
-            ]
+            'absence' => $absence,
+            'types_absence' => [
+                'absence' => 'Absence',
+                'retard' => 'Retard',
+                'sortie_anticipée' => 'Sortie anticipée',
+            ],
         ]);
     }
 
@@ -230,21 +214,24 @@ class AbsenceController extends Controller
      */
     public function update(Request $request, Absence $absence)
     {
-        $this->authorize('update', $absence);
+        $user = Auth::user();
         
+        if (!in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT])) {
+            abort(403, 'Accès non autorisé');
+        }
+
         $validated = $request->validate([
-            'justificatif' => 'nullable|string|max:255',
-            'commentaire' => 'nullable|string|max:1000',
+            'type' => 'required|in:absence,retard,sortie_anticipée',
+            'duree_retard' => 'nullable|integer|min:1|max:480',
+            'motif' => 'nullable|string|max:500',
+            'justifiee' => 'boolean',
+            'justification' => 'nullable|string|max:1000',
         ]);
 
-        $absence->update([
-            'justificatif' => $validated['justificatif'] ?? null,
-            'commentaire' => $validated['commentaire'] ?? null,
-            'date_modification' => now(),
-        ]);
+        $absence->update($validated);
 
         return redirect()->route('absences.show', $absence)
-            ->with('success', 'L\'absence a été mise à jour avec succès.');
+            ->with('success', 'Absence mise à jour avec succès.');
     }
 
     /**
@@ -252,12 +239,16 @@ class AbsenceController extends Controller
      */
     public function destroy(Absence $absence)
     {
-        $this->authorize('delete', $absence);
+        $user = Auth::user();
         
+        if (!in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT])) {
+            abort(403, 'Accès non autorisé');
+        }
+
         $absence->delete();
         
         return redirect()->route('absences.index')
-            ->with('success', 'L\'absence a été supprimée avec succès.');
+            ->with('success', 'Absence supprimée avec succès.');
     }
 
     /**
@@ -265,45 +256,90 @@ class AbsenceController extends Controller
      */
     public function justifier(Request $request, Absence $absence)
     {
-        $this->authorize('update', $absence);
+        $user = Auth::user();
         
+        if (!in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT])) {
+            abort(403, 'Accès non autorisé');
+        }
+
         $validated = $request->validate([
-            'justificatif' => 'required|string|max:255',
-            'commentaire' => 'nullable|string|max:1000',
+            'justification' => 'required|string|max:1000',
         ]);
 
         $absence->update([
-            'justificatif' => $validated['justificatif'],
-            'commentaire' => $validated['commentaire'] ?? null,
-            'date_modification' => now(),
+            'justifiee' => true,
+            'justification' => $validated['justification'],
         ]);
 
-        return redirect()->back()
-            ->with('success', 'L\'absence a été marquée comme justifiée.');
+        return back()->with('success', 'Absence marquée comme justifiée.');
+    }
+
+    /**
+     * Marque une absence comme non justifiée
+     */
+    public function nonJustifier(Absence $absence)
+    {
+        $user = Auth::user();
+        
+        if (!in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT])) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $absence->update([
+            'justifiee' => false,
+            'justification' => null,
+        ]);
+
+        return back()->with('success', 'Absence marquée comme non justifiée.');
     }
 
     /**
      * Récupère les statistiques d'absences pour un étudiant
      */
-    public function statistiquesEtudiant(Etudiant $etudiant, Request $request)
+    public function statistiquesEtudiant(User $etudiant, Request $request)
     {
-        $this->authorize('view', $etudiant);
+        $user = Auth::user();
         
-        $debut = $request->input('debut') ? Carbon::parse($request->input('debut')) : null;
-        $fin = $request->input('fin') ? Carbon::parse($request->input('fin')) : null;
+        // Vérifier les permissions
+        if ($user->role === RoleType::ELEVE && $etudiant->id !== $user->id) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $debut = $request->input('debut') ? Carbon::parse($request->input('debut')) : now()->startOfMonth();
+        $fin = $request->input('fin') ? Carbon::parse($request->input('fin')) : now()->endOfMonth();
         
-        $statistiques = $this->absenceService->getStatistiquesEtudiant($etudiant->id, $debut, $fin);
+        $absences = Absence::where('etudiant_id', $etudiant->id)
+            ->whereBetween('date_absence', [$debut, $fin])
+            ->with(['matiere:id,nom'])
+            ->get();
+
+        $statistiques = [
+            'total_absences' => $absences->where('type', 'absence')->count(),
+            'total_retards' => $absences->where('type', 'retard')->count(),
+            'absences_justifiees' => $absences->where('justifiee', true)->count(),
+            'absences_non_justifiees' => $absences->where('justifiee', false)->count(),
+            'total_heures_retard' => $absences->where('type', 'retard')->sum('duree_retard') / 60,
+            'par_matiere' => $absences->groupBy('matiere.nom')->map(function ($group) {
+                return [
+                    'total' => $group->count(),
+                    'justifiees' => $group->where('justifiee', true)->count(),
+                    'non_justifiees' => $group->where('justifiee', false)->count(),
+                ];
+            }),
+        ];
         
         return Inertia::render('Absences/StatistiquesEtudiant', [
             'etudiant' => [
                 'id' => $etudiant->id,
-                'nom_complet' => $etudiant->Nom . ' ' . $etudiant->Prenom,
-                'classe' => $etudiant->classe ? $etudiant->classe->Libelle : 'Non défini',
+                'name' => $etudiant->name,
+                'email' => $etudiant->email,
+                'niveau' => $etudiant->niveau ? $etudiant->niveau->nom : 'Non défini',
+                'filiere' => $etudiant->filiere ? $etudiant->filiere->nom : 'Non défini',
             ],
             'statistiques' => $statistiques,
             'filtres' => [
-                'debut' => $debut ? $debut->format('Y-m-d') : null,
-                'fin' => $fin ? $fin->format('Y-m-d') : null,
+                'debut' => $debut->format('Y-m-d'),
+                'fin' => $fin->format('Y-m-d'),
             ]
         ]);
     }
@@ -313,38 +349,70 @@ class AbsenceController extends Controller
      */
     public function genererRapport(Request $request)
     {
-        $this->authorize('viewAny', Absence::class);
+        $user = Auth::user();
+        
+        if (!in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT])) {
+            abort(403, 'Accès non autorisé');
+        }
         
         $validated = $request->validate([
             'date_debut' => 'required|date',
             'date_fin' => 'required|date|after_or_equal:date_debut',
-            'matiere_id' => 'nullable|exists:Matiere,id',
-            'classe_id' => 'nullable|exists:Classe,id',
+            'matiere_id' => 'nullable|exists:matieres,id',
+            'niveau_id' => 'nullable|exists:niveaux,id',
+            'filiere_id' => 'nullable|exists:filieres,id',
         ]);
         
-        $rapport = $this->absenceService->genererRapportAbsences(
-            Carbon::parse($validated['date_debut']),
-            Carbon::parse($validated['date_fin']),
-            $validated['matiere_id'] ?? null,
-            $validated['classe_id'] ?? null
-        );
+        $query = Absence::with(['etudiant:id,name,email', 'matiere:id,nom'])
+            ->whereBetween('date_absence', [$validated['date_debut'], $validated['date_fin']]);
+
+        if ($validated['matiere_id']) {
+            $query->where('matiere_id', $validated['matiere_id']);
+        }
+
+        if ($validated['niveau_id']) {
+            $query->whereHas('etudiant', function ($q) use ($validated) {
+                $q->where('niveau_id', $validated['niveau_id']);
+            });
+        }
+
+        if ($validated['filiere_id']) {
+            $query->whereHas('etudiant', function ($q) use ($validated) {
+                $q->where('filiere_id', $validated['filiere_id']);
+            });
+        }
+
+        $absences = $query->get();
+
+        $rapport = [
+            'periode' => [
+                'debut' => $validated['date_debut'],
+                'fin' => $validated['date_fin'],
+            ],
+            'statistiques' => [
+                'total_absences' => $absences->where('type', 'absence')->count(),
+                'total_retards' => $absences->where('type', 'retard')->count(),
+                'absences_justifiees' => $absences->where('justifiee', true)->count(),
+                'absences_non_justifiees' => $absences->where('justifiee', false)->count(),
+            ],
+            'par_etudiant' => $absences->groupBy('etudiant.name')->map(function ($group) {
+                return [
+                    'total_absences' => $group->where('type', 'absence')->count(),
+                    'total_retards' => $group->where('type', 'retard')->count(),
+                    'absences_justifiees' => $group->where('justifiee', true)->count(),
+                    'absences_non_justifiees' => $group->where('justifiee', false)->count(),
+                ];
+            }),
+            'par_matiere' => $absences->groupBy('matiere.nom')->map(function ($group) {
+                return [
+                    'total_absences' => $group->where('type', 'absence')->count(),
+                    'total_retards' => $group->where('type', 'retard')->count(),
+                    'absences_justifiees' => $group->where('justifiee', true)->count(),
+                    'absences_non_justifiees' => $group->where('justifiee', false)->count(),
+                ];
+            }),
+        ];
         
         return response()->json($rapport);
-    }
-    
-    /**
-     * Envoie des notifications pour les absences non justifiées
-     */
-    public function notifierParents(Request $request)
-    {
-        $this->authorize('notify', Absence::class);
-        
-        $seuilJours = $request->input('seuil_jours', 3);
-        $resultats = $this->absenceService->notifierParentsAbsencesNonJustifiees($seuilJours);
-        
-        return response()->json([
-            'message' => 'Notifications envoyées avec succès',
-            'notifications' => $resultats,
-        ]);
     }
 }

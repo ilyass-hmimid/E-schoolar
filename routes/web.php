@@ -1,220 +1,373 @@
 <?php
 
-use OpenAI\Laravel\Facades\OpenAI;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CentreController;
 use App\Http\Controllers\ProfesseurController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ApplicationController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PaiementController;
+use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Profile\AvatarController;
-use Illuminate\Support\Facades\Session;
-
-
+use App\Http\Controllers\MatiereController;
+use App\Http\Controllers\FiliereController;
+use App\Http\Controllers\NiveauController;
+use App\Http\Controllers\EnseignementController;
+use App\Http\Controllers\AbsenceController;
+use App\Http\Controllers\SalaireController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\RapportController;
+use App\Http\Controllers\ComponentExampleController;
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes
+| Routes Web - Allo Tawjih
 |--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
+| Routes pour la plateforme de gestion des centres de cours
+|--------------------------------------------------------------------------
 */
 
+// ============================================================================
+// ROUTES PUBLIQUES
+// ============================================================================
 
-// Route::middleware(['guest'])->group(function () {
-//     Route::get('/{any}', function () {
-//         return view('auth.login');
-//     })->where('any', '.*');
-// });
+// Page d'accueil
+Route::get('/', [App\Http\Controllers\WelcomeController::class, 'index'])->name('welcome');
 
-Route::get('/', function () {
-    // Vérifier si l'utilisateur est authentifié
-    if (auth()->check()) {
-        // Rediriger l'utilisateur vers la dernière page active ou vers /home par défaut
-        // $previousUrl = Session::get(auth()->id() . '_url.intended', '/home');
-        $previousUrl = Session::get(auth()->id() . '/home', '/home');
-        Session::forget(auth()->id() . '_url.intended'); // Effacer la session après utilisation
-        return redirect()->to($previousUrl);
-    } else {
-        // S'il n'est pas authentifié, enregistrer l'URL précédente dans la session
-        // $currentUserKey = auth()->id() . '_url.intended';
-        $currentUserKey = auth()->id() . '/home';
-        Session::put($currentUserKey, url()->previous());
-        return view('auth.login');
+// Exemples de composants
+Route::get('/composants', [ComponentExampleController::class, 'index'])->name('components.examples');
+
+// Déconnexion complète
+Route::get('/logout-complete', function () {
+    Auth::logout();
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
+    return redirect('/')->with('status', 'Déconnexion effectuée');
+});
+
+// Routes d'authentification
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [LoginController::class, 'login']);
+    Route::get('/forgot-password', [LoginController::class, 'showForgotPasswordForm'])->name('password.request');
+    Route::post('/forgot-password', [LoginController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [LoginController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [LoginController::class, 'reset'])->name('password.update');
+});
+
+// ============================================================================
+// ROUTES AUTHENTIFIÉES
+// ============================================================================
+
+Route::middleware(['auth', 'active'])->group(function () {
+    
+    // Déconnexion
+    Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+    
+    // Redirection pour les utilisateurs authentifiés
+    Route::get('/home', function () {
+        return redirect()->route('dashboard');
+    })->name('home');
+    
+    // Route du dashboard principal (redirige selon le rôle)
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    
+    // Routes du profil utilisateur
+    Route::prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', [ProfileController::class, 'edit'])->name('edit');
+        Route::patch('/', [ProfileController::class, 'update'])->name('update');
+        Route::patch('/avatar', [AvatarController::class, 'update'])->name('avatar');
+        Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
+    });
+    
+    // ============================================================================
+    // ROUTES ADMIN (Super utilisateur)
+    // ============================================================================
+    
+    Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
+        // Tableau de bord
+        Route::get('/dashboard', [DashboardController::class, 'admin'])->name('dashboard');
+        
+        // Gestion des utilisateurs
+        Route::resource('users', UserController::class);
+        Route::get('/api/users', [UserController::class, 'apiIndex'])->name('users.api.index');
+        Route::get('/api/users/stats', [UserController::class, 'apiStats'])->name('users.api.stats');
+        
+        // Gestion des élèves
+        Route::resource('eleves', \App\Http\Controllers\EleveController::class);
+        
+        // Gestion des professeurs
+        Route::resource('professeurs', \App\Http\Controllers\ProfesseurController::class);
+        
+        // Gestion des assistants
+        Route::resource('assistants', \App\Http\Controllers\AssistantController::class);
+        
+        // Gestion des matières
+        Route::resource('matieres', MatiereController::class);
+        Route::get('/api/matieres/stats', [MatiereController::class, 'stats'])->name('matieres.api.stats');
+        
+        // Gestion des filières
+        Route::resource('filieres', FiliereController::class);
+        
+        // Gestion des niveaux
+        Route::resource('niveaux', NiveauController::class);
+        
+        // Gestion des inscriptions
+        Route::resource('inscriptions', \App\Http\Controllers\InscriptionController::class);
+        
+        // Gestion des absences
+        Route::resource('absences', AbsenceController::class);
+        
+        // Gestion des paiements
+        Route::resource('paiements', PaiementController::class);
+        
+        // Gestion des salaires
+        Route::resource('salaires', SalaireController::class);
+        Route::post('/salaires/generer', [SalaireController::class, 'generer'])->name('salaires.generer');
+        Route::post('/salaires/{salaire}/valider', [SalaireController::class, 'valider'])->name('salaires.valider');
+        
+        // Rapports et statistiques
+        Route::get('/rapports', [RapportController::class, 'index'])->name('rapports.index');
+        Route::get('/statistiques', [RapportController::class, 'statistiques'])->name('statistiques');
+        Route::get('/api/filieres/stats', [FiliereController::class, 'stats'])->name('filieres.api.stats');
+        
+        // Gestion des niveaux
+        Route::resource('niveaux', NiveauController::class);
+        Route::get('/api/niveaux/stats', [NiveauController::class, 'stats'])->name('niveaux.api.stats');
+        
+        // Gestion des enseignements
+        Route::resource('enseignements', EnseignementController::class);
+        Route::get('/api/enseignements/stats', [EnseignementController::class, 'stats'])->name('enseignements.api.stats');
+        
+        // Gestion des salaires
+        Route::resource('salaires', SalaireController::class);
+        Route::post('/salaires/{salaire}/payer', [SalaireController::class, 'payer'])->name('salaires.payer');
+        Route::post('/salaires/calculer-automatiquement', [SalaireController::class, 'calculerAutomatiquement'])->name('salaires.calculer-automatiquement');
+        Route::get('/salaires/rapport', [SalaireController::class, 'genererRapport'])->name('salaires.rapport');
+        
+        // Gestion des notifications
+        Route::prefix('notifications')->name('notifications.')->group(function () {
+            Route::get('/', [NotificationController::class, 'index'])->name('index');
+            Route::post('/{id}/mark-read', [NotificationController::class, 'markAsRead'])->name('mark-read');
+            Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
+            Route::delete('/{id}', [NotificationController::class, 'destroy'])->name('destroy');
+            Route::get('/statistiques', [NotificationController::class, 'statistiques'])->name('statistiques');
+            Route::post('/absence/{absence}', [NotificationController::class, 'notifierAbsence'])->name('absence');
+            Route::post('/paiement/{paiement}', [NotificationController::class, 'notifierPaiement'])->name('paiement');
+            Route::post('/rappels-paiement', [NotificationController::class, 'envoyerRappelsPaiement'])->name('rappels-paiement');
+            Route::post('/systeme', [NotificationController::class, 'envoyerNotificationSysteme'])->name('systeme');
+            Route::get('/tester-configuration', [NotificationController::class, 'testerConfiguration'])->name('tester-configuration');
+        });
+        
+        // Gestion des rapports
+        Route::prefix('rapports')->name('rapports.')->group(function () {
+            Route::get('/', [RapportController::class, 'index'])->name('index');
+            Route::get('/absences', [RapportController::class, 'absences'])->name('absences');
+            Route::get('/paiements', [RapportController::class, 'paiements'])->name('paiements');
+            Route::get('/salaires', [RapportController::class, 'salaires'])->name('salaires');
+            
+            // Export PDF des rapports
+            Route::get('/global/export', [RapportController::class, 'exportGlobal'])->name('export-global');
+            Route::get('/absences/export', [RapportController::class, 'exportAbsences'])->name('export-absences');
+            Route::get('/paiements/export', [RapportController::class, 'exportPaiements'])->name('export-paiements');
+            Route::get('/salaires/export', [RapportController::class, 'exportSalaires'])->name('export-salaires');
+            Route::get('/salaires/{salaire}/bulletin', [RapportController::class, 'exportSalarySlip'])->name('export-salary-slip');
+        });
+    });
+    
+    // ============================================================================
+    // ROUTES PROFESSEUR
+    // ============================================================================
+    
+    Route::middleware('role:professeur')->prefix('professeur')->name('professeur.')->group(function () {
+        // Tableau de bord
+        Route::get('/dashboard', [DashboardController::class, 'professeur'])->name('dashboard');
+        
+        // Emploi du temps
+        Route::get('/emploi-du-temps', function () {
+            return Inertia::render('Professeur/EmploiDuTemps');
+        })->name('emploi-du-temps');
+        
+        // Matières enseignées
+        Route::get('/matieres', function () {
+            return Inertia::render('Professeur/MesMatieres');
+        })->name('matieres');
+        
+        // Classes assignées
+        Route::get('/classes', function () {
+            return Inertia::render('Professeur/MesClasses');
+        })->name('classes');
+        
+        // Gestion des notes
+        Route::resource('notes', \App\Http\Controllers\Professeur\NoteController::class);
+        
+        // Gestion des absences
+        Route::resource('absences', \App\Http\Controllers\Professeur\AbsenceController::class);
+        
+        // Bulletins
+        Route::get('/bulletins', function () {
+            return Inertia::render('Professeur/Bulletins');
+        })->name('bulletins');
+        
+        // Dépôt de cours
+        Route::resource('cours', \App\Http\Controllers\Professeur\CoursController::class);
+        
+        // Gestion des devoirs
+        Route::resource('devoirs', \App\Http\Controllers\Professeur\DevoirController::class);
+        
+        // Ressources partagées
+        Route::resource('ressources', \App\Http\Controllers\Professeur\RessourceController::class);
+        
+        // Profil
+        Route::get('/profil', [\App\Http\Controllers\Professeur\ProfilController::class, 'edit'])->name('profil.edit');
+        Route::put('/profil', [\App\Http\Controllers\Professeur\ProfilController::class, 'update'])->name('profil.update');
+        
+        // Gestion des salaires
+        Route::get('/salaires', [\App\Http\Controllers\Professeur\SalaireController::class, 'index'])->name('salaires.index');
+        Route::get('/salaires/{salaire}', [\App\Http\Controllers\Professeur\SalaireController::class, 'show'])->name('salaires.show');
+    });
+    
+    // ============================================================================
+    // ROUTES ASSISTANT
+    // ============================================================================
+    
+    Route::middleware('role:assistant')->prefix('assistant')->name('assistant.')->group(function () {
+        // Tableau de bord
+        Route::get('/dashboard', [DashboardController::class, 'assistant'])->name('dashboard');
+        
+        // Gestion des élèves
+        Route::get('/eleves', function () {
+            return Inertia::render('Assistant/Eleves');
+        })->name('eleves');
+        
+        // Gestion des inscriptions
+        Route::get('/inscriptions', function () {
+            return Inertia::render('Assistant/Inscriptions');
+        })->name('inscriptions');
+        
+        // Gestion des absences
+        Route::get('/absences', function () {
+            return Inertia::render('Assistant/Absences');
+        })->name('absences');
+        
+        // Messagerie
+        Route::get('/messagerie', function () {
+            return Inertia::render('Assistant/Messagerie');
+        })->name('messagerie');
+        
+        // Annonces
+        Route::get('/annonces', function () {
+            return Inertia::render('Assistant/Annonces');
+        })->name('annonces');
+        
+        // Événements
+        Route::get('/evenements', function () {
+            return Inertia::render('Assistant/Evenements');
+        })->name('evenements');
+        
+        // Documents
+        Route::get('/documents', function () {
+            return Inertia::render('Assistant/Documents');
+        })->name('documents');
+        
+        // Ressources partagées
+        Route::get('/ressources', function () {
+            return Inertia::render('Assistant/Ressources');
+        })->name('ressources');
+        
+        // Profil
+        Route::get('/profil', function () {
+            return Inertia::render('Assistant/Profil');
+        })->name('profil');
+        
+        // Paramètres
+        Route::get('/parametres', function () {
+            return Inertia::render('Assistant/Parametres');
+        })->name('parametres');
+    });
+    
+    // ============================================================================
+    // ROUTES ÉLÈVE
+    // ============================================================================
+    
+    Route::middleware('role:eleve')->prefix('eleve')->name('eleve.')->group(function () {
+        // Tableau de bord
+        Route::get('/dashboard', [DashboardController::class, 'eleve'])->name('dashboard');
+        
+        // Emploi du temps
+        Route::get('/emploi-du-temps', function () {
+            return Inertia::render('Eleve/EmploiDuTemps');
+        })->name('emploi-du-temps');
+        
+        // Matières suivies
+        Route::get('/matieres', function () {
+            return Inertia::render('Eleve/MesMatieres');
+        })->name('matieres');
+        
+        // Notes
+        Route::get('/notes', function () {
+            return Inertia::render('Eleve/MesNotes');
+        })->name('notes');
+        
+        // Absences
+        Route::get('/absences', function () {
+            return Inertia::render('Eleve/MesAbsences');
+        })->name('absences');
+        
+        // Devoirs
+        Route::get('/devoirs', function () {
+            return Inertia::render('Eleve/MesDevoirs');
+        })->name('devoirs');
+        
+        // Cours en ligne
+        Route::get('/cours', function () {
+            return Inertia::render('Eleve/CoursEnLigne');
+        })->name('cours');
+        
+        // Ressources
+        Route::get('/ressources', function () {
+            return Inertia::render('Eleve/Ressources');
+        })->name('ressources');
+        
+        // Bulletins
+        Route::get('/bulletins', function () {
+            return Inertia::render('Eleve/MesBulletins');
+        })->name('bulletins');
+        
+        // Événements
+        Route::get('/evenements', function () {
+            return Inertia::render('Eleve/Evenements');
+        })->name('evenements');
+        
+        // Messagerie
+        Route::get('/messagerie', function () {
+            return Inertia::render('Eleve/Messagerie');
+        })->name('messagerie');
+        
+        // Profil
+        Route::get('/profil', function () {
+            return Inertia::render('Eleve/Profil');
+        })->name('profil');
+        
+        // Paramètres
+        Route::get('/parametres', function () {
+            return Inertia::render('Eleve/Parametres');
+        })->name('parametres');
+    });
+});
+
+// ============================================================================
+// ROUTE CATCH-ALL POUR INERTIA.JS (doit être en dernier et seulement pour les routes non définies)
+// ============================================================================
+
+Route::fallback(function () {
+    if (request()->is('api/*') || request()->is('_debugbar/*')) {
+        abort(404);
     }
-})->middleware('auth');
-
-
-// Route::get('/', function () {
-//     if (auth()->check()) {
-//         return redirect()->route('home'); // Rediriger vers la page home si authentifié
-//     } else {
-//         return view('auth.login');
-//     }
-// })->name('home');
-
-
-
-
-
-
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-
-
- Route::get('/dashboard', function () {
-    return view('admin.layouts.app');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
-
-
- Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::patch('/profile/avatar', [AvatarController::class, 'update'])->name('profile.avatar');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    
+    // Si la route n'existe pas, on renvoie la vue d'erreur 404
+    return Inertia::render('Errors/404', [
+        'status' => 404,
+    ])->toResponse(request())->setStatusCode(404);
 });
-
-// Route::middleware(['guest'])->group(function () {
-//     Route::get('/', function () {
-//         return view('auth.login');
-//     })->name('login');
-// });
-
-require __DIR__.'/auth.php';
-
-
-
-/* Route::get('/openai', function(){
-
-
-    $result = OpenAI::completions()->create([
-        'model' => 'text-davinci-003',
-        'prompt' => 'PHP is',
-    ]);
-
-    echo $result['choices'][0]['text']; // an open-source, widely-used, server-side scripting language.
-
-}); */
-
-//  Route::get('/dashboard1', function(){
-//     return view('dashboard1');
-// });
-
-Route::middleware('auth')->group(function () {
-
-
-Route::get('/api/users', [UserController::class, 'index']);
-Route::get('/api/calculesProvisoir', [CentreController::class, 'ModificationTotalProvisoir']);
-
-Route::get('/api/getRole', [UserController::class, 'IsAdmin']);
-Route::get('/api/getIdProf', [UserController::class, 'IdProf']);
-
-Route::get('/api/salaireProf', [CentreController::class, 'getSlaireForProf']);
-
-
-Route::get('/api/etudiants', [CentreController::class, 'index']);
-Route::get('/api/getProfClasses', [CentreController::class, 'getProfClasses']);
-
-Route::get('/api/ListeAbsences', [CentreController::class, 'getListeAbsences']);
-
-Route::get('/api/etudiantsForPaiment', [CentreController::class, 'getUsersForPaiment']);
-Route::get('/api/etudiantsForProf', [CentreController::class, 'getUsersForProf']);
-Route::get('/api/etudiantsForProfForAbsence', [CentreController::class, 'getUsersForProfForAbsence']);
-
-Route::get('/api/EnseignementsParProf', [CentreController::class, 'getEnseignementsParProf']);
-
-
-
-Route::get('/api/professeurs', [ProfesseurController::class, 'index']);
-Route::get('/api/professeursForSalaire', [CentreController::class, 'getUsersForSalaire']);
-Route::get('/api/valeurs_paiments', [CentreController::class, 'getNbrMat']);
-Route::get('/api/valeurs_paiment', [CentreController::class, 'getValeurPaiments']);
-Route::get('/api/selectedProfesseurs/{selectedMatieres}/{selectedNiveau}/{selectedFiliere}', [CentreController::class, 'getProfesseurPourMatieres']);
-Route::get('/api/valeurs_salaire', [CentreController::class, 'getValeurSalaires']);
-Route::get('/api/enseignements', [ProfesseurController::class, 'getEnseignements']);
-
-
-
-
-Route::get('/api/niveaux', [CentreController::class, 'getNiveaux']);
-Route::get('/api/niveau', [CentreController::class, 'getNiveau']);
-
-Route::get('/api/profs', [ProfesseurController::class, 'getProfs']);
-
-
-Route::get('/api/filieres/{id}', [CentreController::class, 'getFilieres']);
-Route::get('/api/filiere', [CentreController::class, 'getFiliere']);
-Route::get('/api/matieres', [CentreController::class, 'getMatieres']);
-Route::get('/api/matiere', [CentreController::class, 'getMatiere']);
-Route::get('/api/matieresEtudiant/{idEtudiant}', [CentreController::class, 'getMatiereParEtudiant']);
-
-
-
-Route::post('/api/users', [UserController::class, 'store']);
-Route::post('/api/etudiants', [CentreController::class, 'store']);
-Route::post('/api/professeurs', [ProfesseurController::class, 'store']);
-Route::post('/api/enseignements', [ProfesseurController::class, 'createEnseignement']);
-
-Route::post('/api/matiere', [CentreController::class, 'storeMatiere']);
-Route::post('/api/niveau', [CentreController::class, 'storeNiveau']);
-Route::post('/api/filiere', [CentreController::class, 'storeFiliere']);
-
-
-
-
-
-Route::put('/api/users/{user}', [UserController::class, 'update']);
-Route::put('/api/etudiants/{user}', [CentreController::class, 'update']);
-// Route::put('/api/paiement/{user}', [CentreController::class, 'effectuerPaiement']);
-Route::put('/api/professeurs/{user}', [ProfesseurController::class, 'update']);
-Route::put('/api/valeurs_paiments', [CentreController::class, 'updateValPaiment']);
-Route::put('/api/valeurs_salaires', [CentreController::class, 'updateValSalaire']);
-Route::put('/api/paiements/{user}', [CentreController::class, 'effectuerPaiement']);
-Route::put('/api/absence', [CentreController::class, 'marquerAbsence']);
-Route::put('/api/presence', [CentreController::class, 'marquerPresence']);
-
-
-Route::put('/api/salaires/{user}', [CentreController::class, 'effectuerSalaire']);
-Route::put('/api/enseignements/{user}', [ProfesseurController::class, 'updateEnseignement']);
-
-
-Route::put('/api/matiere/{user}', [CentreController::class, 'updateMatiere']);
-Route::put('/api/niveau/{user}', [CentreController::class, 'updateNiveau']);
-Route::put('/api/filiere/{user}', [CentreController::class, 'updateFiliere']);
-Route::put('/api/inscription/change/{id_etudiant}/{id_matiere}/{type}', [CentreController::class, 'setInscription']);
-
-
-
-
-
-
-Route::delete('/api/users/{user}', [UserController::class, 'destory']);
-Route::delete('/api/etudiants/{user}', [CentreController::class, 'destory']);
-Route::delete('/api/professeurs/{user}', [ProfesseurController::class, 'destory']);
-Route::delete('/api/enseignements/{user}', [ProfesseurController::class, 'destoryEnseignement']);
-Route::delete('/api/matiere/{user}', [CentreController::class, 'destoryMatiere']);
-Route::delete('/api/niveau/{user}', [CentreController::class, 'destoryNiveau']);
-Route::delete('/api/filiere/{user}', [CentreController::class, 'destoryFiliere']);
-
-Route::get('{view}', ApplicationController::class)->where('view', '(.*)');
-
-
-
-
-});
-
-
-
-
-
-
-
-
-
-
-
-
-

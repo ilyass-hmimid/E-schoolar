@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,20 +10,24 @@
 
         <title>{{ config('app.name', 'Allo Tawjih') }} @yield('title')</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
         
         <!-- Favicon -->
         <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
-
-        <!-- AdminLTE CSS (chargé en tant que fichier statique) -->
-        <link rel="stylesheet" href="{{ asset('vendor/admin-lte/dist/css/adminlte.min.css') }}">
+        
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
         
         <!-- Scripts -->
         @routes
         @vite([
-            'resources/css/app.css',
+            'resources/sass/app.scss',
             'resources/js/app.js',
             'resources/js/bootstrap.js'
         ])
@@ -32,21 +36,53 @@
         @stack('styles')
         <style>
             [x-cloak] { display: none !important; }
+            
+            /* Styles personnalisés */
+            body {
+                font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+                padding-top: 56px; /* Hauteur de la navbar */
+            }
+            
+            .content-header {
+                padding: 1.5rem 0;
+                margin-bottom: 1.5rem;
+                border-bottom: 1px solid #e9ecef;
+                background-color: #f8f9fa;
+            }
+            
+            .content-title {
+                font-size: 1.75rem;
+                font-weight: 600;
+                margin: 0;
+                color: #2c3e50;
+            }
+            
+            .main-content {
+                min-height: calc(100vh - 160px); /* Hauteur du viewport - hauteur du header et du footer */
+                padding: 1.5rem 0;
+            }
+            
+            footer {
+                background-color: #f8f9fa;
+                padding: 1.5rem 0;
+                margin-top: 2rem;
+                border-top: 1px solid #e9ecef;
+            }
         </style>
     </head>
-    <body class="font-sans antialiased bg-gray-50 min-h-screen flex flex-col">
-        <div id="app" class="min-h-screen flex flex-col">
+    <body>
+        <div id="app">
             <!-- Barre de navigation -->
             @auth
                 @include('layouts.navigation')
             @endauth
 
             <!-- Contenu principal -->
-            <main class="flex-1">
+            <main class="main-content">
                 @if (isset($header))
-                    <div class="bg-white shadow">
-                        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                            <h1 class="text-2xl font-semibold text-gray-900">
+                    <div class="content-header">
+                        <div class="container">
+                            <h1 class="content-title">
                                 {{ $header }}
                             </h1>
                         </div>
@@ -54,10 +90,8 @@
                 @endif
 
                 <!-- Contenu de la page -->
-                <div class="py-6">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        {{ $slot }}
-                    </div>
+                <div class="container py-4">
+                    {{ $slot }}
                 </div>
             </main>
 
@@ -65,9 +99,9 @@
             <toast-notifications position="top-right"></toast-notifications>
 
             <!-- Pied de page -->
-            <footer class="bg-white border-t border-gray-200 mt-8">
-                <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-                    <p class="text-center text-sm text-gray-500">
+            <footer>
+                <div class="container">
+                    <p class="text-center text-muted mb-0">
                         &copy; {{ date('Y') }} {{ config('app.name') }}. Tous droits réservés.
                     </p>
                 </div>

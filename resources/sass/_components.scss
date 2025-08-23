@@ -1,0 +1,539 @@
+// ================================================
+// ==  Composants SCSS - Système de Design       ==
+// ================================================
+
+// 1. Cartes
+// ================================================
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  word-wrap: break-word;
+  background-color: $card-bg;
+  background-clip: border-box;
+  border: $card-border-width solid $card-border-color;
+  @include border-radius($card-border-radius);
+  @include box-shadow($card-box-shadow);
+  transition: $card-transition;
+  
+  &:hover {
+    @if $enable-shadows {
+      @include box-shadow($card-box-shadow-hover);
+    }
+  }
+  
+  &-header {
+    padding: $card-spacer-y $card-spacer-x;
+    margin-bottom: 0;
+    background-color: $card-cap-bg;
+    border-bottom: $card-border-width solid $card-border-color;
+    
+    &:first-child {
+      @include border-radius($card-inner-border-radius $card-inner-border-radius 0 0);
+    }
+  }
+  
+  &-body {
+    flex: 1 1 auto;
+    padding: $card-spacer-y $card-spacer-x;
+    color: $card-color;
+  }
+  
+  &-title {
+    margin-bottom: $card-title-spacer-y;
+    font-size: $card-title-font-size;
+    font-weight: $card-title-font-weight;
+  }
+  
+  &-subtitle {
+    margin-top: -$card-title-spacer-y * 0.5;
+    margin-bottom: 0;
+    font-size: $card-subtitle-font-size;
+    color: $card-subtitle-color;
+  }
+  
+  &-text:last-child {
+    margin-bottom: 0;
+  }
+  
+  &-link {
+    & + .card-link {
+      margin-left: $card-spacer-x;
+    }
+  }
+  
+  &-footer {
+    padding: $card-spacer-y $card-spacer-x;
+    background-color: $card-cap-bg;
+    border-top: $card-border-width solid $card-border-color;
+    
+    &:last-child {
+      @include border-radius(0 0 $card-inner-border-radius $card-inner-border-radius);
+    }
+  }
+  
+  // Variations de couleurs
+  @each $color, $value in $theme-colors {
+    &-#{$color} {
+      @include card-variant($value, $value);
+    }
+  }
+  
+  // Cartes avec image
+  &-img-overlay {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: $card-img-overlay-padding;
+    @include border-radius($card-inner-border-radius);
+  }
+  
+  &-img,
+  &-img-top,
+  &-img-bottom {
+    width: 100%;
+  }
+  
+  &-img,
+  &-img-top {
+    @include border-top-radius($card-inner-border-radius);
+  }
+  
+  &-img,
+  &-img-bottom {
+    @include border-bottom-radius($card-inner-border-radius);
+  }
+}
+
+// 2. Alertes
+// ================================================
+.alert {
+  position: relative;
+  padding: $alert-padding-y $alert-padding-x;
+  margin-bottom: $alert-margin-bottom;
+  border: $alert-border-width solid transparent;
+  @include border-radius($alert-border-radius);
+  
+  &-dismissible {
+    padding-right: $alert-dismissible-padding-r;
+    
+    .btn-close {
+      position: absolute;
+      top: 0;
+      right: 0;
+      z-index: $stretched-link-z-index + 1;
+      padding: $alert-padding-y * 1.25 $alert-padding-x;
+    }
+  }
+  
+  // Variations de couleurs
+  @each $color, $value in $theme-colors {
+    &-#{$color} {
+      @include alert-variant(
+        theme-color-level($color, $alert-bg-level),
+        theme-color-level($color, $alert-border-level),
+        theme-color-level($color, $alert-color-level)
+      );
+    }
+  }
+  
+  &-link {
+    font-weight: $alert-link-font-weight;
+    text-decoration: $alert-link-decoration;
+    
+    &:hover {
+      text-decoration: $alert-link-hover-decoration;
+    }
+  }
+  
+  // Styles supplémentaires pour les icônes
+  .alert-icon {
+    margin-right: $spacer * 0.5;
+    font-size: $font-size-lg;
+  }
+  
+  .alert-heading {
+    color: inherit;
+    font-weight: $headings-font-weight;
+    margin-bottom: $spacer * 0.5;
+  }
+  
+  // Alertes avec bordure à gauche
+  &-border-left {
+    border-left-width: 0.25rem;
+    border-left-style: solid;
+  }
+  
+  // Alertes avec icônes
+  &-with-icon {
+    display: flex;
+    align-items: flex-start;
+    
+    .alert-icon {
+      margin-top: 0.2rem;
+      margin-right: $spacer * 0.75;
+    }
+    
+    .alert-content {
+      flex: 1;
+    }
+  }
+}
+
+// 3. Badges
+// ================================================
+.badge {
+  display: inline-block;
+  padding: $badge-padding-y $badge-padding-x;
+  font-size: $badge-font-size;
+  font-weight: $badge-font-weight;
+  line-height: 1;
+  color: $badge-color;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  @include border-radius($badge-border-radius);
+  @include gradient-bg($badge-bg);
+  
+  // Variations de couleurs
+  @each $color, $value in $theme-colors {
+    &-#{$color} {
+      @include badge-variant($value);
+    }
+  }
+  
+  // Badges arrondis
+  &-pill {
+    padding-right: $badge-pill-padding-x;
+    padding-left: $badge-pill-padding-x;
+    @include border-radius($badge-pill-border-radius);
+  }
+  
+  // Badges avec point
+  &-dot {
+    width: $badge-dot-size;
+    height: $badge-dot-size;
+    padding: 0;
+    border-radius: 50%;
+  }
+  
+  // Badges avec bordure
+  &-outline {
+    background-color: transparent;
+    border: $badge-border-width solid currentColor;
+    
+    @each $color, $value in $theme-colors {
+      &-#{$color} {
+        color: $value;
+        border-color: $value;
+        
+        @if $enable-hover-media-query {
+          @include hover-focus() {
+            color: color-yiq($value);
+            background-color: $value;
+          }
+        }
+      }
+    }
+  }
+  
+  // Badges dans les boutons
+  .btn & {
+    position: relative;
+    top: -1px;
+  }
+  
+  // Badges dans les en-têtes
+  h1 &,
+  h2 &,
+  h3 &,
+  h4 &,
+  h5 &,
+  h6 & {
+    position: relative;
+    top: -0.5em;
+    font-size: 75%;
+  }
+}
+
+// 4. Boutons
+// ================================================
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: $btn-font-weight;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  user-select: none;
+  border: $btn-border-width solid transparent;
+  @include button-size($btn-padding-y, $btn-padding-x, $btn-font-size, $btn-line-height, $btn-border-radius);
+  @include transition($btn-transition);
+  
+  @include hover() {
+    text-decoration: none;
+  }
+  
+  &:focus,
+  &.focus {
+    outline: 0;
+    box-shadow: $btn-focus-box-shadow;
+  }
+  
+  // Désactivé et état de chargement
+  &.disabled,
+  &:disabled {
+    opacity: $btn-disabled-opacity;
+    @include box-shadow(none);
+  }
+  
+  // Boutons avec icônes
+  .btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: $btn-icon-size;
+    height: $btn-icon-size;
+    margin-right: $btn-icon-spacer;
+    
+    i {
+      font-size: $btn-icon-font-size;
+      line-height: 1;
+    }
+    
+    // Icône seule
+    &:only-child {
+      margin: 0;
+    }
+  }
+  
+  // Boutons avec icône à droite
+  .btn-icon-right {
+    margin-right: 0;
+    margin-left: $btn-icon-spacer;
+  }
+  
+  // Boutons avec badge
+  .badge {
+    position: relative;
+    top: -1px;
+  }
+  
+  // Boutons avec spinner de chargement
+  .spinner-border,
+  .spinner-grow {
+    margin-right: $spinner-btn-spacer-x;
+  }
+  
+  // Boutons avec états de chargement
+  &.btn-loading {
+    position: relative;
+    color: transparent !important;
+    pointer-events: none;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      width: $spinner-width;
+      height: $spinner-height;
+      border: $spinner-border-width solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spinner-border $spinner-animation-speed linear infinite;
+    }
+    
+    &.btn-sm::after {
+      width: $spinner-width-sm;
+      height: $spinner-height-sm;
+      border-width: $spinner-border-width-sm;
+    }
+    
+    &.btn-lg::after {
+      width: $spinner-width-lg;
+      height: $spinner-height-lg;
+      border-width: $spinner-border-width-lg;
+    }
+  }
+  
+  // Variations de couleurs
+  @each $color, $value in $theme-colors {
+    &-#{$color} {
+      @include button-variant($value, $value);
+    }
+  }
+  
+  // Boutons outline
+  @each $color, $value in $theme-colors {
+    &-outline-#{$color} {
+      @include button-outline-variant($value);
+    }
+  }
+  
+  // Boutons de taille personnalisée
+  &-lg {
+    @include button-size($btn-padding-y-lg, $btn-padding-x-lg, $btn-font-size-lg, $btn-line-height-lg, $btn-border-radius-lg);
+  }
+  
+  &-sm {
+    @include button-size($btn-padding-y-sm, $btn-padding-x-sm, $btn-font-size-sm, $btn-line-height-sm, $btn-border-radius-sm);
+  }
+  
+  // Boutons avec largeur complète
+  &-block {
+    display: block;
+    width: 100%;
+    
+    + .btn-block {
+      margin-top: $btn-block-spacing-y;
+    }
+  }
+  
+  // Boutons avec icônes
+  &-icon {
+    width: $btn-icon-size;
+    height: $btn-icon-size;
+    padding: 0;
+    line-height: 1;
+    
+    i {
+      font-size: $btn-icon-font-size;
+      line-height: 1;
+    }
+    
+    &.btn-lg {
+      width: $btn-icon-size-lg;
+      height: $btn-icon-size-lg;
+      
+      i {
+        font-size: $btn-icon-font-size-lg;
+      }
+    }
+    
+    &.btn-sm {
+      width: $btn-icon-size-sm;
+      height: $btn-icon-size-sm;
+      
+      i {
+        font-size: $btn-icon-font-size-sm;
+      }
+    }
+  }
+  
+  // Boutons avec ombre
+  &-shadow {
+    @include box-shadow($btn-box-shadow);
+    
+    &:hover {
+      @include box-shadow($btn-hover-box-shadow);
+    }
+    
+    &:active,
+    &.active {
+      @include box-shadow($btn-active-box-shadow);
+    }
+  }
+  
+  // Boutons avec bordure
+  &-outline {
+    background-color: transparent;
+    
+    @each $color, $value in $theme-colors {
+      &-#{$color} {
+        @include button-outline-variant($value);
+      }
+    }
+  }
+  
+  // Boutons avec fond transparent
+  &-text {
+    background-color: transparent;
+    border-color: transparent;
+    
+    @each $color, $value in $theme-colors {
+      &-#{$color} {
+        color: $value;
+        
+        @include hover() {
+          color: darken($value, 10%);
+          text-decoration: $link-hover-decoration;
+          background-color: rgba($value, 0.1);
+        }
+        
+        &:focus,
+        &.focus {
+          box-shadow: 0 0 0 $btn-focus-width rgba($value, 0.25);
+        }
+        
+        &.disabled,
+        &:disabled {
+          color: $value;
+          background-color: transparent;
+          opacity: 0.65;
+        }
+      }
+    }
+  }
+  
+  // Boutons avec effet de soulignement
+  &-underline {
+    position: relative;
+    padding-left: 0;
+    padding-right: 0;
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 2px;
+      background-color: currentColor;
+      transform: scaleX(0);
+      transform-origin: right;
+      transition: transform 0.3s ease;
+    }
+    
+    @include hover() {
+      &::after {
+        transform: scaleX(1);
+        transform-origin: left;
+      }
+    }
+    
+    &:focus,
+    &.focus {
+      box-shadow: none;
+      
+      &::after {
+        transform: scaleX(1);
+        transform-origin: left;
+      }
+    }
+    
+    &.active,
+    &:active {
+      background-color: transparent;
+      
+      &::after {
+        transform: scaleX(1);
+        transform-origin: left;
+      }
+    }
+    
+    &.disabled,
+    &:disabled {
+      background-color: transparent;
+      
+      &::after {
+        display: none;
+      }
+    }
+  }
+}

@@ -1,31 +1,41 @@
 <script setup>
-import { Head } from '@inertiajs/vue3';
+import { ref, onMounted } from 'vue';
+import { useHead } from '@vueuse/head';
 
-defineProps({
-    title: String,
+const props = defineProps({
+    title: {
+        type: String,
+        default: 'Connexion'
+    },
 });
 
-const currentYear = new Date().getFullYear();
+const currentYear = ref(new Date().getFullYear());
+
+// Mise à jour du titre de la page
+useHead({
+    title: props.title,
+    meta: [
+        { name: 'description', content: 'Page d\'authentification Allo Tawjih' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1.0' },
+    ]
+});
 </script>
 
 <template>
     <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-50">
-        <Head :title="title" />
-
         <!-- Logo et titre -->
         <div class="w-full sm:max-w-md px-6 py-4">
             <div class="flex justify-center">
-                <Link href="/">
+                <router-link to="/" class="flex flex-col items-center">
                     <img 
                         src="/images/logo.png" 
                         alt="Allo Tawjih Logo" 
-                        class="h-16 w-auto"
-                        v-if="$page.props.app.logo"
+                        class="h-16 w-auto mb-2"
                     />
-                    <span v-else class="text-2xl font-bold text-indigo-600">
+                    <span class="text-2xl font-bold text-indigo-600">
                         Allo Tawjih
                     </span>
-                </Link>
+                </router-link>
             </div>
         </div>
 

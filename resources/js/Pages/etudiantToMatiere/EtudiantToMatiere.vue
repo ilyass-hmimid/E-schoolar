@@ -245,7 +245,7 @@ import * as yup from 'yup';
 import {useToastr} from '../../toastr.js';
 import $ from 'jquery';
 import 'datatables.net';
-import { useRoute } from 'vue-router';
+import { usePage } from '@inertiajs/vue3';
 
 const toastr = useToastr();
 const users = ref([]);

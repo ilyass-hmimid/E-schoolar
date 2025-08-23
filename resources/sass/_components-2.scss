@@ -1,0 +1,348 @@
+// ================================================
+// ==  Composants SCSS - Partie 2                ==
+// ================================================
+
+// 5. Badges de statut
+// ===============================================
+.status-badge {
+  display: inline-block;
+  width: $status-badge-size;
+  height: $status-badge-size;
+  border-radius: 50%;
+  border: $status-badge-border-width solid $white;
+  
+  @each $status, $color in $status-colors {
+    &-#{$status} {
+      background-color: $color;
+    }
+  }
+  
+  // Tailles
+  &-sm {
+    width: $status-badge-size-sm;
+    height: $status-badge-size-sm;
+  }
+  
+  &-lg {
+    width: $status-badge-size-lg;
+    height: $status-badge-size-lg;
+  }
+  
+  // Avec bordure
+  &-bordered {
+    border-width: $status-badge-border-width;
+  }
+  
+  // Avec animation de pulsation
+  &-pulse {
+    position: relative;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background-color: inherit;
+      animation: pulse 1.5s infinite;
+      opacity: 0.7;
+      z-index: -1;
+    }
+  }
+}
+
+// 6. Avatars
+// ===============================================
+.avatar {
+  @include avatar($avatar-size);
+  
+  // Tailles
+  &-sm {
+    @include avatar($avatar-size-sm);
+  }
+  
+  &-lg {
+    @include avatar($avatar-size-lg);
+  }
+  
+  &-xl {
+    @include avatar($avatar-size-xl);
+  }
+  
+  // Formes
+  &-square {
+    border-radius: $avatar-border-radius;
+  }
+  
+  &-rounded {
+    border-radius: $avatar-rounded-border-radius;
+  }
+  
+  // Avec bordure
+  &-bordered {
+    border: $avatar-border-width solid $avatar-border-color;
+  }
+  
+  // Avec statut
+  &-status {
+    position: relative;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: $avatar-status-size;
+      height: $avatar-status-size;
+      border-radius: 50%;
+      border: $avatar-status-border-width solid $white;
+      background-color: $gray-400;
+    }
+    
+    @each $status, $color in $status-colors {
+      &-#{$status}::after {
+        background-color: $color;
+      }
+    }
+    
+    // Tailles de statut
+    &-sm::after {
+      width: $avatar-status-size-sm;
+      height: $avatar-status-size-sm;
+    }
+    
+    &-lg::after {
+      width: $avatar-status-size-lg;
+      height: $avatar-status-size-lg;
+    }
+  }
+  
+  // Groupe d'avatars
+  &-group {
+    display: flex;
+    flex-wrap: wrap;
+    padding-left: 0;
+    margin-bottom: 0;
+    list-style: none;
+    
+    .avatar {
+      position: relative;
+      z-index: 2;
+      border: $avatar-group-border-width solid $avatar-group-border-color;
+      margin-left: -$avatar-group-item-spacing;
+      transition: $avatar-group-transition;
+      
+      &:hover {
+        z-index: 3;
+      }
+      
+      img {
+        border: $avatar-img-border-width solid $avatar-img-border-color;
+      }
+    }
+    
+    // Tailles
+    &-sm .avatar {
+      margin-left: -$avatar-group-item-spacing-sm;
+    }
+    
+    &-lg .avatar {
+      margin-left: -$avatar-group-item-spacing-lg;
+    }
+  }
+}
+
+// 7. Cartes de statistiques
+// ===============================================
+.stats-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  word-wrap: break-word;
+  background-color: $stats-card-bg;
+  background-clip: border-box;
+  border: $stats-card-border-width solid $stats-card-border-color;
+  @include border-radius($stats-card-border-radius);
+  @include box-shadow($stats-card-box-shadow);
+  transition: $stats-card-transition;
+  
+  &:hover {
+    @if $enable-shadows {
+      @include box-shadow($stats-card-hover-box-shadow);
+    }
+    
+    .stats-card-icon {
+      transform: translateY(-3px);
+      @include box-shadow($stats-card-icon-hover-box-shadow);
+    }
+  }
+  
+  &-body {
+    flex: 1 1 auto;
+    padding: $stats-card-spacer-y $stats-card-spacer-x;
+  }
+  
+  &-title {
+    margin-bottom: $stats-card-title-spacer-y;
+    color: $stats-card-title-color;
+    font-size: $stats-card-title-font-size;
+    font-weight: $stats-card-title-font-weight;
+    text-transform: $stats-card-title-text-transform;
+    letter-spacing: $stats-card-title-letter-spacing;
+  }
+  
+  &-value {
+    margin-bottom: $stats-card-value-spacer-y;
+    color: $stats-card-value-color;
+    font-size: $stats-card-value-font-size;
+    font-weight: $stats-card-value-font-weight;
+    line-height: $stats-card-value-line-height;
+    
+    small {
+      font-size: $stats-card-value-small-font-size;
+      font-weight: $stats-card-value-small-font-weight;
+      opacity: $stats-card-value-small-opacity;
+    }
+  }
+  
+  &-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: $stats-card-icon-size;
+    height: $stats-card-icon-size;
+    font-size: $stats-card-icon-font-size;
+    color: $stats-card-icon-color;
+    background-color: $stats-card-icon-bg;
+    border-radius: $stats-card-icon-border-radius;
+    margin-bottom: $stats-card-icon-spacer-y;
+    transition: $stats-card-icon-transition;
+    @include box-shadow($stats-card-icon-box-shadow);
+    
+    i, svg {
+      font-size: $stats-card-icon-inner-size;
+    }
+    
+    // Tailles d'icônes
+    &-sm {
+      width: $stats-card-icon-size-sm;
+      height: $stats-card-icon-size-sm;
+      font-size: $stats-card-icon-font-size-sm;
+      
+      i, svg {
+        font-size: $stats-card-icon-inner-size-sm;
+      }
+    }
+    
+    &-lg {
+      width: $stats-card-icon-size-lg;
+      height: $stats-card-icon-size-lg;
+      font-size: $stats-card-icon-font-size-lg;
+      
+      i, svg {
+        font-size: $stats-card-icon-inner-size-lg;
+      }
+    }
+  }
+  
+  &-footer {
+    padding: $stats-card-footer-spacer-y $stats-card-spacer-x;
+    background-color: $stats-card-footer-bg;
+    border-top: $stats-card-footer-border-width solid $stats-card-footer-border-color;
+    @include border-bottom-radius($stats-card-border-radius);
+    
+    .progress {
+      height: $stats-card-progress-height;
+      background-color: $stats-card-progress-bg;
+      @include border-radius($stats-card-progress-border-radius);
+      
+      .progress-bar {
+        @include border-radius($stats-card-progress-border-radius);
+      }
+    }
+  }
+  
+  // Variations de couleurs
+  @each $color, $value in $theme-colors {
+    &-#{$color} {
+      @include stats-card-variant(
+        theme-color-level($color, $stats-card-bg-level),
+        theme-color-level($color, $stats-card-border-level),
+        theme-color-level($color, $stats-card-color-level)
+      );
+      
+      .stats-card-icon {
+        color: $value;
+        background-color: rgba($value, 0.1);
+      }
+      
+      .stats-card-value {
+        color: $value;
+      }
+    }
+  }
+  
+  // Style avec bordure à gauche
+  &-border-left {
+    border-left-width: $stats-card-border-left-width;
+    border-left-style: solid;
+    
+    @each $color, $value in $theme-colors {
+      &-#{$color} {
+        border-left-color: $value;
+      }
+    }
+  }
+  
+  // Style avec icône flottante
+  &-floating-icon {
+    position: relative;
+    overflow: hidden;
+    padding-top: $stats-card-floating-icon-padding-y;
+    
+    .stats-card-icon {
+      position: absolute;
+      top: $stats-card-floating-icon-top;
+      right: $stats-card-floating-icon-right;
+      opacity: $stats-card-floating-icon-opacity;
+      font-size: $stats-card-floating-icon-size;
+      z-index: 1;
+      
+      i, svg {
+        font-size: $stats-card-floating-icon-inner-size;
+      }
+    }
+    
+    .stats-card-body {
+      position: relative;
+      z-index: 2;
+    }
+  }
+  
+  // Style avec dégradé
+  &-gradient {
+    color: $white;
+    background: linear-gradient(45deg, $primary, $secondary);
+    border: none;
+    
+    .stats-card-title,
+    .stats-card-value,
+    .stats-card-icon {
+      color: $white;
+    }
+    
+    .stats-card-icon {
+      background-color: rgba($white, 0.2);
+    }
+    
+    // Variations de couleurs
+    @each $color, $value in $theme-colors {
+      &-#{$color} {
+        background: linear-gradient(45deg, $value, darken($value, 15%));
+      }
+    }
+  }
+}

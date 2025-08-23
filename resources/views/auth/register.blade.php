@@ -8,7 +8,7 @@
                     <div class="flex justify-center mb-4">
                         <a href="{{ route('dashboard') }}" class="flex items-center space-x-3">
                             <x-application-logo class="h-10 w-auto text-white" />
-                            <span class="text-2xl font-bold text-white">{{ config('app.name') }}</span>
+                            <span class="text-2xl font-bold text-white">S'inscrire </span>
                         </a>
                     </div>
                     <p class="text-primary-100 text-sm">Rejoignez notre communauté éducative</p>
@@ -26,9 +26,6 @@
                                 Nom complet
                             </label>
                             <div class="input-group">
-                                <div class="input-icon">
-                                    <i class="fas fa-user"></i>
-                                </div>
                                 <input 
                                     id="name" 
                                     type="text" 
@@ -52,9 +49,6 @@
                                 Adresse email
                             </label>
                             <div class="input-group">
-                                <div class="input-icon">
-                                    <i class="fas fa-envelope"></i>
-                                </div>
                                 <input 
                                     id="email" 
                                     type="email" 
@@ -77,9 +71,6 @@
                                 Mot de passe
                             </label>
                             <div class="input-group">
-                                <div class="input-icon">
-                                    <i class="fas fa-lock"></i>
-                                </div>
                                 <input 
                                     id="password" 
                                     type="password" 
@@ -104,9 +95,6 @@
                                 Confirmer le mot de passe
                             </label>
                             <div class="input-group">
-                                <div class="input-icon">
-                                    <i class="fas fa-lock"></i>
-                                </div>
                                 <input 
                                     id="password_confirmation" 
                                     type="password" 

@@ -18,8 +18,16 @@
         <!-- Font Awesome -->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+        
         <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @routes
+        @vite([
+            'resources/sass/app.scss',
+            'resources/js/app.js',
+            'resources/js/bootstrap.js'
+        ])
         
         <style>
             /* Animations */
@@ -34,35 +42,165 @@
             
             /* Styles globaux */
             body {
-                font-family: 'Inter', sans-serif;
-                @apply bg-gradient-to-br from-blue-50 to-gray-50 text-gray-800;
+                font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+                background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%);
+                color: #1e293b;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
             }
             
             h1, h2, h3, h4, h5, h6 {
                 font-family: 'Poppins', sans-serif;
-                @apply font-semibold;
+                font-weight: 600;
+                color: #0f172a;
             }
             
-            /* Styles des boutons et champs de formulaire */
+            /* Styles des boutons */
             .btn-primary {
-                @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                background-color: #0d6efd;
+                color: white;
+                font-weight: 500;
+                padding: 0.625rem 1.5rem;
+                border-radius: 0.5rem;
+                border: 1px solid transparent;
+                transition: all 0.2s ease-in-out;
+                text-decoration: none;
             }
             
+            .btn-primary:hover {
+                background-color: #0b5ed7;
+                transform: translateY(-1px);
+            }
+            
+            /* Styles des champs de formulaire */
             .input-field {
-                @apply block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200;
+                display: block;
+                width: 100%;
+                padding: 0.625rem 2.5rem 0.625rem 2.5rem;
+                font-size: 1rem;
+                font-weight: 400;
+                line-height: 1.5;
+                color: #212529;
+                background-color: #fff;
+                background-clip: padding-box;
+                border: 1px solid #ced4da;
+                border-radius: 0.5rem;
+                transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            }
+            
+            .input-field:focus {
+                border-color: #86b7fe;
+                outline: 0;
+                box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
             }
             
             .input-group {
-                @apply relative rounded-md shadow-sm;
+                position: relative;
+                border-radius: 0.375rem;
+                box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+                margin-bottom: 1rem;
             }
             
             .input-icon {
-                @apply absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400;
+                position: absolute;
+                top: 50%;
+                left: 1rem;
+                transform: translateY(-50%);
+                color: #6c757d;
+                pointer-events: none;
+                z-index: 10;
+            }
+            
+            /* Layout */
+            #app {
+                display: flex;
+                flex-direction: column;
+                min-height: 100vh;
+                width: 100%;
+            }
+            
+            .auth-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                flex: 1;
+                padding: 2rem 1rem;
+            }
+            
+            .auth-card {
+                width: 100%;
+                max-width: 28rem;
+                background: white;
+                border-radius: 1rem;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                padding: 2.5rem;
+                margin: 1rem 0;
+            }
+            
+            .auth-logo {
+                text-align: center;
+                margin-bottom: 2rem;
+            }
+            
+            .auth-logo img {
+                height: 3.5rem;
+                width: auto;
+            }
+            
+            .auth-title {
+                text-align: center;
+                margin-bottom: 2rem;
+                color: #1e293b;
+            }
+            
+            .auth-footer {
+                text-align: center;
+                margin-top: 1.5rem;
+                color: #64748b;
+                font-size: 0.875rem;
+            }
+            
+            .auth-footer a {
+                color: #0d6efd;
+                text-decoration: none;
+                font-weight: 500;
+            }
+            
+            .auth-footer a:hover {
+                text-decoration: underline;
             }
         </style>
     </head>
-    <body class="antialiased">
-        {{ $slot }}
+    <body>
+        <div id="app" class="fade-in">
+            <div class="auth-container">
+                <div class="auth-card">
+                    <div class="auth-logo">
+                        <a href="{{ route('dashboard') }}">
+                            <x-application-logo style="height: 3.5rem; width: auto;" />
+                        </a>
+                    </div>
+                    
+                    <h1 class="auth-title">
+                        @yield('title', 'Bienvenue')
+                    </h1>
+                    
+                    {{ $slot }}
+                    
+                    @hasSection('auth-footer')
+                        <div class="auth-footer">
+                            @yield('auth-footer')
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
         
         <script>
             // Ajout de la classe d'animation après le chargement de la page
@@ -73,5 +211,7 @@
                 });
             });
         </script>
+        
+        @stack('scripts')
     </body>
 </html>

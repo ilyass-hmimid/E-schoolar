@@ -1,0 +1,655 @@
+// Fonction pour obtenir la couleur de contraste en fonction de la luminosité de l'arrière-plan
+@function color-contrast($background, $dark: $dark, $light: $light, $threshold: 128) {
+  // Calcul de la luminosité relative (formule de luminosité perceptive)
+  $r: red($background);
+  $g: green($background);
+  $b: blue($background);
+  $yiq: (($r * 299) + ($g * 587) + ($b * 114)) / 1000;
+  
+  @if $yiq >= $threshold {
+    @return $dark; // Retourne la couleur foncée pour les arrière-plans clairs
+  } @else {
+    @return $light; // Retourne la couleur claire pour les arrière-plans foncés
+  }
+}
+
+// Fonction pour obtenir une couleur plus claire
+@function tint-color($color, $weight) {
+  @return mix(white, $color, $weight);
+}
+
+// Fonction pour obtenir une couleur plus foncée
+@function shade-color($color, $weight) {
+  @return mix(black, $color, $weight);
+}
+
+// Fonction pour obtenir la valeur d'une couleur du thème
+@function theme-color($key: "primary") {
+  @return map-get($theme-colors, $key);
+}
+
+// Fonction pour obtenir la valeur d'une couleur de gris
+@function gray($key: "100") {
+  @return map-get($grays, $key);
+}
+
+// Fonction pour convertir une valeur en rem
+@function rem($px, $base: 16px) {
+  @return ($px / $base) * 1rem;
+}
+
+// Fonction pour convertir une valeur en em
+@function em($px, $context: 16px) {
+  @return ($px / $context) * 1em;
+}
+
+// Fonction pour créer un dégradé
+@function gradient($start-color, $end-color, $angle: 135deg) {
+  @return linear-gradient($angle, $start-color 0%, $end-color 100%);
+}
+
+// Fonction pour générer des ombres portées
+@function box-shadow($depth) {
+  $primary-offset: nth(1.5 3 10 14 19, $depth) * 1px;
+  $blur: nth(1.5 3 10 14 19, $depth) * 4px;
+  $color: rgba(black, nth(.12 .16 .19 .25 .30, $depth));
+  
+  @return 0 $primary-offset $blur $color;
+}
+
+// Fonction pour obtenir la valeur d'un breakpoint
+@function breakpoint-min($name, $breakpoints: $grid-breakpoints) {
+  $min: map-get($breakpoints, $name);
+  @return if($min != 0, $min, null);
+}
+
+// Fonction pour générer des media queries
+@function breakpoint-infix($name, $breakpoints: $grid-breakpoints) {
+  @return if(breakpoint-min($name, $breakpoints) == null, "", "-#{$name}");
+}
+
+// Fonction pour générer des classes utilitaires
+@function str-replace($string, $search, $replace: "") {
+  $index: str-index($string, $search);
+  
+  @if $index {
+    @return str-slice($string, 1, $index - 1) + $replace + str-replace(str-slice($string, $index + str-length($search)), $search, $replace);
+  }
+  
+  @return $string;
+}
+
+// Fonction pour générer des classes de couleur
+@function color-yiq($color) {
+  $r: red($color);
+  $g: green($color);
+  $b: blue($color);
+
+  $yiq: (($r * 299) + ($g * 587) + ($b * 114)) / 1000;
+
+  @if ($yiq >= 150) {
+    @return #111;
+  } @else {
+    @return #fff;
+  }
+}
+
+// Fonction pour générer des classes d'espacement
+@function spacer($key: 1) {
+  @return map-get($spacers, $key);
+}
+
+// Fonction pour générer des classes de taille de police
+@function font-size($key) {
+  @return map-get($font-sizes, $key);
+}
+
+// Fonction pour générer des classes de poids de police
+@function font-weight($key) {
+  @return map-get($font-weights, $key);
+}
+
+// Fonction pour générer des classes de hauteur de ligne
+@function line-height($key) {
+  @return map-get($line-heights, $key);
+}
+
+// Fonction pour générer des classes de bordure
+@function border($key) {
+  @return map-get($borders, $key);
+}
+
+// Fonction pour générer des classes d'opacité
+@function opacity($key) {
+  @return map-get($opacities, $key);
+}
+
+// Fonction pour générer des classes de z-index
+@function z($key) {
+  @return map-get($zindex, $key);
+}
+
+// Fonction pour générer des classes de transition
+@function transition($key) {
+  @return map-get($transitions, $key);
+}
+
+// Fonction pour générer des classes d'ombre
+@function shadow($key) {
+  @return map-get($shadows, $key);
+}
+
+// Fonction pour générer des classes d'arrondi
+@function radius($key) {
+  @return map-get($border-radius, $key);
+}
+
+// Fonction pour générer des classes de largeur
+@function width($key) {
+  @return map-get($widths, $key);
+}
+
+// Fonction pour générer des classes de hauteur
+@function height($key) {
+  @return map-get($heights, $key);
+}
+
+// Fonction pour générer des classes de position
+@function position($key) {
+  @return map-get($positions, $key);
+}
+
+// Fonction pour générer des classes de display
+@function display($key) {
+  @return map-get($displays, $key);
+}
+
+// Fonction pour générer des classes de flex
+@function flex($key) {
+  @return map-get($flex, $key);
+}
+
+// Fonction pour générer des classes d'alignement
+@function align($key) {
+  @return map-get($alignments, $key);
+}
+
+// Fonction pour générer des classes de justification
+@function justify($key) {
+  @return map-get($justifications, $key);
+}
+
+// Fonction pour générer des classes de remplissage
+@function padding($key) {
+  @return map-get($paddings, $key);
+}
+
+// Fonction pour générer des classes de marge
+@function margin($key) {
+  @return map-get($margins, $key);
+}
+
+// Fonction pour générer des classes de texte
+@function text($key) {
+  @return map-get($texts, $key);
+}
+
+// Fonction pour générer des classes de visibilité
+@function visibility($key) {
+  @return map-get($visibilities, $key);
+}
+
+// Fonction pour générer des classes de curseur
+@function cursor($key) {
+  @return map-get($cursors, $key);
+}
+
+// Fonction pour générer des classes de défilement
+@function overflow($key) {
+  @return map-get($overflows, $key);
+}
+
+// Fonction pour générer des classes de position
+@function position($key) {
+  @return map-get($positions, $key);
+}
+
+// Fonction pour générer des classes de flottement
+@function float($key) {
+  @return map-get($floats, $key);
+}
+
+// Fonction pour générer des classes de nettoyage de flottement
+@function clearfix() {
+  @return "";
+}
+
+// Fonction pour générer des classes de centrage
+@function center($key) {
+  @return map-get($centers, $key);
+}
+
+// Fonction pour générer des classes de dimension
+@function dimension($key) {
+  @return map-get($dimensions, $key);
+}
+
+// Fonction pour générer des classes de visibilité
+@function visible($key) {
+  @return map-get($visibles, $key);
+}
+
+// Fonction pour générer des classes de débordement
+@function overflow($key) {
+  @return map-get($overflows, $key);
+}
+
+// Fonction pour générer des classes d'interaction
+@function interaction($key) {
+  @return map-get($interactions, $key);
+}
+
+// Fonction pour générer des classes d'animation
+@function animation($key) {
+  @return map-get($animations, $key);
+}
+
+// Fonction pour générer des classes de transformation
+@function transform($key) {
+  @return map-get($transforms, $key);
+}
+
+// Fonction pour générer des classes de transition
+@function transition($key) {
+  @return map-get($transitions, $key);
+}
+
+// Fonction pour générer des classes d'opacité
+@function opacity($key) {
+  @return map-get($opacities, $key);
+}
+
+// Fonction pour générer des classes de z-index
+@function z($key) {
+  @return map-get($zindex, $key);
+}
+
+// Fonction pour générer des classes de boîte d'ombre
+@function box-shadow($key) {
+  @return map-get($box-shadows, $key);
+}
+
+// Fonction pour générer des classes de texte
+@function text($key) {
+  @return map-get($texts, $key);
+}
+
+// Fonction pour générer des classes de police
+@function font($key) {
+  @return map-get($fonts, $key);
+}
+
+// Fonction pour générer des classes de taille de police
+@function font-size($key) {
+  @return map-get($font-sizes, $key);
+}
+
+// Fonction pour générer des classes de poids de police
+@function font-weight($key) {
+  @return map-get($font-weights, $key);
+}
+
+// Fonction pour générer des classes de hauteur de ligne
+@function line-height($key) {
+  @return map-get($line-heights, $key);
+}
+
+// Fonction pour générer des classes de lettrage
+@function letter-spacing($key) {
+  @return map-get($letter-spacings, $key);
+}
+
+// Fonction pour générer des classes de décoration de texte
+@function text-decoration($key) {
+  @return map-get($text-decorations, $key);
+}
+
+// Fonction pour générer des classes de transformation de texte
+@function text-transform($key) {
+  @return map-get($text-transforms, $key);
+}
+
+// Fonction pour générer des classes d'alignement de texte
+@function text-align($key) {
+  @return map-get($text-aligns, $key);
+}
+
+// Fonction pour générer des classes de couleur de texte
+@function text-color($key) {
+  @return map-get($text-colors, $key);
+}
+
+// Fonction pour générer des classes de couleur d'arrière-plan
+@function bg-color($key) {
+  @return map-get($bg-colors, $key);
+}
+
+// Fonction pour générer des classes de bordure
+@function border($key) {
+  @return map-get($borders, $key);
+}
+
+// Fonction pour générer des classes de rayon de bordure
+@function border-radius($key) {
+  @return map-get($border-radius, $key);
+}
+
+// Fonction pour générer des classes de largeur
+@function width($key) {
+  @return map-get($widths, $key);
+}
+
+// Fonction pour générer des classes de hauteur
+@function height($key) {
+  @return map-get($heights, $key);
+}
+
+// Fonction pour générer des classes de taille maximale
+@function max-width($key) {
+  @return map-get($max-widths, $key);
+}
+
+// Fonction pour générer des classes de hauteur maximale
+@function max-height($key) {
+  @return map-get($max-heights, $key);
+}
+
+// Fonction pour générer des classes de taille minimale
+@function min-width($key) {
+  @return map-get($min-widths, $key);
+}
+
+// Fonction pour générer des classes de hauteur minimale
+@function min-height($key) {
+  @return map-get($min-heights, $key);
+}
+
+// Fonction pour générer des classes de remplissage
+@function padding($key) {
+  @return map-get($paddings, $key);
+}
+
+// Fonction pour générer des classes de marge
+@function margin($key) {
+  @return map-get($margins, $key);
+}
+
+// Fonction pour générer des classes de position
+@function position($key) {
+  @return map-get($positions, $key);
+}
+
+// Fonction pour générer des classes de z-index
+@function z-index($key) {
+  @return map-get($z-indexes, $key);
+}
+
+// Fonction pour générer des classes de curseur
+@function cursor($key) {
+  @return map-get($cursors, $key);
+}
+
+// Fonction pour générer des classes de pointeur d'événements
+@function pointer-events($key) {
+  @return map-get($pointer-events, $key);
+}
+
+// Fonction pour générer des classes de débordement
+@function overflow($key) {
+  @return map-get($overflows, $key);
+}
+
+// Fonction pour générer des classes de débordement en X
+@function overflow-x($key) {
+  @return map-get($overflow-x, $key);
+}
+
+// Fonction pour générer des classes de débordement en Y
+@function overflow-y($key) {
+  @return map-get($overflow-y, $key);
+}
+
+// Fonction pour générer des classes de débordement de texte
+@function text-overflow($key) {
+  @return map-get($text-overflows, $key);
+}
+
+// Fonction pour générer des classes de blanc
+@function white-space($key) {
+  @return map-get($white-spaces, $key);
+}
+
+// Fonction pour générer des classes de césure de mot
+@function word-break($key) {
+  @return map-get($word-breaks, $key);
+}
+
+// Fonction pour générer des classes de césure de texte
+@function word-wrap($key) {
+  @return map-get($word-wraps, $key);
+}
+
+// Fonction pour générer des classes de coupure de mot
+@function overflow-wrap($key) {
+  @return map-get($overflow-wraps, $key);
+}
+
+// Fonction pour générer des classes de direction de texte
+@function direction($key) {
+  @return map-get($directions, $key);
+}
+
+// Fonction pour générer des classes d'écriture
+@function writing-mode($key) {
+  @return map-get($writing-modes, $key);
+}
+
+// Fonction pour générer des classes d'orientation de texte
+@function text-orientation($key) {
+  @return map-get($text-orientations, $key);
+}
+
+// Fonction pour générer des classes de style de liste
+@function list-style($key) {
+  @return map-get($list-styles, $key);
+}
+
+// Fonction pour générer des classes de style de liste à puces
+@function list-style-type($key) {
+  @return map-get($list-style-types, $key);
+}
+
+// Fonction pour générer des classes de position de liste à puces
+@function list-style-position($key) {
+  @return map-get($list-style-positions, $key);
+}
+
+// Fonction pour générer des classes d'image de liste à puces
+@function list-style-image($key) {
+  @return map-get($list-style-images, $key);
+}
+
+// Fonction pour générer des classes de style de tableau
+@function table-layout($key) {
+  @return map-get($table-layouts, $key);
+}
+
+// Fonction pour générer des classes de fusion des bordures de tableau
+@function border-collapse($key) {
+  @return map-get($border-collapses, $key);
+}
+
+// Fonction pour générer des classes d'espacement des cellules de tableau
+@function border-spacing($key) {
+  @return map-get($border-spacings, $key);
+}
+
+// Fonction pour générer des classes de position de légende de tableau
+@function caption-side($key) {
+  @return map-get($caption-sides, $key);
+}
+
+// Fonction pour générer des classes de style de contour
+@function outline($key) {
+  @return map-get($outlines, $key);
+}
+
+// Fonction pour générer des classes de style de contour
+@function outline-width($key) {
+  @return map-get($outline-widths, $key);
+}
+
+// Fonction pour générer des classes de style de contour
+@function outline-style($key) {
+  @return map-get($outline-styles, $key);
+}
+
+// Fonction pour générer des classes de couleur de contour
+@function outline-color($key) {
+  @return map-get($outline-colors, $key);
+}
+
+// Fonction pour générer des classes de décalage de contour
+@function outline-offset($key) {
+  @return map-get($outline-offsets, $key);
+}
+
+// Fonction pour générer des classes de style de résolution
+@function resize($key) {
+  @return map-get($resizes, $key);
+}
+
+// Fonction pour générer des classes de style de curseur de redimensionnement
+@function cursor($key) {
+  @return map-get($cursors, $key);
+}
+
+// Fonction pour générer des classes de style de sélection utilisateur
+@function user-select($key) {
+  @return map-get($user-selects, $key);
+}
+
+// Fonction pour générer des classes de style de pointeur
+@function pointer-events($key) {
+  @return map-get($pointer-events, $key);
+}
+
+// Fonction pour générer des classes de style de remplissage de contenu
+@function content($key) {
+  @return map-get($contents, $key);
+}
+
+// Fonction pour générer des classes de style de contenu alternatif
+@function quotes($key) {
+  @return map-get($quotes, $key);
+}
+
+// Fonction pour générer des classes de style de compteur
+@function counter-reset($key) {
+  @return map-get($counter-resets, $key);
+}
+
+// Fonction pour générer des classes de style d'incrémentation de compteur
+@function counter-increment($key) {
+  @return map-get($counter-increments, $key);
+}
+
+// Fonction pour générer des classes de style de contenu de compteur
+@function content($key) {
+  @return map-get($contents, $key);
+}
+
+// Fonction pour générer des classes de style de contenu alternatif
+@function quotes($key) {
+  @return map-get($quotes, $key);
+}
+
+// Fonction pour générer des classes de style de contenu alternatif
+@function content($key) {
+  @return map-get($contents, $key);
+}
+
+// Fonction pour générer des classes de style de contenu alternatif
+@function quotes($key) {
+  @return map-get($quotes, $key);
+}
+
+// Fonction pour générer des classes de style de contenu alternatif
+@function content($key) {
+  @return map-get($contents, $key);
+}
+
+// Fonction pour générer des classes de style de contenu alternatif
+@function quotes($key) {
+  @return map-get($quotes, $key);
+}
+
+// Fonction pour générer des classes de style de contenu alternatif
+@function content($key) {
+  @return map-get($contents, $key);
+}
+
+// Fonction pour générer des classes de style de contenu alternatif
+@function quotes($key) {
+  @return map-get($quotes, $key);
+}
+
+// Fonction pour générer des classes de style de contenu alternatif
+@function content($key) {
+  @return map-get($contents, $key);
+}
+
+// Fonction pour générer des classes de style de contenu alternatif
+@function quotes($key) {
+  @return map-get($quotes, $key);
+}
+
+// Fonction pour générer des classes de style de contenu alternatif
+@function content($key) {
+  @return map-get($contents, $key);
+}
+
+// Fonction pour générer des classes de style de contenu alternatif
+@function quotes($key) {
+  @return map-get($quotes, $key);
+}
+
+// Fonction pour générer des classes de style de contenu alternatif
+@function content($key) {
+  @return map-get($contents, $key);
+}
+
+// Fonction pour générer des classes de style de contenu alternatif
+@function quotes($key) {
+  @return map-get($quotes, $key);
+}
+
+// Fonction pour générer des classes de style de contenu alternatif
+@function content($key) {
+  @return map-get($contents, $key);
+}
+
+// Fonction pour générer des classes de style de contenu alternatif
+@function quotes($key) {
+  @return map-get($quotes, $key);
+}
+
+// Fonction pour générer des classes de style de contenu alternatif
+@function content($key) {
+  @return map-get($contents, $key);
+}
+
+// Fonction pour générer des classes de style de contenu alternatif
+@function quotes($key) {
+  @return map-get($quotes, $key);
+}

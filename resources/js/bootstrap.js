@@ -5,14 +5,52 @@
  */
 
 import axios from 'axios';
-window.axios = axios;
 
-import jquery from 'jquery';
-window.$ = window.jQuery = jquery;
+// Configuration d'axios
+window.axios = axios.create({
+    baseURL: '/',
+    withCredentials: true,
+    headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+    },
+    timeout: 30000, // 30 secondes de timeout
+});
 
-// Configuration des en-têtes par défaut d'axios
-window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
-window.axios.defaults.withCredentials = true;
+// Configuration des intercepteurs pour la gestion des erreurs
+window.axios.interceptors.response.use(
+    response => response,
+    error => {
+        const { status, data } = error.response || {};
+        
+        // Gestion des erreurs HTTP courantes
+        if (status === 401) {
+            // Redirection vers la page de connexion si non authentifié
+            if (window.location.pathname !== '/login') {
+                window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+            }
+        } else if (status === 403) {
+            // Accès refusé
+            console.error('Accès refusé :', data?.message || 'Vous n\'avez pas les permissions nécessaires');
+        } else if (status === 404) {
+            // Ressource non trouvée
+            console.error('Ressource non trouvée :', error.config.url);
+        } else if (status === 419) {
+            // Token CSRF expiré
+            console.error('Session expirée. Veuillez vous reconnecter.');
+            window.location.reload();
+        } else if (status === 422) {
+            // Erreur de validation
+            console.error('Erreur de validation :', data?.errors || data?.message);
+        } else if (status >= 500) {
+            // Erreur serveur
+            console.error('Erreur serveur :', data?.message || 'Une erreur est survenue sur le serveur');
+        }
+        
+        return Promise.reject(error);
+    }
+);
 
 // Récupération du token CSRF pour les requêtes
 const token = document.head.querySelector('meta[name="csrf-token"]');
@@ -20,55 +58,84 @@ if (token) {
     window.axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
 }
 
-/**
- * Echo expose une API expressive pour s'abonner aux canaux et écouter
- * les événements diffusés par Laravel. Echo et la diffusion d'événements
- * permettent à votre équipe de créer facilement des applications web robustes en temps réel.
- */
+// Configuration d'Echo pour les notifications en temps réel (mock)
+window.Echo = {
+    channel: () => ({
+        listen: () => ({}),
+        notification: () => ({}),
+    }),
+    private: () => ({
+        listen: () => ({}),
+        notification: () => ({}),
+    }),
+    join: () => ({
+        here: () => {},
+        joining: () => {},
+        leaving: () => {},
+        listen: () => {},
+    }),
+};
 
-import Echo from 'laravel-echo';
-import Pusher from 'pusher-js';
+console.warn('Pusher non configuré - notifications en temps réel désactivées');
 
-// Configuration de Pusher
-window.Pusher = Pusher;
+// Vérification de l'existence de pusherKey avant utilisation
+const pusherKey = window.pusherKey || '';
+if (pusherKey) {
+    console.log('Configuration Pusher:', {
+        key: '***' + pusherKey.slice(-4),
+        cluster: pusherCluster,
+        host: pusherHost,
+        port: pusherPort,
+        scheme: pusherScheme
+    });
 
-// Récupération des clés depuis les variables d'environnement Vite
-const pusherKey = import.meta.env.VITE_PUSHER_APP_KEY || '';
-const pusherCluster = import.meta.env.VITE_PUSHER_APP_CLUSTER || 'eu';
-const pusherHost = import.meta.env.VITE_PUSHER_HOST || `ws-${pusherCluster}.pusher.com`;
-const pusherPort = import.meta.env.VITE_PUSHER_PORT || 443;
-const pusherScheme = import.meta.env.VITE_PUSHER_SCHEME || 'https';
-
-// Configuration d'Echo
-window.Echo = new Echo({
-    broadcaster: 'pusher',
-    key: pusherKey,
-    cluster: pusherCluster,
-    wsHost: pusherHost,
-    wsPort: pusherPort,
-    wssPort: pusherPort,
-    forceTLS: pusherScheme === 'https',
-    encrypted: true,
-    disableStats: false,
-    enabledTransports: ['ws', 'wss'],
-    auth: {
-        headers: {
-            'X-CSRF-TOKEN': token?.content || '',
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-            'X-Socket-ID': window.Echo?.socketId() || ''
+    window.Echo = new Echo({
+        broadcaster: 'pusher',
+        key: pusherKey,
+        cluster: pusherCluster,
+        wsHost: pusherHost,
+        wsPort: pusherPort,
+        wssPort: pusherPort,
+        forceTLS: pusherScheme === 'https',
+        enabledTransports: ['ws', 'wss'],
+        disableStats: false,
+        encrypted: true,
+        auth: {
+            headers: {
+                'X-CSRF-TOKEN': token?.content || '',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            }
         }
-    }
-});
+    });
 
-// Gestion des erreurs de connexion
-window.Echo.connector.pusher.connection.bind('error', (err) => {
-    console.error('Erreur de connexion Pusher:', err);
-});
+    // Gestion des erreurs de connexion
+    window.Echo.connector.pusher.connection.bind('error', (err) => {
+        console.error('Erreur de connexion Pusher:', err);
+    });
 
-// Gestion des états de connexion
-window.Echo.connector.pusher.connection.bind('state_change', (states) => {
-    console.log('Changement d\'état de connexion:', states);
-});
-
-// Export pour une utilisation dans d'autres fichiers
-export { Echo };
+    // Gestion des états de connexion
+    window.Echo.connector.pusher.connection.bind('state_change', (states) => {
+        console.log('Changement d\'état de connexion:', states);
+    });
+} else {
+    console.warn('Pusher non configuré - notifications en temps réel désactivées');
+    // Créer un Echo factice pour éviter les erreurs
+    window.Echo = {
+        channel: () => ({
+            listen: () => ({}),
+            notification: () => ({}),
+        }),
+        private: () => ({
+            listen: () => ({}),
+            notification: () => ({}),
+        }),
+        join: () => ({
+            here: () => {},
+            joining: () => {},
+            leaving: () => {},
+            listen: () => {},
+        }),
+    };
+}

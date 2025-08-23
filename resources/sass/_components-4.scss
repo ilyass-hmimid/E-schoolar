@@ -1,0 +1,431 @@
+// ================================================
+// ==  Composants SCSS - Partie 4                ==
+// ================================================
+
+// 10. Cartes
+// ===============================================
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: $card-height;
+  word-wrap: break-word;
+  background-color: $card-bg;
+  background-clip: border-box;
+  border: $card-border-width solid $card-border-color;
+  @include border-radius($card-border-radius);
+  @include box-shadow($card-box-shadow);
+  
+  &-body {
+    flex: 1 1 auto;
+    padding: $card-spacer-x;
+    color: $card-color;
+  }
+  
+  // En-tête de carte
+  &-header {
+    padding: $card-header-padding-y $card-header-padding-x;
+    margin-bottom: 0;
+    background-color: $card-header-bg;
+    border-bottom: $card-header-border-width solid $card-header-border-color;
+    
+    &:first-child {
+      @include border-radius($card-inner-border-radius $card-inner-border-radius 0 0);
+    }
+    
+    // Onglets dans l'en-tête
+    + .tab-content {
+      .tab-pane:first-child {
+        .card-body:first-child {
+          @include border-radius(0 0 $card-inner-border-radius $card-inner-border-radius);
+        }
+      }
+    }
+    
+    // Onglets avec bordures
+    &.nav-tabs {
+      margin-bottom: -$nav-tabs-border-width;
+      border-bottom: 0;
+      
+      .nav-link {
+        padding: $nav-link-padding-y $nav-link-padding-x;
+        border: $nav-tabs-border-width solid transparent;
+        @include border-top-radius($nav-tabs-border-radius);
+        
+        &.active {
+          background-color: $card-bg;
+          border-bottom-color: $card-bg;
+        }
+      }
+    }
+  }
+  
+  // Pied de carte
+  &-footer {
+    padding: $card-footer-padding-y $card-footer-padding-x;
+    background-color: $card-footer-bg;
+    border-top: $card-footer-border-width solid $card-footer-border-color;
+    
+    &:last-child {
+      @include border-radius(0 0 $card-inner-border-radius $card-inner-border-radius);
+    }
+  }
+  
+  // Titre de carte
+  &-title {
+    margin-bottom: $card-title-spacer-y;
+    color: $card-title-color;
+    font-size: $card-title-font-size;
+    font-weight: $card-title-font-weight;
+    
+    &:only-child {
+      margin-bottom: 0;
+    }
+  }
+  
+  // Sous-titre de carte
+  &-subtitle {
+    margin-top: -$card-title-spacer-y / 2;
+    margin-bottom: 0;
+    color: $card-subtitle-color;
+    font-size: $card-subtitle-font-size;
+    font-weight: $card-subtitle-font-weight;
+  }
+  
+  // Texte de carte
+  &-text:last-child {
+    margin-bottom: 0;
+  }
+  
+  // Image de couverture
+  &-img-overlay {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: $card-img-overlay-padding;
+    @include border-radius($card-inner-border-radius);
+  }
+  
+  // Image de carte
+  &-img,
+  &-img-top,
+  &-img-bottom {
+    width: 100%;
+  }
+  
+  &-img,
+  &-img-top {
+    @include border-top-radius($card-inner-border-radius);
+  }
+  
+  &-img,
+  &-img-bottom {
+    @include border-bottom-radius($card-inner-border-radius);
+  }
+  
+  // En-tête et pied de carte avec couleur d'arrière-plan
+  &-header-tabs,
+  &-header-pills {
+    margin-right: -$card-spacer-x / 2;
+    margin-bottom: -$card-spacer-y;
+    margin-left: -$card-spacer-x / 2;
+    border-bottom: 0;
+  }
+  
+  // Onglets dans l'en-tête
+  .card-header-tabs {
+    .nav-link.active {
+      background-color: $card-bg;
+      border-bottom-color: $card-bg;
+    }
+  }
+  
+  // Pills dans l'en-tête
+  .card-header-pills {
+    margin-right: -$card-spacer-x / 2;
+    margin-left: -$card-spacer-x / 2;
+  }
+  
+  // Style avec bordure à gauche
+  &-border-left {
+    border-left-width: $card-border-left-width;
+    border-left-style: solid;
+    
+    @each $color, $value in $theme-colors {
+      &-#{$color} {
+        border-left-color: $value;
+      }
+    }
+  }
+  
+  // Style avec bordure supérieure
+  &-border-top {
+    border-top-width: $card-border-top-width;
+    border-top-style: solid;
+    
+    @each $color, $value in $theme-colors {
+      &-#{$color} {
+        border-top-color: $value;
+      }
+    }
+  }
+  
+  // Style avec ombre au survol
+  &-hover-shadow {
+    transition: $card-transition;
+    
+    @include hover() {
+      @include box-shadow($card-hover-box-shadow);
+      transform: translateY(-2px);
+    }
+  }
+  
+  // Style avec dégradé
+  &-gradient {
+    color: color-contrast(theme-color("primary"));
+    background: linear-gradient(45deg, theme-color("primary"), theme-color("secondary"));
+    border: none;
+    
+    .card-title,
+    .card-subtitle,
+    .card-text,
+    .card-link {
+      color: inherit;
+    }
+    
+    .card-link:hover {
+      text-decoration: underline;
+    }
+    
+    // Variations de couleurs
+    @each $color, $value in $theme-colors {
+      &-#{$color} {
+        background: linear-gradient(45deg, $value, darken($value, 15%));
+      }
+    }
+  }
+  
+  // Style avec image de fond
+  &-bg-image {
+    position: relative;
+    overflow: hidden;
+    color: $white;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      background-color: rgba($black, 0.6);
+      z-index: 1;
+    }
+    
+    .card-body {
+      position: relative;
+      z-index: 2;
+    }
+    
+    .card-title,
+    .card-subtitle,
+    .card-text,
+    .card-link {
+      color: inherit;
+    }
+  }
+  
+  // Style avec statut
+  &-status {
+    position: absolute;
+    top: $card-spacer-x;
+    right: $card-spacer-x;
+    z-index: 5;
+    
+    @each $status, $color in $status-colors {
+      &-#{$status} {
+        width: $card-status-size;
+        height: $card-status-size;
+        background-color: $color;
+        border-radius: 50%;
+        @include box-shadow(0 0 0 $card-status-border-width $card-bg);
+      }
+    }
+  }
+  
+  // Style avec icône
+  &-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: $card-icon-size;
+    height: $card-icon-size;
+    margin: -$card-icon-size / 2 auto $card-spacer-y;
+    font-size: $card-icon-font-size;
+    color: $card-icon-color;
+    background-color: $card-icon-bg;
+    border-radius: 50%;
+    @include box-shadow($card-icon-box-shadow);
+    
+    i, svg {
+      font-size: $card-icon-inner-size;
+    }
+    
+    // Tailles d'icônes
+    &-sm {
+      width: $card-icon-size-sm;
+      height: $card-icon-size-sm;
+      font-size: $card-icon-font-size-sm;
+      margin-top: -$card-icon-size-sm / 2;
+      
+      i, svg {
+        font-size: $card-icon-inner-size-sm;
+      }
+    }
+    
+    &-lg {
+      width: $card-icon-size-lg;
+      height: $card-icon-size-lg;
+      font-size: $card-icon-font-size-lg;
+      margin-top: -$card-icon-size-lg / 2;
+      
+      i, svg {
+        font-size: $card-icon-inner-size-lg;
+      }
+    }
+  }
+  
+  // Style avec onglets
+  &-tabs {
+    .card-header {
+      padding: 0;
+      background-color: transparent;
+      border-bottom: 0;
+      
+      .nav-tabs {
+        margin-bottom: -$card-border-width;
+        border-bottom: 0;
+        
+        .nav-link {
+          padding: $nav-link-padding-y $nav-link-padding-x;
+          border: $nav-tabs-border-width solid transparent;
+          @include border-top-radius($nav-tabs-border-radius);
+          
+          &.active {
+            background-color: $card-bg;
+            border-bottom-color: $card-bg;
+          }
+        }
+      }
+    }
+    
+    .card-body {
+      border-top: $card-border-width solid $card-border-color;
+      @include border-radius(0 0 $card-border-radius $card-border-radius);
+    }
+  }
+  
+  // Style avec accordéon
+  &-accordion {
+    margin-bottom: $spacer;
+    
+    .card {
+      margin-bottom: 0;
+      border-bottom: $card-border-width solid $card-border-color;
+      @include border-radius(0);
+      
+      &:first-child {
+        @include border-top-radius($card-border-radius);
+      }
+      
+      &:last-child {
+        margin-bottom: 0;
+        @include border-bottom-radius($card-border-radius);
+        border-bottom: 0;
+      }
+      
+      &-header {
+        margin-bottom: 0;
+        padding: 0;
+        background-color: transparent;
+        border-bottom: 0;
+        
+        .btn {
+          position: relative;
+          display: flex;
+          align-items: center;
+          width: 100%;
+          padding: $accordion-padding-y $accordion-padding-x;
+          font-weight: $accordion-font-weight;
+          text-align: left;
+          color: $accordion-color;
+          background-color: $accordion-bg;
+          border: 0;
+          @include border-radius(0);
+          
+          &::after {
+            content: $accordion-icon-collapsed;
+            margin-left: auto;
+            font-family: $accordion-icon-font-family;
+            font-size: $accordion-icon-font-size;
+            line-height: 1;
+            @include transition($accordion-icon-transition);
+          }
+          
+          &[aria-expanded="true"] {
+            color: $accordion-active-color;
+            background-color: $accordion-active-bg;
+            
+            &::after {
+              content: $accordion-icon-expanded;
+              transform: rotate(180deg);
+            }
+          }
+          
+          &:focus {
+            outline: 0;
+            box-shadow: none;
+          }
+          
+          &:hover {
+            text-decoration: none;
+            color: $accordion-hover-color;
+          }
+        }
+      }
+      
+      &-body {
+        padding: $accordion-body-padding-y $accordion-body-padding-x;
+        background-color: $accordion-body-bg;
+        border-top: $accordion-border-width solid $accordion-border-color;
+      }
+      
+      // Variations de couleurs
+      @each $color, $value in $theme-colors {
+        &-#{$color} {
+          .card-header {
+            .btn {
+              color: $value;
+              
+              &[aria-expanded="true"] {
+                color: color-contrast($value);
+                background-color: $value;
+              }
+              
+              &::after {
+                color: inherit;
+              }
+            }
+          }
+          
+          .card-body {
+            border-top-color: rgba($value, 0.2);
+          }
+        }
+      }
+    }
+  }
+}

@@ -8,7 +8,7 @@
                     <div class="flex justify-center mb-4">
                         <a href="{{ route('dashboard') }}" class="flex items-center space-x-3">
                             <x-application-logo class="h-10 w-auto text-white" />
-                            <span class="text-2xl font-bold text-white">Welcome To Allo Tawjih</span>
+                            <span class="text-2xl font-bold text-white">Bienvenue Sur<br/>Allo Tawjih</span>
                         </a>
                     </div>
                     <p class="text-primary-100 text-sm">Accédez à votre espace personnel</p>
@@ -33,9 +33,6 @@
                                 Adresse email
                             </label>
                             <div class="input-group">
-                                <div class="input-icon">
-                                    <i class="fas fa-envelope"></i>
-                                </div>
                                 <input 
                                     id="email" 
                                     type="email" 
@@ -66,9 +63,6 @@
                                 @endif
                             </div>
                             <div class="input-group">
-                                <div class="input-icon">
-                                    <i class="fas fa-lock"></i>
-                                </div>
                                 <input 
                                     id="password" 
                                     type="password" 
@@ -83,20 +77,7 @@
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
-                        
-                        <!-- Se souvenir de moi -->
-                        <div class="flex items-center">
-                            <input 
-                                id="remember_me" 
-                                name="remember" 
-                                type="checkbox" 
-                                class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                            >
-                            <label for="remember_me" class="ml-2 block text-sm text-gray-700">
-                                Se souvenir de moi
-                            </label>
-                        </div>
-                        
+                
                         <!-- Bouton de connexion -->
                         <div>
                             <button type="submit" class="w-full btn-primary">

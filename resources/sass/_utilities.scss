@@ -1,0 +1,674 @@
+// ================================================
+// ==  Utilitaires SCSS - Système de Design      ==
+// ================================================
+
+// Classes utilitaires pour les espacements
+// ================================================
+@each $prop, $abbrev in (margin: m, padding: p) {
+  @each $size, $length in $spacers {
+    .#{$abbrev}-#{$size}  { #{$prop}: $length !important; }
+    .#{$abbrev}t-#{$size},
+    .#{$abbrev}y-#{$size} {
+      #{$prop}-top: $length !important;
+    }
+    .#{$abbrev}r-#{$size},
+    .#{$abbrev}x-#{$size} {
+      #{$prop}-right: $length !important;
+    }
+    .#{$abbrev}b-#{$size},
+    .#{$abbrev}y-#{$size} {
+      #{$prop}-bottom: $length !important;
+    }
+    .#{$abbrev}l-#{$size},
+    .#{$abbrev}x-#{$size} {
+      #{$prop}-left: $length !important;
+    }
+  }
+}
+
+// Classes utilitaires pour les bordures
+// ================================================
+.border {
+  border: $border-width solid $border-color !important;
+}
+
+.border-0 {
+  border: 0 !important;
+}
+
+@each $side in (top, right, bottom, left) {
+  .border-#{$side} {
+    border-#{$side}: $border-width solid $border-color !important;
+  }
+  
+  .border-#{$side}-0 {
+    border-#{$side}: 0 !important;
+  }
+}
+
+// Classes utilitaires pour les rayons de bordure
+// ================================================
+.rounded {
+  border-radius: $border-radius !important;
+}
+
+.rounded-0 {
+  border-radius: 0 !important;
+}
+
+.rounded-circle {
+  border-radius: 50% !important;
+}
+
+.rounded-pill {
+  border-radius: $border-radius-pill !important;
+}
+
+@each $size, $value in $border-radiuses {
+  .rounded-#{$size} {
+    border-radius: $value !important;
+  }
+}
+
+// Classes utilitaires pour les couleurs de texte
+// ================================================
+@each $color, $value in $theme-colors {
+  .text-#{$color} {
+    color: $value !important;
+  }
+  
+  .text-#{$color}-light {
+    color: tint-color($value, 20%) !important;
+  }
+  
+  .text-#{$color}-dark {
+    color: shade-color($value, 20%) !important;
+  }
+}
+
+.text-muted {
+  color: $text-muted !important;
+}
+
+.text-white {
+  color: $white !important;
+}
+
+.text-black {
+  color: $black !important;
+}
+
+// Classes utilitaires pour les couleurs de fond
+// ================================================
+@each $color, $value in $theme-colors {
+  .bg-#{$color} {
+    background-color: $value !important;
+  }
+  
+  .bg-#{$color}-light {
+    background-color: tint-color($value, 80%) !important;
+  }
+  
+  .bg-#{$color}-subtle {
+    background-color: rgba($value, 0.1) !important;
+  }
+}
+
+.bg-white {
+  background-color: $white !important;
+}
+
+.bg-transparent {
+  background-color: transparent !important;
+}
+
+// Classes utilitaires pour les ombres
+// ================================================
+.shadow {
+  box-shadow: $box-shadow !important;
+}
+
+.shadow-sm {
+  box-shadow: $box-shadow-sm !important;
+}
+
+.shadow-lg {
+  box-shadow: $box-shadow-lg !important;
+}
+
+.shadow-none {
+  box-shadow: none !important;
+}
+
+// Classes utilitaires pour la visibilité
+// ================================================
+.visible {
+  visibility: visible !important;
+}
+
+.invisible {
+  visibility: hidden !important;
+}
+
+// Classes utilitaires pour le débordement
+// ================================================
+.overflow-auto {
+  overflow: auto !important;
+}
+
+.overflow-hidden {
+  overflow: hidden !important;
+}
+
+.overflow-visible {
+  overflow: visible !important;
+}
+
+.overflow-scroll {
+  overflow: scroll !important;
+}
+
+// Classes utilitaires pour la position
+// ================================================
+.position-static {
+  position: static !important;
+}
+
+.position-relative {
+  position: relative !important;
+}
+
+.position-absolute {
+  position: absolute !important;
+}
+
+.position-fixed {
+  position: fixed !important;
+}
+
+.position-sticky {
+  position: sticky !important;
+}
+
+// Classes utilitaires pour le curseur
+// ================================================
+.cursor-pointer {
+  cursor: pointer !important;
+}
+
+.cursor-default {
+  cursor: default !important;
+}
+
+.cursor-move {
+  cursor: move !important;
+}
+
+.cursor-not-allowed {
+  cursor: not-allowed !important;
+}
+
+.cursor-zoom-in {
+  cursor: zoom-in !important;
+}
+
+.cursor-zoom-out {
+  cursor: zoom-out !important;
+}
+
+// Classes utilitaires pour le texte
+// ================================================
+.text-nowrap {
+  white-space: nowrap !important;
+}
+
+.text-truncate {
+  @include text-truncate();
+}
+
+.text-break {
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+}
+
+.text-lowercase {
+  text-transform: lowercase !important;
+}
+
+.text-uppercase {
+  text-transform: uppercase !important;
+}
+
+.text-capitalize {
+  text-transform: capitalize !important;
+}
+
+.text-decoration-none {
+  text-decoration: none !important;
+}
+
+// Classes utilitaires pour la taille de police
+// ===============================================
+@each $size, $value in $font-sizes {
+  .fs-#{$size} {
+    font-size: $value !important;
+  }
+}
+
+// Classes utilitaires pour le poids de police
+// ===============================================
+.fw-light {
+  font-weight: $font-weight-light !important;
+}
+
+.fw-normal {
+  font-weight: $font-weight-normal !important;
+}
+
+.fw-medium {
+  font-weight: $font-weight-medium !important;
+}
+
+.fw-semibold {
+  font-weight: $font-weight-semibold !important;
+}
+
+.fw-bold {
+  font-weight: $font-weight-bold !important;
+}
+
+// Classes utilitaires pour l'alignement du texte
+// ===============================================
+.text-start {
+  text-align: left !important;
+}
+
+.text-end {
+  text-align: right !important;
+}
+
+.text-center {
+  text-align: center !important;
+}
+
+// Classes utilitaires pour l'alignement vertical
+// ===============================================
+.align-baseline {
+  vertical-align: baseline !important;
+}
+
+.align-top {
+  vertical-align: top !important;
+}
+
+.align-middle {
+  vertical-align: middle !important;
+}
+
+align-bottom {
+  vertical-align: bottom !important;
+}
+
+align-text-bottom {
+  vertical-align: text-bottom !important;
+}
+
+align-text-top {
+  vertical-align: text-top !important;
+}
+
+// Classes utilitaires pour la flexbox
+// ===============================================
+.d-flex {
+  display: flex !important;
+}
+
+.d-inline-flex {
+  display: inline-flex !important;
+}
+
+.flex-row {
+  flex-direction: row !important;
+}
+
+.flex-column {
+  flex-direction: column !important;
+}
+
+.flex-row-reverse {
+  flex-direction: row-reverse !important;
+}
+
+.flex-column-reverse {
+  flex-direction: column-reverse !important;
+}
+
+.flex-wrap {
+  flex-wrap: wrap !important;
+}
+
+.flex-nowrap {
+  flex-wrap: nowrap !important;
+}
+
+.flex-wrap-reverse {
+  flex-wrap: wrap-reverse !important;
+}
+
+.justify-content-start {
+  justify-content: flex-start !important;
+}
+
+.justify-content-end {
+  justify-content: flex-end !important;
+}
+
+.justify-content-center {
+  justify-content: center !important;
+}
+
+.justify-content-between {
+  justify-content: space-between !important;
+}
+
+.justify-content-around {
+  justify-content: space-around !important;
+}
+
+.align-items-start {
+  align-items: flex-start !important;
+}
+
+.align-items-end {
+  align-items: flex-end !important;
+}
+
+.align-items-center {
+  align-items: center !important;
+}
+
+.align-items-baseline {
+  align-items: baseline !important;
+}
+
+.align-items-stretch {
+  align-items: stretch !important;
+}
+
+.align-content-start {
+  align-content: flex-start !important;
+}
+
+align-content-end {
+  align-content: flex-end !important;
+}
+
+align-content-center {
+  align-content: center !important;
+}
+
+align-content-between {
+  align-content: space-between !important;
+}
+
+align-content-around {
+  align-content: space-around !important;
+}
+
+align-content-stretch {
+  align-content: stretch !important;
+}
+
+.flex-fill {
+  flex: 1 1 auto !important;
+}
+
+.flex-grow-0 {
+  flex-grow: 0 !important;
+}
+
+.flex-grow-1 {
+  flex-grow: 1 !important;
+}
+
+.flex-shrink-0 {
+  flex-shrink: 0 !important;
+}
+
+.flex-shrink-1 {
+  flex-shrink: 1 !important;
+}
+
+// Classes utilitaires pour les animations
+// ===============================================
+.animation-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animation-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animation-bounce {
+  animation: bounce 1s infinite;
+}
+
+.animation-ping {
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+// Classes utilitaires pour les transitions
+// ===============================================
+.transition {
+  transition: $transition-base;
+}
+
+.transition-none {
+  transition: none !important;
+}
+
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.transition-colors {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.transition-opacity {
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.transition-shadow {
+  transition-property: box-shadow;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.transition-transform {
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+// Classes utilitaires pour les transformations
+// ===============================================
+.transform {
+  transform: var(--tw-transform);
+}
+
+.transform-gpu {
+  transform: translateZ(0);
+}
+
+.transform-none {
+  transform: none;
+}
+
+// Classes utilitaires pour l'opacité
+// ===============================================
+.opacity-0 {
+  opacity: 0 !important;
+}
+
+.opacity-25 {
+  opacity: 0.25 !important;
+}
+
+.opacity-50 {
+  opacity: 0.5 !important;
+}
+
+.opacity-75 {
+  opacity: 0.75 !important;
+}
+
+.opacity-100 {
+  opacity: 1 !important;
+}
+
+// Classes utilitaires pour les z-index
+// ===============================================
+@for $i from 0 through 50 {
+  .z-#{$i} {
+    z-index: $i !important;
+  }
+}
+
+// Classes utilitaires pour les largeurs et hauteurs
+// ===============================================
+.w-auto {
+  width: auto !important;
+}
+
+.w-25 {
+  width: 25% !important;
+}
+
+.w-50 {
+  width: 50% !important;
+}
+
+.w-75 {
+  width: 75% !important;
+}
+
+.w-100 {
+  width: 100% !important;
+}
+
+.w-100vw {
+  width: 100vw !important;
+}
+
+.h-auto {
+  height: auto !important;
+}
+
+.h-25 {
+  height: 25% !important;
+}
+
+.h-50 {
+  height: 50% !important;
+}
+
+.h-75 {
+  height: 75% !important;
+}
+
+.h-100 {
+  height: 100% !important;
+}
+
+.h-100vh {
+  height: 100vh !important;
+}
+
+// Classes utilitaires pour les écrans de lecture seule
+// ===============================================
+.sr-only,
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+// Classes utilitaires pour les états de focus
+// ===============================================
+.focus-visible {
+  outline: 2px solid $primary;
+  outline-offset: 2px;
+}
+
+// Classes utilitaires pour les états actifs et survolés
+// ===============================================
+.hover\:bg-gray-100:hover {
+  background-color: $gray-100 !important;
+}
+
+.active\:bg-gray-200:active {
+  background-color: $gray-200 !important;
+}
+
+// Classes utilitaires pour les écrans
+// ===============================================
+@media (min-width: 640px) {
+  .sm\:hidden {
+    display: none !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .md\:hidden {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .lg\:hidden {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  .xl\:hidden {
+    display: none !important;
+  }
+}
+
+// Classes utilitaires pour l'impression
+// ===============================================
+@media print {
+  .print\:hidden {
+    display: none !important;
+  }
+  
+  .print\:block {
+    display: block !important;
+  }
+  
+  .print\:w-full {
+    width: 100% !important;
+  }
+  
+  .print\:p-0 {
+    padding: 0 !important;
+  }
+  
+  .print\:m-0 {
+    margin: 0 !important;
+  }
+}

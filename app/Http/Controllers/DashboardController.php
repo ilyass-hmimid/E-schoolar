@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\Absence;
-use App\Models\Etudiant;
-use App\Models\Professeur;
 use App\Models\Matiere;
-use App\Models\Classe;
-use App\Models\Paiment;
-use App\Models\Salaires;
+use App\Models\Paiement;
+use App\Models\Salaire;
 use App\Models\Pack;
+use App\Models\Note;
+use App\Models\Enseignement;
+use App\Enums\RoleType;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
@@ -19,96 +20,428 @@ use Inertia\Inertia;
 class DashboardController extends Controller
 {
     /**
+     * Affiche le tableau de bord selon le rôle de l'utilisateur
+     */
+    public function index()
+    {
+        $user = auth()->user();
+        
+        // Vérifier que l'utilisateur est actif
+        if (!$user->is_active) {
+            auth()->logout();
+            return redirect()->route('login')->withErrors([
+                'email' => 'Votre compte a été désactivé. Veuillez contacter l\'administrateur.',
+            ]);
+        }
+        
+        // Récupérer la valeur du rôle de manière sécurisée
+        $roleValue = null;
+        if (is_object($user->role) && isset($user->role->value)) {
+            $roleValue = $user->role->value;
+        } elseif (is_numeric($user->role)) {
+            $roleValue = $user->role;
+        }
+        
+        return match($roleValue) {
+            RoleType::ADMIN->value => $this->admin(),
+            RoleType::PROFESSEUR->value => $this->professeur(),
+            RoleType::ASSISTANT->value => $this->assistant(),
+            RoleType::ELEVE->value => $this->eleve(),
+            RoleType::PARENT->value => $this->parentDashboard(),
+            default => redirect()->route('login')->withErrors([
+                'email' => 'Rôle utilisateur non reconnu.',
+            ]),
+        };
+    }
+
+    /**
      * Affiche le tableau de bord administrateur
      */
     public function admin()
     {
-        $this->authorize('viewAdminDashboard', User::class);
-        
-        // Période pour les statistiques (30 derniers jours)
-        $dateDebut = now()->subDays(30);
-        $dateFin = now();
-        
         // Statistiques générales
         $stats = [
-            'total_etudiants' => Etudiant::count(),
-            'total_professeurs' => Professeur::count(),
-            'total_matieres' => Matiere::count(),
-            'total_classes' => Classe::count(),
-            'paiements_mois' => Paiment::whereBetween('Date_Paiment', [$dateDebut, $dateFin])
-                ->sum('SommeApaye'),
-            'salaires_mois' => Salaires::whereBetween('Date_Salaire', [$dateDebut, $dateFin])
-                ->sum('Montant_actuel'),
-            'packs_vendus' => DB::table('Inscription')
-                ->whereNotNull('pack_id')
-                ->whereBetween('dateInscription', [$dateDebut, $dateFin])
+            'totalUsers' => User::count(),
+            'eleves' => User::where('role', RoleType::ELEVE)->count(),
+            'professeurs' => User::where('role', RoleType::PROFESSEUR)->count(),
+            'assistants' => User::where('role', RoleType::ASSISTANT)->count(),
+            'parents' => User::where('role', RoleType::PARENT)->count(),
+            'revenusMois' => Paiement::whereMonth('date_paiement', now()->month)
+                ->whereYear('date_paiement', now()->year)
+                ->where('statut', 'payé')
+                ->sum('montant'),
+            'coursActifs' => Enseignement::where('date_fin', '>=', now())->count(),
+            'absencesMois' => Absence::whereMonth('date_absence', now()->month)
+                ->whereYear('date_absence', now()->year)
                 ->count(),
-            'taux_absenteisme' => $this->calculerTauxAbsenteisme($dateDebut, $dateFin),
         ];
+
+        // Derniers paiements
+        $derniersPaiements = Paiement::with(['etudiant'])
+            ->orderBy('date_paiement', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Dernières absences
+        $dernieresAbsences = Absence::with(['etudiant', 'matiere'])
+            ->orderBy('date_absence', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Données pour les graphiques
+        $revenusParMois = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $revenusParMois[] = [
+                'mois' => $date->format('M'),
+                'montant' => Paiement::whereMonth('date_paiement', $date->month)
+                    ->whereYear('date_paiement', $date->year)
+                    ->where('statut', 'payé')
+                    ->sum('montant')
+            ];
+        }
+
+        return Inertia::render('Dashboard/Admin/Index', [
+            'stats' => $stats,
+            'derniersPaiements' => $derniersPaiements,
+            'dernieresAbsences' => $dernieresAbsences,
+            'revenusParMois' => $revenusParMois,
+        ]);
+    }
+
+    /**
+     * Affiche le tableau de bord professeur
+     */
+    public function professeur()
+    {
+        $user = auth()->user();
+        $moisCourant = now()->format('Y-m');
         
-        // Graphique des inscriptions par mois (6 derniers mois)
-        $inscriptionsParMois = $this->getInscriptionsParMois(6);
-        
-        // Graphique des paiements par mois (6 derniers mois)
-        $paiementsParMois = $this->getPaiementsParMois(6);
-        
-        // Dernières absences non justifiées
-        $dernieresAbsences = Absence::with(['etudiant:id,Nom,Prenom', 'seance.matiere:id,Libelle'])
-            ->whereNull('justificatif')
+        // Statistiques du professeur
+        $stats = [
+            'matieres_enseignees' => $user->matieresEnseignees()->count(),
+            'cours_ce_mois' => $user->cours()
+                ->whereMonth('date_debut', now()->month)
+                ->count(),
+            'salaire_mois' => $user->calculerSalaire($moisCourant) ?? 0,
+            'absences_aujourd_hui' => Absence::where('professeur_id', $user->id)
+                ->whereDate('date_absence', now()->toDateString())
+                ->count(),
+        ];
+
+        // Récupérer les matières enseignées par le professeur
+        $matieres = $user->matieresEnseignees()
+            ->with(['niveau', 'filiere'])
+            ->get()
+            ->map(function($matiere) {
+                return [
+                    'id' => $matiere->id,
+                    'nom' => $matiere->nom,
+                    'niveau' => $matiere->niveau->nom ?? 'N/A',
+                    'filiere' => $matiere->filiere->nom ?? 'N/A',
+                ];
+            });
+
+        // Prochains cours
+        $prochainsCours = $user->cours()
+            ->where('date_debut', '>=', now())
+            ->orderBy('date_debut')
+            ->limit(5)
+            ->with(['matiere', 'salle'])
+            ->get()
+            ->map(function($cours) {
+                return [
+                    'id' => $cours->id,
+                    'matiere' => $cours->matiere->nom,
+                    'date_debut' => $cours->date_debut->format('d/m/Y H:i'),
+                    'date_fin' => $cours->date_fin->format('H:i'),
+                    'salle' => $cours->salle->nom ?? 'N/A',
+                ];
+            });
+            
+        // Dernières notes saisies
+        $dernieresNotes = $user->notes()
+            ->with(['etudiant', 'matiere'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function($note) {
+                return [
+                    'id' => $note->id,
+                    'etudiant' => $note->etudiant->name,
+                    'matiere' => $note->matiere->nom,
+                    'valeur' => $note->valeur,
+                    'type' => $note->type,
+                    'date' => $note->created_at->format('d/m/Y'),
+                ];
+            });
+            
+        // Dernières absences enregistrées
+        $dernieresAbsences = Absence::where('professeur_id', $user->id)
+            ->with(['etudiant', 'matiere'])
             ->orderBy('date_absence', 'desc')
             ->limit(5)
             ->get()
             ->map(function($absence) {
                 return [
                     'id' => $absence->id,
-                    'etudiant' => $absence->etudiant ? $absence->etudiant->Nom . ' ' . $absence->etudiant->Prenom : 'Inconnu',
-                    'matiere' => $absence->seance && $absence->seance->matiere ? $absence->seance->matiere->Libelle : 'Inconnue',
-                    'date_absence' => $absence->date_absence->format('d/m/Y H:i'),
+                    'etudiant' => $absence->etudiant->name,
+                    'matiere' => $absence->matiere->nom,
+                    'date' => $absence->date_absence->format('d/m/Y'),
+                    'justifiee' => $absence->justifiee ? 'Oui' : 'Non',
                 ];
             });
         
+        return Inertia::render('Dashboard/Professeur/Index', [
+            'stats' => $stats,
+            'matieres' => $matieres,
+            'prochainsCours' => $prochainsCours,
+            'dernieresNotes' => $dernieresNotes,
+            'dernieresAbsences' => $dernieresAbsences,
+        ]);
+    }
+
+    /**
+     * Affiche le tableau de bord assistant
+     */
+    public function assistant()
+    {
+        // Dernières inscriptions
+        $dernieresInscriptions = \App\Models\Inscription::with(['etudiant', 'classe'])
+            ->orderBy('date_inscription', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function($inscription) {
+                return [
+                    'id' => $inscription->id,
+                    'etudiant' => $inscription->etudiant->name,
+                    'classe' => $inscription->classe->nom,
+                    'date' => $inscription->date_inscription->format('d/m/Y'),
+                    'montant' => number_format($inscription->montant_inscription, 2, ',', ' ') . ' DH',
+                ];
+            });
+            
         // Derniers paiements
-        $derniersPaiements = Paiment::with(['etudiant:id,Nom,Prenom'])
-            ->orderBy('Date_Paiment', 'desc')
+        $derniersPaiements = Paiement::with(['etudiant'])
+            ->orderBy('date_paiement', 'desc')
             ->limit(5)
             ->get()
             ->map(function($paiement) {
                 return [
                     'id' => $paiement->id,
-                    'etudiant' => $paiement->etudiant ? $paiement->etudiant->Nom . ' ' . $paiement->etudiant->Prenom : 'Inconnu',
-                    'montant' => number_format($paiement->SommeApaye, 2, ',', ' '),
-                    'date_paiement' => $paiement->Date_Paiment->format('d/m/Y'),
+                    'etudiant' => $paiement->etudiant->name,
+                    'montant' => number_format($paiement->montant, 2, ',', ' ') . ' DH',
+                    'date' => $paiement->date_paiement->format('d/m/Y'),
+                    'statut' => $paiement->statut,
+                ];
+            });
+            
+        // Dernières absences
+        $dernieresAbsences = Absence::with(['etudiant', 'matiere'])
+            ->orderBy('date_absence', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function($absence) {
+                return [
+                    'id' => $absence->id,
+                    'etudiant' => $absence->etudiant->name,
+                    'matiere' => $absence->matiere->nom,
+                    'date' => $absence->date_absence->format('d/m/Y'),
+                    'justifiee' => $absence->justifiee ? 'Oui' : 'Non',
+                ];
+            });
+            
+        // Prochains événements
+        $prochainsEvenements = \App\Models\Evenement::where('date_debut', '>=', now())
+            ->orderBy('date_debut')
+            ->limit(5)
+            ->get()
+            ->map(function($evenement) {
+                return [
+                    'id' => $evenement->id,
+                    'titre' => $evenement->titre,
+                    'date_debut' => $evenement->date_debut->format('d/m/Y H:i'),
+                    'date_fin' => $evenement->date_fin->format('d/m/Y H:i'),
+                    'lieu' => $evenement->lieu ?? 'Non spécifié',
                 ];
             });
         
-        return Inertia::render('Dashboard/Admin', [
-            'stats' => $stats,
-            'inscriptionsParMois' => $inscriptionsParMois,
-            'paiementsParMois' => $paiementsParMois,
-            'dernieresAbsences' => $dernieresAbsences,
+        return Inertia::render('Dashboard/Assistant/Index', [
+            'dernieresInscriptions' => $dernieresInscriptions,
             'derniersPaiements' => $derniersPaiements,
+            'dernieresAbsences' => $dernieresAbsences,
+            'prochainsEvenements' => $prochainsEvenements,
+        ]);
+    }
+
+    /**
+     * Affiche le tableau de bord parent
+     */
+    public function parentDashboard()
+    {
+        $user = auth()->user();
+        
+        // Récupérer les enfants du parent
+        $enfants = $user->enfants()
+            ->with(['niveau', 'filiere'])
+            ->get()
+            ->map(function($enfant) {
+                return [
+                    'id' => $enfant->id,
+                    'name' => $enfant->name,
+                    'niveau' => $enfant->niveau->nom ?? 'N/A',
+                    'filiere' => $enfant->filiere->nom ?? 'N/A',
+                    'moyenne_generale' => $enfant->moyenneGenerale(),
+                    'absences_ce_mois' => $enfant->absences()
+                        ->whereMonth('date_absence', now()->month)
+                        ->count(),
+                    'prochains_devoirs' => $enfant->devoirs()
+                        ->where('date_limite', '>=', now())
+                        ->count(),
+                ];
+            });
+            
+        // Dernières notes des enfants
+        $dernieresNotes = \App\Models\Note::whereIn('etudiant_id', $user->enfants()->pluck('id'))
+            ->with(['etudiant:id,name', 'matiere'])
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function($note) {
+                return [
+                    'id' => $note->id,
+                    'etudiant' => $note->etudiant->name,
+                    'matiere' => $note->matiere->nom,
+                    'valeur' => $note->valeur,
+                    'type' => $note->type,
+                    'date' => $note->created_at->format('d/m/Y'),
+                ];
+            });
+            
+        // Dernières absences des enfants
+        $dernieresAbsences = \App\Models\Absence::whereIn('etudiant_id', $user->enfants()->pluck('id'))
+            ->with(['etudiant:id,name', 'matiere'])
+            ->orderBy('date_absence', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function($absence) {
+                return [
+                    'id' => $absence->id,
+                    'etudiant' => $absence->etudiant->name,
+                    'matiere' => $absence->matiere->nom,
+                    'date' => $absence->date_absence->format('d/m/Y'),
+                    'justifiee' => $absence->justifiee ? 'Oui' : 'Non',
+                ];
+            });
+            
+        // Prochains événements
+        $prochainsEvenements = \App\Models\Evenement::where('date_debut', '>=', now())
+            ->orderBy('date_debut')
+            ->limit(5)
+            ->get()
+            ->map(function($evenement) {
+                return [
+                    'id' => $evenement->id,
+                    'titre' => $evenement->titre,
+                    'date_debut' => $evenement->date_debut->format('d/m/Y H:i'),
+                    'date_fin' => $evenement->date_fin->format('d/m/Y H:i'),
+                    'lieu' => $evenement->lieu ?? 'Non spécifié',
+                ];
+            });
+        
+        return Inertia::render('Dashboard/Parent/Index', [
+            'enfants' => $enfants,
+            'dernieresNotes' => $dernieresNotes,
+            'dernieresAbsences' => $dernieresAbsences,
+            'prochainsEvenements' => $prochainsEvenements,
         ]);
     }
     
     /**
-     * Calcule le taux d'absentéisme global
+     * Affiche le tableau de bord élève
      */
-    private function calculerTauxAbsenteisme($dateDebut, $dateFin): float
+    public function eleve()
     {
-        $totalSeances = DB::table('Seance')
-            ->whereBetween('Date_Seance', [$dateDebut, $dateFin])
-            ->count();
-            
-        if ($totalSeances === 0) {
-            return 0;
-        }
+        $user = auth()->user();
         
-        $totalAbsences = Absence::whereBetween('date_absence', [$dateDebut, $dateFin])
-            ->count();
+        // Dernières notes
+        $dernieresNotes = $user->notes()
+            ->with(['matiere'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function($note) {
+                return [
+                    'id' => $note->id,
+                    'matiere' => $note->matiere->nom,
+                    'valeur' => $note->valeur,
+                    'type' => $note->type,
+                    'date' => $note->created_at->format('d/m/Y'),
+                    'appreciation' => $note->appreciation ?? 'Aucune appréciation',
+                ];
+            });
             
-        return round(($totalAbsences / $totalSeances) * 100, 2);
+        // Prochains cours
+        $prochainsCours = $user->cours()
+            ->where('date_debut', '>=', now())
+            ->orderBy('date_debut')
+            ->limit(5)
+            ->with(['matiere', 'salle', 'professeur'])
+            ->get()
+            ->map(function($cours) {
+                return [
+                    'id' => $cours->id,
+                    'matiere' => $cours->matiere->nom,
+                    'professeur' => $cours->professeur->name,
+                    'date' => $cours->date_debut->format('d/m/Y'),
+                    'heure_debut' => $cours->date_debut->format('H:i'),
+                    'heure_fin' => $cours->date_fin->format('H:i'),
+                    'salle' => $cours->salle->nom ?? 'Non spécifié',
+                ];
+            });
+            
+        // Dernières absences
+        $absences = $user->absences()
+            ->with(['matiere'])
+            ->orderBy('date_absence', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function($absence) {
+                return [
+                    'id' => $absence->id,
+                    'matiere' => $absence->matiere->nom,
+                    'date' => $absence->date_absence->format('d/m/Y'),
+                    'justifiee' => $absence->justifiee ? 'Oui' : 'Non',
+                    'commentaire' => $absence->commentaire ?? 'Aucun commentaire',
+                ];
+            });
+            
+        // Prochains devoirs
+        $prochainsDevoirs = $user->devoirs()
+            ->where('date_limite', '>=', now())
+            ->orderBy('date_limite')
+            ->limit(5)
+            ->with('matiere')
+            ->get()
+            ->map(function($devoir) {
+                return [
+                    'id' => $devoir->id,
+                    'titre' => $devoir->titre,
+                    'matiere' => $devoir->matiere->nom,
+                    'date_limite' => $devoir->date_limite->format('d/m/Y H:i'),
+                    'rendu' => $devoir->pivot->date_rendu ? 'Oui' : 'Non',
+                    'note' => $devoir->pivot->note ?? 'Non noté',
+                ];
+            });
+            
+        return Inertia::render('Dashboard/Eleve/Index', [
+            'dernieresNotes' => $dernieresNotes,
+            'prochainsCours' => $prochainsCours,
+            'absences' => $absences,
+            'prochainsDevoirs' => $prochainsDevoirs,
+        ]);
     }
-    
+
     /**
      * Récupère les inscriptions par mois pour un nombre de mois donné
      */
@@ -117,13 +450,13 @@ class DashboardController extends Controller
         $dateDebut = now()->subMonths($nbMois - 1)->startOfMonth();
         $dateFin = now()->endOfMonth();
         
-        $inscriptions = DB::table('Inscription')
+        $inscriptions = DB::table('inscriptions')
             ->select(
-                DB::raw('YEAR(dateInscription) as annee'),
-                DB::raw('MONTH(dateInscription) as mois'),
+                DB::raw('YEAR(DateInsc) as annee'),
+                DB::raw('MONTH(DateInsc) as mois'),
                 DB::raw('COUNT(*) as total')
             )
-            ->whereBetween('dateInscription', [$dateDebut, $dateFin])
+            ->whereBetween('DateInsc', [$dateDebut, $dateFin])
             ->groupBy('annee', 'mois')
             ->orderBy('annee')
             ->orderBy('mois')
@@ -140,13 +473,14 @@ class DashboardController extends Controller
         $dateDebut = now()->subMonths($nbMois - 1)->startOfMonth();
         $dateFin = now()->endOfMonth();
         
-        $paiements = DB::table('Paiment')
+        $paiements = DB::table('paiements')
             ->select(
-                DB::raw('YEAR(Date_Paiment) as annee'),
-                DB::raw('MONTH(Date_Paiment) as mois'),
-                DB::raw('SUM(SommeApaye) as total')
+                DB::raw('YEAR(date_paiement) as annee'),
+                DB::raw('MONTH(date_paiement) as mois'),
+                DB::raw('SUM(montant) as total')
             )
-            ->whereBetween('Date_Paiment', [$dateDebut, $dateFin])
+            ->where('statut', 'valide')
+            ->whereBetween('date_paiement', [$dateDebut, $dateFin])
             ->groupBy('annee', 'mois')
             ->orderBy('annee')
             ->orderBy('mois')
@@ -175,150 +509,5 @@ class DashboardController extends Controller
                 'valeur' => $donneesParMois[$cle] ?? 0,
             ];
         })->toArray();
-    }
-    
-    /**
-     * Recherche avancée dans le système
-     */
-    public function rechercheAvancee(Request $request)
-    {
-        $this->authorize('viewAdminDashboard', User::class);
-        
-        $recherche = $request->input('q');
-        
-        if (empty($recherche)) {
-            return response()->json(['message' => 'Veuillez entrer un terme de recherche'], 400);
-        }
-        
-        $resultats = [
-            'etudiants' => $this->rechercherEtudiants($recherche),
-            'professeurs' => $this->rechercherProfesseurs($recherche),
-            'matieres' => $this->rechercherMatieres($recherche),
-            'paiements' => $this->rechercherPaiements($recherche),
-            'absences' => $this->rechercherAbsences($recherche),
-        ];
-        
-        return response()->json($resultats);
-    }
-    
-    /**
-     * Recherche d'étudiants
-     */
-    private function rechercherEtudiants(string $recherche)
-    {
-        return Etudiant::where('Nom', 'like', "%{$recherche}%")
-            ->orWhere('Prenom', 'like', "%{$recherche}%")
-            ->orWhere('Email', 'like', "%{$recherche}%")
-            ->orWhere('Telephone', 'like', "%{$recherche}%")
-            ->select('id', 'Nom', 'Prenom', 'Email', 'Telephone')
-            ->limit(10)
-            ->get()
-            ->map(function($etudiant) {
-                return [
-                    'id' => $etudiant->id,
-                    'nom_complet' => $etudiant->Nom . ' ' . $etudiant->Prenom,
-                    'email' => $etudiant->Email,
-                    'telephone' => $etudiant->Telephone,
-                    'lien' => route('etudiants.show', $etudiant),
-                ];
-            });
-    }
-    
-    /**
-     * Recherche de professeurs
-     */
-    private function rechercherProfesseurs(string $recherche)
-    {
-        return Professeur::where('Nom', 'like', "%{$recherche}%")
-            ->orWhere('Prenom', 'like', "%{$recherche}%")
-            ->orWhere('Email', 'like', "%{$recherche}%")
-            ->select('id', 'Nom', 'Prenom', 'Email', 'Telephone')
-            ->limit(10)
-            ->get()
-            ->map(function($professeur) {
-                return [
-                    'id' => $professeur->id,
-                    'nom_complet' => $professeur->Nom . ' ' . $professeur->Prenom,
-                    'email' => $professeur->Email,
-                    'telephone' => $professeur->Telephone,
-                    'lien' => route('professeurs.show', $professeur),
-                ];
-            });
-    }
-    
-    /**
-     * Recherche de matières
-     */
-    private function rechercherMatieres(string $recherche)
-    {
-        return Matiere::where('Libelle', 'like', "%{$recherche}%")
-            ->select('id', 'Libelle')
-            ->limit(10)
-            ->get()
-            ->map(function($matiere) {
-                return [
-                    'id' => $matiere->id,
-                    'libelle' => $matiere->Libelle,
-                    'lien' => route('matieres.show', $matiere),
-                ];
-            });
-    }
-    
-    /**
-     * Recherche de paiements
-     */
-    private function rechercherPaiements(string $recherche)
-    {
-        return Paiment::with(['etudiant:id,Nom,Prenom'])
-            ->where('id', 'like', "%{$recherche}%")
-            ->orWhere('Montant', 'like', "%{$recherche}%")
-            ->orWhere('SommeApaye', 'like', "%{$recherche}%")
-            ->orWhereHas('etudiant', function($query) use ($recherche) {
-                $query->where('Nom', 'like', "%{$recherche}%")
-                    ->orWhere('Prenom', 'like', "%{$recherche}%");
-            })
-            ->select('id', 'IdEtu', 'Montant', 'SommeApaye', 'Date_Paiment')
-            ->limit(10)
-            ->get()
-            ->map(function($paiement) {
-                return [
-                    'id' => $paiement->id,
-                    'etudiant' => $paiement->etudiant ? $paiement->etudiant->Nom . ' ' . $paiement->etudiant->Prenom : 'Inconnu',
-                    'montant' => number_format($paiement->Montant, 2, ',', ' '),
-                    'somme_payee' => number_format($paiement->SommeApaye, 2, ',', ' '),
-                    'date_paiement' => $paiement->Date_Paiment->format('d/m/Y'),
-                    'lien' => route('paiements.show', $paiement),
-                ];
-            });
-    }
-    
-    /**
-     * Recherche d'absences
-     */
-    private function rechercherAbsences(string $recherche)
-    {
-        return Absence::with(['etudiant:id,Nom,Prenom', 'seance.matiere:id,Libelle'])
-            ->where('justificatif', 'like', "%{$recherche}%")
-            ->orWhere('commentaire', 'like', "%{$recherche}%")
-            ->orWhereHas('etudiant', function($query) use ($recherche) {
-                $query->where('Nom', 'like', "%{$recherche}%")
-                    ->orWhere('Prenom', 'like', "%{$recherche}%");
-            })
-            ->orWhereHas('seance.matiere', function($query) use ($recherche) {
-                $query->where('Libelle', 'like', "%{$recherche}%");
-            })
-            ->select('id', 'IdEtu', 'IdSeance', 'date_absence', 'justificatif', 'commentaire')
-            ->limit(10)
-            ->get()
-            ->map(function($absence) {
-                return [
-                    'id' => $absence->id,
-                    'etudiant' => $absence->etudiant ? $absence->etudiant->Nom . ' ' . $absence->etudiant->Prenom : 'Inconnu',
-                    'matiere' => $absence->seance && $absence->seance->matiere ? $absence->seance->matiere->Libelle : 'Inconnue',
-                    'date_absence' => $absence->date_absence->format('d/m/Y H:i'),
-                    'est_justifiee' => !is_null($absence->justificatif),
-                    'lien' => route('absences.show', $absence),
-                ];
-            });
     }
 }
