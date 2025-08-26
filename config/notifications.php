@@ -46,7 +46,7 @@ return [
         'provider' => env('SMS_PROVIDER', 'twilio'), // twilio, nexmo, or custom
         'from' => env('SMS_FROM', 'AlloTawjih'),
         'templates' => [
-            'absence_alert' => 'Cher parent, votre enfant {student_name} était absent le {date} à {time}.',
+            'absence_alert' => 'Cher tuteur, votre enfant {student_name} était absent le {date} à {time}.',
             'payment_reminder' => 'Rappel : Paiement de {amount} DHS dû pour {month} {year}.',
         ],
     ],
@@ -74,7 +74,6 @@ return [
     'settings' => [
         'absence' => [
             'notify_after_minutes' => 15, // Minutes après le début du cours pour notifier l'absence
-            'notify_parent' => true,
             'notify_admin' => true,
             'threshold_for_warning' => 3, // Nombre d'absences avant avertissement
         ],
@@ -98,7 +97,6 @@ return [
     */
     'models' => [
         'user' => \App\Models\User::class,
-        'student' => \App\Models\Student::class,
         'teacher' => \App\Models\Teacher::class,
     ],
 

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Filiere extends Model
 {
@@ -21,10 +23,9 @@ class Filiere extends Model
     protected $fillable = [
         'code',
         'nom',
+        'abreviation',
         'description',
-        'duree_annees',
-        'frais_inscription',
-        'frais_mensuel',
+        'niveau_id',
         'est_actif',
     ];
 
@@ -34,18 +35,39 @@ class Filiere extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'duree_annees' => 'integer',
-        'frais_inscription' => 'decimal:2',
-        'frais_mensuel' => 'decimal:2',
+        'niveau_id' => 'integer',
         'est_actif' => 'boolean',
     ];
 
     /**
      * Relations
      */
-    public function users(): HasMany
+    
+    /**
+     * Les utilisateurs (élèves) de cette filière
+     */
+    public function eleves(): HasMany
     {
-        return $this->hasMany(User::class);
+        return $this->hasMany(User::class, 'filiere_id')
+            ->where('role', 'etudiant');
+    }
+    
+    /**
+     * Le niveau auquel appartient cette filière
+     */
+    public function niveau(): BelongsTo
+    {
+        return $this->belongsTo(Niveau::class);
+    }
+    
+    /**
+     * Les matières enseignées dans cette filière
+     */
+    public function matieres(): BelongsToMany
+    {
+        return $this->belongsToMany(Matiere::class, 'filiere_matiere')
+            ->withTimestamps()
+            ->withPivot(['created_at', 'updated_at']);
     }
 
     public function enseignements(): HasMany

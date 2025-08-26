@@ -45,7 +45,6 @@
               <option value="professeur">Professeur</option>
               <option value="assistant">Assistant</option>
               <option value="eleve">Élève</option>
-              <option value="parent">Parent</option>
             </select>
           </div>
           <div>
@@ -285,7 +284,6 @@
                 <option value="professeur">Professeur</option>
                 <option value="assistant">Assistant</option>
                 <option value="eleve">Élève</option>
-                <option value="parent">Parent</option>
               </select>
             </div>
             
@@ -412,8 +410,7 @@ export default {
         admin: 'Administrateur',
         professeur: 'Professeur',
         assistant: 'Assistant',
-        eleve: 'Élève',
-        parent: 'Parent'
+        eleve: 'Élève'
       }
       return labels[role] || role
     }
@@ -423,8 +420,7 @@ export default {
         admin: 'bg-red-100 text-red-800',
         professeur: 'bg-green-100 text-green-800',
         assistant: 'bg-yellow-100 text-yellow-800',
-        eleve: 'bg-blue-100 text-blue-800',
-        parent: 'bg-purple-100 text-purple-800'
+        eleve: 'bg-blue-100 text-blue-800'
       }
       return classes[role] || 'bg-gray-100 text-gray-800'
     }

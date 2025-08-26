@@ -7,7 +7,6 @@ export default defineConfig({
         laravel({
             input: [
                 'resources/css/app.css',
-                'resources/css/dashboard.css',
                 'resources/js/app.js',
             ],
             refresh: true,
@@ -21,9 +20,16 @@ export default defineConfig({
             },
         }),
     ],
+    css: {
+        postcss: './postcss.config.cjs'
+    },
     resolve: {
         alias: {
             '@': '/resources/js',
+            '@heroicons/vue/outline': '@heroicons/vue/outline/esm/',
         },
+    },
+    optimizeDeps: {
+        include: ['@heroicons/vue/outline'],
     },
 });

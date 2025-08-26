@@ -14,7 +14,7 @@
             </div>
             <div class="flex space-x-2">
               <Link 
-                :href="route('eleves.show', eleve.id)" 
+                :href="route('admin.eleves.show', eleve.id)" 
                 class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -280,7 +280,7 @@
             
             <div class="space-x-3">
               <Link 
-                :href="route('eleves.index')" 
+                :href="route('admin.eleves.index')" 
                 class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Annuler
@@ -373,7 +373,7 @@ const form = useForm({
 });
 
 const submit = () => {
-  form.put(route('eleves.update', props.eleve.id));
+  form.put(route('admin.eleves.update', props.eleve.id));
 };
 
 const confirmDelete = () => {
@@ -381,7 +381,7 @@ const confirmDelete = () => {
 };
 
 const deleteEleve = () => {
-  router.delete(route('eleves.destroy', props.eleve.id), {
+  router.delete(route('admin.eleves.destroy', props.eleve.id), {
     onSuccess: () => {
       showDeleteModal.value = false;
     }

@@ -309,10 +309,6 @@
                   <input v-model="systemForm.destinataires" type="checkbox" value="eleve" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
                   <span class="ml-2 text-sm text-gray-700">Élèves</span>
                 </label>
-                <label class="flex items-center">
-                  <input v-model="systemForm.destinataires" type="checkbox" value="parent" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
-                  <span class="ml-2 text-sm text-gray-700">Parents</span>
-                </label>
               </div>
             </div>
             <div>

@@ -1,58 +1,87 @@
 <template>
   <!-- Sidebar pour Admin -->
-  <AdminSidebar v-if="userRole === 'admin'" :isOpen="isOpen" @close="closeSidebar" />
+  <AdminSidebar 
+    v-if="['1', 'admin', 'administrateur'].includes(userRole)" 
+    :isOpen="isOpen" 
+    @close="closeSidebar" 
+  />
   
   <!-- Sidebar pour Professeur -->
-  <ProfesseurSidebar v-else-if="userRole === 'professeur'" :isOpen="isOpen" @close="closeSidebar" />
+  <ProfesseurSidebar 
+    v-else-if="['2', 'professeur', 'prof', 'teacher'].includes(userRole)" 
+    :isOpen="isOpen" 
+    @close="closeSidebar" 
+  />
   
   <!-- Sidebar pour Assistant -->
-  <AssistantSidebar v-else-if="userRole === 'assistant'" :isOpen="isOpen" @close="closeSidebar" />
+  <AssistantSidebar 
+    v-else-if="['3', 'assistant', 'assist'].includes(userRole)" 
+    :isOpen="isOpen" 
+    @close="closeSidebar" 
+  />
   
   <!-- Sidebar pour Élève -->
-  <EleveSidebar v-else-if="userRole === 'eleve'" :isOpen="isOpen" @close="closeSidebar" />
+  <EleveSidebar 
+    v-else-if="['4', 'eleve', 'etudiant', 'student'].includes(userRole)" 
+    :isOpen="isOpen" 
+    @close="closeSidebar" 
+  />
   
   <!-- Sidebar par défaut (si le rôle n'est pas reconnu) -->
-  <div v-else class="sidebar-wrapper">
-    <div class="sidebar" :class="{ 'sidebar-closed': !isOpen }">
-      <div v-if="isOpen" class="sidebar-overlay" @click="closeSidebar"></div>
-      <div class="sidebar-header">
-        <Link href="/dashboard" class="sidebar-logo">
-          <div class="logo-icon">
-            <svg fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+  <div v-else class="fixed inset-0 flex z-40 lg:hidden" v-show="isOpen">
+    <div class="fixed inset-0">
+      <div class="absolute inset-0 bg-gray-600 opacity-75" @click="closeSidebar"></div>
+    </div>
+    <div class="relative flex-1 flex flex-col max-w-xs w-full bg-white">
+      <div class="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
+        <div class="flex-shrink-0 flex items-center px-4">
+          <Link href="/" class="text-xl font-bold text-gray-900">
+            Allo Tawjih
+          </Link>
+          <button 
+            @click="closeSidebar" 
+            class="ml-auto -mx-1.5 -mr-5 p-1.5 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <span class="sr-only">Fermer le menu</span>
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
-          </div>
-          <span class="logo-text">Allo Tawjih</span>
-        </Link>
-        <button @click="closeSidebar" class="close-btn">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-6 h-6">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+          </button>
+        </div>
+        <nav class="mt-5 px-2 space-y-1">
+          <p class="px-3 text-sm font-medium text-gray-500 uppercase tracking-wider">
+            Menu non disponible pour votre rôle
+          </p>
+        </nav>
       </div>
-      
-      <div class="sidebar-content">
-        <p>Menu de navigation non disponible pour votre rôle.</p>
-      </div>
-      
-      <div class="sidebar-footer">
-        <div class="user-info">
-          <div class="user-avatar">
-            <span>{{ userInitials }}</span>
+      <div class="flex-shrink-0 flex border-t border-gray-200 p-4">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+              {{ userInitials }}
+            </div>
           </div>
-          <div class="user-details">
-            <div class="user-name">{{ user.name }}</div>
-            <div class="user-role">{{ getRoleLabel(userRole) }}</div>
+          <div class="ml-3">
+            <p class="text-base font-medium text-gray-700 group-hover:text-gray-900">
+              {{ user.name }}
+            </p>
+            <p class="text-sm font-medium text-gray-500 group-hover:text-gray-700">
+              {{ getRoleLabel(userRole) }}
+            </p>
+          </div>
+          <div class="ml-4 flex-shrink-0">
+            <Link 
+              href="/logout" 
+              method="post" 
+              as="button"
+              class="text-sm font-medium text-gray-500 hover:text-gray-700"
+            >
+              Déconnexion
+            </Link>
           </div>
         </div>
-        <Link href="/logout" method="post" as="button" class="logout-btn">
-          <i class="fas fa-sign-out-alt"></i>
-          <span>Déconnexion</span>
-        </Link>
       </div>
     </div>
-    
-    <div v-if="isOpen" @click="closeSidebar" class="sidebar-overlay"></div>
   </div>
 </template>
 
@@ -75,7 +104,56 @@ const emit = defineEmits(['close']);
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
-const userRole = computed(() => user.value?.role || 'guest');
+
+// Récupération du rôle utilisateur depuis le contexte d'authentification
+const userRole = computed(() => {
+  if (!user.value?.role) return 'guest';
+  return String(user.value.role).toLowerCase();
+});
+
+// Fermeture du sidebar
+const closeSidebar = () => {
+  emit('close');
+};
+
+// Obtention du libellé du rôle
+const getRoleLabel = (role) => {
+  const roles = {
+    // Admin
+    '1': 'Administrateur',
+    'admin': 'Administrateur',
+    'administrateur': 'Administrateur',
+    
+    // Professeur
+    '2': 'Professeur',
+    'professeur': 'Professeur',
+    'prof': 'Professeur',
+    'teacher': 'Professeur',
+    
+    // Assistant
+    '3': 'Assistant',
+    'assistant': 'Assistant',
+    'assist': 'Assistant',
+    
+    // Élève
+    '4': 'Élève',
+    'eleve': 'Élève',
+    'etudiant': 'Élève',
+    'student': 'Élève'
+  };
+  
+  return roles[role] || 'Utilisateur';
+};
+
+// Journalisation pour débogage
+console.log('Rôle utilisateur détecté :', {
+  role: user.value?.role,
+  role_label: user.value?.role_label,
+  role_value: user.value?.role_value,
+  normalizedRole: userRole.value,
+  user: user.value
+});
+
 const userInitials = computed(() => {
   if (!user.value?.name) return '??';
   return user.value.name
@@ -85,30 +163,6 @@ const userInitials = computed(() => {
     .toUpperCase()
     .substring(0, 2);
 });
-
-const closeSidebar = () => {
-  emit('close');
-};
-
-const getRoleLabel = (role) => {
-  // Gérer à la fois les rôles numériques et les chaînes de caractères
-  const roles = {
-    '1': 'Administrateur',
-    'admin': 'Administrateur',
-    '2': 'Professeur',
-    'professeur': 'Professeur',
-    '3': 'Assistant',
-    'assistant': 'Assistant',
-    '4': 'Élève',
-    'eleve': 'Élève',
-    '5': 'Parent',
-    'parent': 'Parent',
-  };
-  
-  // Si le rôle est un nombre, le convertir en chaîne pour la correspondance
-  const roleKey = typeof role === 'number' ? role.toString() : role;
-  return roles[roleKey] || role || 'Invité';
-};
 </script>
 
 <style scoped>

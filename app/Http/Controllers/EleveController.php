@@ -9,15 +9,17 @@ use App\Enums\RoleType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
+use Spatie\Permission\Traits\HasRoles;
 
 class EleveController extends Controller
 {
+    use HasRoles;
     /**
      * Affiche la liste des élèves
      */
     public function index()
     {
-        $eleves = User::role(RoleType::ELEVE->value)
+        $eleves = User::role('eleve')
             ->with(['niveau:id,nom', 'filiere:id,nom'])
             ->orderBy('created_at', 'desc')
             ->get()
@@ -37,10 +39,10 @@ class EleveController extends Controller
                 ];
             });
 
-        return Inertia::render('Eleves/Index', [
+        return Inertia::render('Admin/Eleves/Index', [
             'eleves' => $eleves,
-            'niveaux' => Niveau::select('id', 'nom')->get(),
-            'filieres' => Filiere::select('id', 'nom')->get(),
+            'niveaux' => Niveau::select('id', 'nom')->orderBy('nom')->get(),
+            'filieres' => Filiere::select('id', 'nom')->orderBy('nom')->get(),
         ]);
     }
 
@@ -49,9 +51,9 @@ class EleveController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Eleves/Create', [
-            'niveaux' => Niveau::select('id', 'nom')->get(),
-            'filieres' => Filiere::select('id', 'nom')->get(),
+        return Inertia::render('Admin/Eleves/Create', [
+            'niveaux' => Niveau::select('id', 'nom')->orderBy('nom')->get(),
+            'filieres' => Filiere::select('id', 'nom')->orderBy('nom')->get(),
         ]);
     }
 
@@ -65,11 +67,9 @@ class EleveController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string|max:255',
             'niveau_id' => 'required|exists:niveaux,id',
-            'filiere_id' => 'required|exists:filieres,id',
-            'date_debut' => 'required|date',
-            'somme_a_payer' => 'required|numeric|min:0',
+            'filiere_id' => 'nullable|exists:filieres,id',
+            'somme_a_payer' => 'nullable|numeric|min:0',
         ]);
 
         $user = User::create([
@@ -77,16 +77,18 @@ class EleveController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'phone' => $validated['phone'] ?? null,
-            'address' => $validated['address'] ?? null,
             'niveau_id' => $validated['niveau_id'],
-            'filiere_id' => $validated['filiere_id'],
-            'date_debut' => $validated['date_debut'],
-            'somme_a_payer' => $validated['somme_a_payer'],
+            'filiere_id' => $validated['filiere_id'] ?? null,
+            'somme_a_payer' => $validated['somme_a_payer'] ?? 0,
+            'date_debut' => now(),
             'role' => RoleType::ELEVE->value,
             'is_active' => true,
         ]);
+        
+        // Assigner le rôle à l'utilisateur
+        $user->assignRole(RoleType::ELEVE->name);
 
-        return redirect()->route('eleves.index')
+        return redirect()->route('admin.eleves.index')
             ->with('success', 'Élève créé avec succès');
     }
 
@@ -142,8 +144,8 @@ class EleveController extends Controller
                 'somme_a_payer' => $eleve->somme_a_payer,
                 'is_active' => $eleve->is_active,
             ],
-            'niveaux' => Niveau::select('id', 'nom')->get(),
-            'filieres' => Filiere::select('id', 'nom')->get(),
+            'niveaux' => Niveau::select('id', 'nom')->orderBy('nom')->get(),
+            'filieres' => Filiere::select('id', 'nom')->orderBy('nom')->get(),
         ]);
     }
 

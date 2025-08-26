@@ -18,8 +18,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Exécuter le seeder des rôles et permissions
+        $this->call([
+            RolePermissionSeeder::class,
+        ]);
+
         // Créer l'administrateur principal
-        User::firstOrCreate(
+        $admin = User::firstOrCreate(
             ['email' => 'admin@allotawjih.com'],
             [
                 'name' => 'Administrateur',
@@ -30,9 +35,17 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        // Attribuer le rôle admin à l'utilisateur admin
+        $admin->assignRole('admin');
+
         // Seed test data
         $this->call([
             TestDataSeeder::class,
+        ]);
+        
+        // Seed des configurations de salaire
+        $this->call([
+            ConfigurationSalaireSeeder::class,
         ]);
 
         // Créer les niveaux
@@ -84,10 +97,10 @@ class DatabaseSeeder extends Seeder
 
         // Créer les packs
         $packs = [
-            ['nom' => 'Pack Mathématiques', 'description' => 'Cours de mathématiques intensifs', 'nombre_heures' => 20, 'prix' => 500],
-            ['nom' => 'Pack Sciences', 'description' => 'Mathématiques + Physique-Chimie', 'nombre_heures' => 30, 'prix' => 700],
-            ['nom' => 'Pack Complet', 'description' => 'Toutes les matières principales', 'nombre_heures' => 50, 'prix' => 1200],
-            ['nom' => 'Pack Soutien', 'description' => 'Soutien scolaire personnalisé', 'nombre_heures' => 15, 'prix' => 400],
+            ['nom' => 'Pack Mathématiques', 'description' => 'Cours de mathématiques intensifs', 'prix' => 500, 'duree_jours' => 30],
+            ['nom' => 'Pack Sciences', 'description' => 'Mathématiques + Physique-Chimie', 'prix' => 700, 'duree_jours' => 60],
+            ['nom' => 'Pack Complet', 'description' => 'Toutes les matières principales', 'prix' => 1200, 'duree_jours' => 90],
+            ['nom' => 'Pack Soutien', 'description' => 'Soutien scolaire personnalisé', 'prix' => 400, 'duree_jours' => 30],
         ];
 
         foreach ($packs as $pack) {
@@ -124,8 +137,6 @@ class DatabaseSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'role' => RoleType::ELEVE,
                 'phone' => '0612345681',
-                'parent_phone' => '0612345682',
-                'parent_email' => 'parent@allotawjih.com',
                 'niveau_id' => 6, // 2ème BAC Math
                 'filiere_id' => 1, // Sciences Mathématiques
                 'somme_a_payer' => 500,

@@ -41,6 +41,21 @@ return [
             'driver' => 'array',
             'serialize' => false,
         ],
+        
+        'optimized' => [
+            'driver' => 'file',
+            'path' => storage_path('framework/cache/data'),
+            'permission' => [
+                'file' => [
+                    'public' => 0664,
+                    'private' => 0664,
+                ],
+                'dir' => [
+                    'public' => 0775,
+                    'private' => 0775,
+                ],
+            ],
+        ],
 
         'database' => [
             'driver' => 'database',
@@ -106,6 +121,37 @@ return [
     |
     */
 
-    'prefix' => env('CACHE_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_cache_'),
+    'prefix' => env('CACHE_PREFIX', 'eschoolar_'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Cache TTL Settings
+    |--------------------------------------------------------------------------
+    |
+    | Here you may define the default cache time to live in minutes for
+    | different types of cached data.
+    |
+    */
+    'ttl' => [
+        'short' => 5,      // 5 minutes
+        'medium' => 60,    // 1 hour
+        'long' => 1440,    // 1 day
+        'very_long' => 10080, // 1 week
+    ],
+    
+    /*
+    |--------------------------------------------------------------------------
+    | Cache Keys
+    |--------------------------------------------------------------------------
+    |
+    | Here you may define the cache keys used throughout the application.
+    |
+    */
+    'keys' => [
+        'matieres' => 'matieres',
+        'classes' => 'classes',
+        'etudiants' => 'etudiants',
+        'presences' => 'presences',
+        'statistiques' => 'statistiques',
+    ],
 ];

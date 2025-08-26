@@ -1,3 +1,18 @@
+<script setup>
+import { Link } from '@inertiajs/vue3';
+import { useRoute } from '@/utils/route';
+
+const { route, currentRoute } = useRoute();
+const emit = defineEmits(['close']);
+
+const props = defineProps({
+  isOpen: {
+    type: Boolean,
+    required: true
+  }
+});
+</script>
+
 <template>
   <div class="sidebar" :class="{ 'sidebar-closed': !isOpen }">
     <div v-if="isOpen" class="sidebar-overlay" @click="$emit('close')"></div>
@@ -8,7 +23,7 @@
     <nav class="sidebar-nav">
       <ul>
         <li>
-          <Link href="/dashboard" :class="{ 'active': $page.url === '/dashboard' }">
+          <Link :href="route('dashboard')" :class="{ 'active': currentRoute() === 'dashboard' }">
             <i class="fas fa-tachometer-alt"></i>
             <span>Tableau de bord</span>
           </Link>
@@ -18,25 +33,25 @@
           <span class="nav-section-title">Mes études</span>
           <ul>
             <li>
-              <Link href="/eleve/emploi-du-temps" :class="{ 'active': $page.url.startsWith('/eleve/emploi-du-temps') }">
+              <Link :href="route('eleve.emploi-du-temps')" :class="{ 'active': currentRoute().startsWith('eleve.emploi-du-temps') }">
                 <i class="fas fa-calendar-alt"></i>
                 <span>Emploi du temps</span>
               </Link>
             </li>
             <li>
-              <Link href="/eleve/matieres" :class="{ 'active': $page.url.startsWith('/eleve/matieres') }">
+              <Link :href="route('eleve.matieres.index')" :class="{ 'active': currentRoute().startsWith('eleve.matieres') }">
                 <i class="fas fa-book"></i>
                 <span>Mes matières</span>
               </Link>
             </li>
             <li>
-              <Link href="/eleve/notes" :class="{ 'active': $page.url.startsWith('/eleve/notes') }">
+              <Link :href="route('eleve.notes.index')" :class="{ 'active': currentRoute().startsWith('eleve.notes') }">
                 <i class="fas fa-clipboard-check"></i>
                 <span>Mes notes</span>
               </Link>
             </li>
             <li>
-              <Link href="/eleve/absences" :class="{ 'active': $page.url.startsWith('/eleve/absences') }">
+              <Link :href="route('eleve.absences.index')" :class="{ 'active': currentRoute().startsWith('eleve.absences') }">
                 <i class="fas fa-user-times"></i>
                 <span>Mes absences</span>
               </Link>
@@ -48,19 +63,19 @@
           <span class="nav-section-title">Travail personnel</span>
           <ul>
             <li>
-              <Link href="/eleve/devoirs" :class="{ 'active': $page.url.startsWith('/eleve/devoirs') }">
+              <Link :href="route('eleve.devoirs.index')" :class="{ 'active': currentRoute().startsWith('eleve.devoirs') }">
                 <i class="fas fa-tasks"></i>
                 <span>Devoirs</span>
               </Link>
             </li>
             <li>
-              <Link href="/eleve/cours" :class="{ 'active': $page.url.startsWith('/eleve/cours') }">
+              <Link :href="route('eleve.cours.index')" :class="{ 'active': currentRoute().startsWith('eleve.cours') }">
                 <i class="fas fa-book-reader"></i>
                 <span>Cours en ligne</span>
               </Link>
             </li>
             <li>
-              <Link href="/eleve/ressources" :class="{ 'active': $page.url.startsWith('/eleve/ressources') }">
+              <Link :href="route('eleve.ressources.index')" :class="{ 'active': currentRoute().startsWith('eleve.ressources') }">
                 <i class="fas fa-folder-open"></i>
                 <span>Ressources</span>
               </Link>
@@ -72,19 +87,19 @@
           <span class="nav-section-title">Vie scolaire</span>
           <ul>
             <li>
-              <Link href="/eleve/bulletins" :class="{ 'active': $page.url.startsWith('/eleve/bulletins') }">
+              <Link :href="route('eleve.bulletins.index')" :class="{ 'active': currentRoute().startsWith('eleve.bulletins') }">
                 <i class="fas fa-file-alt"></i>
                 <span>Mes bulletins</span>
               </Link>
             </li>
             <li>
-              <Link href="/eleve/evenements" :class="{ 'active': $page.url.startsWith('/eleve/evenements') }">
+              <Link :href="route('eleve.evenements.index')" :class="{ 'active': currentRoute().startsWith('eleve.evenements') }">
                 <i class="fas fa-calendar-day"></i>
                 <span>Événements</span>
               </Link>
             </li>
             <li>
-              <Link href="/eleve/messagerie" :class="{ 'active': $page.url.startsWith('/eleve/messagerie') }">
+              <Link :href="route('eleve.messagerie.index')" :class="{ 'active': currentRoute().startsWith('eleve.messagerie') }">
                 <i class="fas fa-envelope"></i>
                 <span>Messagerie</span>
               </Link>
@@ -96,13 +111,13 @@
           <span class="nav-section-title">Mon compte</span>
           <ul>
             <li>
-              <Link href="/eleve/profil" :class="{ 'active': $page.url.startsWith('/eleve/profil') }">
+              <Link :href="route('eleve.profil.edit')" :class="{ 'active': currentRoute().startsWith('eleve.profil') }">
                 <i class="fas fa-user-edit"></i>
                 <span>Mon profil</span>
               </Link>
             </li>
             <li>
-              <Link href="/eleve/parametres" :class="{ 'active': $page.url.startsWith('/eleve/parametres') }">
+              <Link :href="route('eleve.parametres.index')" :class="{ 'active': currentRoute().startsWith('eleve.parametres') }">
                 <i class="fas fa-cog"></i>
                 <span>Paramètres</span>
               </Link>
@@ -122,7 +137,7 @@
           <div class="user-role">Élève</div>
         </div>
       </div>
-      <Link href="/logout" method="post" as="button" class="logout-btn">
+      <Link :href="route('logout')" method="post" as="button" class="logout-btn">
         <i class="fas fa-sign-out-alt"></i>
         <span>Déconnexion</span>
       </Link>
@@ -130,18 +145,6 @@
   </div>
 </template>
 
-<script setup>
-import { Link } from '@inertiajs/vue3';
-
-const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    required: true
-  }
-});
-
-const emit = defineEmits(['close']);
-</script>
 
 <style scoped>
 .sidebar {

@@ -4,12 +4,21 @@ import '../css/app.css';
 // Import des dépendances JavaScript
 import 'bootstrap';
 import * as bootstrap from 'bootstrap';
+import Alpine from 'alpinejs';
+import focus from '@alpinejs/focus';
 import { createApp, h } from 'vue';
-import { createInertiaApp } from '@inertiajs/vue3';
+import { createInertiaApp, Link, Head } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import { ZiggyVue } from 'ziggy-js';
+import { Ziggy } from './ziggy';
 
 // Configuration globale
 window.bootstrap = bootstrap;
+
+// Initialisation d'Alpine.js
+window.Alpine = Alpine;
+Alpine.plugin(focus);
+Alpine.start();
 
 // Création de l'application Inertia
 createInertiaApp({
@@ -29,8 +38,14 @@ createInertiaApp({
         // Création de l'application Vue
         const app = createApp({ render: () => h(App, props) });
         
-        // Utilisation du plugin Inertia
-        app.use(plugin);
+        // Utilisation des plugins
+        app.use(plugin)
+           .use(ZiggyVue, Ziggy)
+           .component('Link', Link)
+           .component('Head', Head);
+        
+        // Make route() function available in all components
+        app.config.globalProperties.$route = window.route;
         
         // Montage de l'application
         app.mount(el);

@@ -9,7 +9,7 @@
             <p class="mt-2 text-gray-600">Liste des élèves inscrits dans le centre</p>
           </div>
           <Link
-            :href="route('eleves.create')"
+            :href="route('admin.eleves.create')"
             class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,7 +129,7 @@
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div class="flex space-x-2">
                     <Link 
-                      :href="route('eleves.show', eleve.id)" 
+                      :href="route('admin.eleves.show', eleve.id)" 
                       class="text-blue-600 hover:text-blue-900"
                       title="Voir les détails"
                     >
@@ -139,7 +139,7 @@
                       </svg>
                     </Link>
                     <Link 
-                      :href="route('eleves.edit', eleve.id)" 
+                      :href="route('admin.eleves.edit', eleve.id)" 
                       class="text-indigo-600 hover:text-indigo-900"
                       title="Modifier"
                     >
@@ -257,7 +257,7 @@ function confirmDelete(eleve) {
 
 function deleteEleve() {
   if (selectedEleve.value) {
-    router.delete(route('eleves.destroy', selectedEleve.value.id), {
+    router.delete(route('admin.eleves.destroy', selectedEleve.value.id), {
       onSuccess: () => {
         showDeleteModal.value = false;
       }

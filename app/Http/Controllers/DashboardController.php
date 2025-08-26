@@ -47,7 +47,6 @@ class DashboardController extends Controller
             RoleType::PROFESSEUR->value => $this->professeur(),
             RoleType::ASSISTANT->value => $this->assistant(),
             RoleType::ELEVE->value => $this->eleve(),
-            RoleType::PARENT->value => $this->parentDashboard(),
             default => redirect()->route('login')->withErrors([
                 'email' => 'Rôle utilisateur non reconnu.',
             ]),
@@ -65,7 +64,6 @@ class DashboardController extends Controller
             'eleves' => User::where('role', RoleType::ELEVE)->count(),
             'professeurs' => User::where('role', RoleType::PROFESSEUR)->count(),
             'assistants' => User::where('role', RoleType::ASSISTANT)->count(),
-            'parents' => User::where('role', RoleType::PARENT)->count(),
             'revenusMois' => Paiement::whereMonth('date_paiement', now()->month)
                 ->whereYear('date_paiement', now()->year)
                 ->where('statut', 'payé')
@@ -274,89 +272,6 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
-     * Affiche le tableau de bord parent
-     */
-    public function parentDashboard()
-    {
-        $user = auth()->user();
-        
-        // Récupérer les enfants du parent
-        $enfants = $user->enfants()
-            ->with(['niveau', 'filiere'])
-            ->get()
-            ->map(function($enfant) {
-                return [
-                    'id' => $enfant->id,
-                    'name' => $enfant->name,
-                    'niveau' => $enfant->niveau->nom ?? 'N/A',
-                    'filiere' => $enfant->filiere->nom ?? 'N/A',
-                    'moyenne_generale' => $enfant->moyenneGenerale(),
-                    'absences_ce_mois' => $enfant->absences()
-                        ->whereMonth('date_absence', now()->month)
-                        ->count(),
-                    'prochains_devoirs' => $enfant->devoirs()
-                        ->where('date_limite', '>=', now())
-                        ->count(),
-                ];
-            });
-            
-        // Dernières notes des enfants
-        $dernieresNotes = \App\Models\Note::whereIn('etudiant_id', $user->enfants()->pluck('id'))
-            ->with(['etudiant:id,name', 'matiere'])
-            ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->get()
-            ->map(function($note) {
-                return [
-                    'id' => $note->id,
-                    'etudiant' => $note->etudiant->name,
-                    'matiere' => $note->matiere->nom,
-                    'valeur' => $note->valeur,
-                    'type' => $note->type,
-                    'date' => $note->created_at->format('d/m/Y'),
-                ];
-            });
-            
-        // Dernières absences des enfants
-        $dernieresAbsences = \App\Models\Absence::whereIn('etudiant_id', $user->enfants()->pluck('id'))
-            ->with(['etudiant:id,name', 'matiere'])
-            ->orderBy('date_absence', 'desc')
-            ->limit(10)
-            ->get()
-            ->map(function($absence) {
-                return [
-                    'id' => $absence->id,
-                    'etudiant' => $absence->etudiant->name,
-                    'matiere' => $absence->matiere->nom,
-                    'date' => $absence->date_absence->format('d/m/Y'),
-                    'justifiee' => $absence->justifiee ? 'Oui' : 'Non',
-                ];
-            });
-            
-        // Prochains événements
-        $prochainsEvenements = \App\Models\Evenement::where('date_debut', '>=', now())
-            ->orderBy('date_debut')
-            ->limit(5)
-            ->get()
-            ->map(function($evenement) {
-                return [
-                    'id' => $evenement->id,
-                    'titre' => $evenement->titre,
-                    'date_debut' => $evenement->date_debut->format('d/m/Y H:i'),
-                    'date_fin' => $evenement->date_fin->format('d/m/Y H:i'),
-                    'lieu' => $evenement->lieu ?? 'Non spécifié',
-                ];
-            });
-        
-        return Inertia::render('Dashboard/Parent/Index', [
-            'enfants' => $enfants,
-            'dernieresNotes' => $dernieresNotes,
-            'dernieresAbsences' => $dernieresAbsences,
-            'prochainsEvenements' => $prochainsEvenements,
-        ]);
-    }
-    
     /**
      * Affiche le tableau de bord élève
      */

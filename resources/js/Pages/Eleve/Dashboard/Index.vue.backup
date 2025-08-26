@@ -1,0 +1,677 @@
+<template>
+  <EleveLayout :title="'Tableau de bord'" :breadcrumbs="[{ title: 'Tableau de bord' }]">
+    <div class="space-y-6">
+      <!-- En-tête avec bienvenue -->
+      <div class="bg-white shadow rounded-lg p-6">
+        <h1 class="text-2xl font-bold text-gray-900">
+          Bonjour, {{ user.first_name || user.name }}
+        </h1>
+        <p class="mt-1 text-gray-600">
+          Bienvenue sur votre tableau de bord. Voici un aperçu de votre activité récente.
+        </p>
+      </div>
+
+      <!-- Cartes de statistiques -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Carte Moyenne Générale -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="p-5">
+            <div class="flex items-center">
+              <div class="p-3 rounded-full bg-indigo-100 text-indigo-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-medium text-gray-500">Moyenne générale</p>
+                <div class="flex items-baseline">
+                  <p class="text-2xl font-bold text-gray-900">{{ calculerMoyenne() }}</p>
+                  <p class="ml-1 text-sm text-gray-500">/ 20</p>
+                </div>
+                <p class="mt-1 text-xs text-gray-500">Sur {{ stats.notes.total }} notes</p>
+              </div>
+            </div>
+          </div>
+          <div class="bg-gray-50 px-5 py-3">
+            <div class="text-sm">
+              <Link :href="route('eleve.notes.index')" class="font-medium text-indigo-600 hover:text-indigo-500">
+                Voir toutes les notes
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <!-- Carte Absences -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="p-5">
+            <div class="flex items-center">
+              <div class="p-3 rounded-full bg-red-100 text-red-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-medium text-gray-500">Absences ce mois</p>
+                <div class="flex items-baseline">
+                  <p class="text-2xl font-bold text-gray-900">{{ absencesCeMois.length }}</p>
+                  <p v-if="absencesNonJustifiees > 0" class="ml-2 text-sm font-medium text-red-600">
+                    ({{ absencesNonJustifiees }} non justifiées)
+                  </p>
+                </div>
+                <p class="mt-1 text-xs text-gray-500">Sur {{ stats.absences.total }} au total</p>
+              </div>
+            </div>
+          </div>
+          <div class="bg-gray-50 px-5 py-3">
+            <div class="text-sm">
+              <Link :href="route('eleve.absences.index')" class="font-medium text-indigo-600 hover:text-indigo-500">
+                Voir toutes les absences
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <!-- Carte Prochain Cours -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="p-5">
+            <div class="flex items-center">
+              <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div class="ml-4 flex-1">
+                <p class="text-sm font-medium text-gray-500">Prochain cours</p>
+                <p v-if="prochainesSeances.length > 0" class="text-lg font-bold text-gray-900">
+                  {{ formatDate(prochainesSeances[0].date_debut) }}
+                </p>
+                <p v-if="prochainesSeances.length > 0" class="text-sm text-gray-600">
+                  {{ prochainesSeances[0].matiere.nom }}
+                </p>
+                <p v-else class="text-sm text-gray-500">Aucun cours prévu</p>
+              </div>
+            </div>
+          </div>
+          <div class="bg-gray-50 px-5 py-3">
+            <div class="text-sm">
+              <Link :href="route('eleve.emploi-du-temps')" class="font-medium text-indigo-600 hover:text-indigo-500">
+                Voir l'emploi du temps
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <!-- Carte Paiements -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="p-5">
+            <div class="flex items-center">
+              <div class="p-3 rounded-full bg-green-100 text-green-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-medium text-gray-500">Prochain paiement</p>
+                <p v-if="prochainPaiement" class="text-xl font-bold text-gray-900">
+                  {{ formatMontant(prochainPaiement.montant) }}
+                </p>
+                <p v-else class="text-gray-500">Aucun paiement à venir</p>
+                <p v-if="prochainPaiement" class="mt-1 text-xs text-gray-500">
+                  Échéance: {{ formatDateCourte(prochainPaiement.date_echeance) }}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="bg-gray-50 px-5 py-3">
+            <div class="text-sm">
+              <Link :href="route('eleve.paiements.index')" class="font-medium text-indigo-600 hover:text-indigo-500">
+                Voir les paiements
+              </Link>
+            </div>
+          </div>
+        </div>
+      <!-- Section Prochaines séances -->
+      <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h2 class="text-lg font-medium text-gray-900">Prochaines séances</h2>
+        </div>
+        <div class="divide-y divide-gray-200">
+          <div v-if="prochainesSeances.length > 0">
+            <div v-for="seance in prochainesSeances.slice(0, 3)" :key="seance.id" class="px-6 py-4">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 bg-blue-100 rounded-md p-2">
+                  <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm font-medium text-gray-900">{{ seance.matiere.nom }}</p>
+                  <p class="text-sm text-gray-500">
+                    {{ formatDateComplete(seance.date_debut) }} - {{ formatHeure(seance.date_debut) }}
+                  </p>
+                  <p class="mt-1 text-sm text-gray-500">
+                    {{ seance.salle?.nom || 'Salle non définie' }} • {{ seance.professeur?.name || 'Professeur non défini' }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="px-6 py-4">
+            <p class="text-sm text-gray-500">Aucune séance à venir</p>
+          </div>
+        </div>
+        <div class="bg-gray-50 px-6 py-3 text-right">
+          <Link :href="route('eleve.emploi-du-temps')" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+            Voir l'emploi du temps complet
+          </Link>
+        </div>
+      </div>
+
+      <!-- Dernières notes -->
+      <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h2 class="text-lg font-medium text-gray-900">Dernières notes</h2>
+        </div>
+        <div class="divide-y divide-gray-200">
+          <div v-if="derniereNotes.length > 0">
+            <div v-for="note in derniereNotes.slice(0, 5)" :key="note.id" class="px-6 py-4">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-gray-900">{{ note.matiere.nom }}</p>
+                  <p class="text-sm text-gray-500">{{ note.type_note }} • {{ formatDateCourte(note.date_evaluation) }}</p>
+                </div>
+                <div :class="getNoteClass(note.valeur)" class="px-3 py-1 rounded-full text-sm font-medium">
+                  {{ note.valeur }}/20
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="px-6 py-4">
+            <p class="text-sm text-gray-500">Aucune note enregistrée</p>
+          </div>
+        </div>
+        <div class="bg-gray-50 px-6 py-3 text-right">
+          <Link :href="route('eleve.notes.index')" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+            Voir toutes les notes
+          </Link>
+        </div>
+      </div>
+
+      <!-- Dernières absences -->
+      <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h2 class="text-lg font-medium text-gray-900">Dernières absences</h2>
+        </div>
+        <div class="divide-y divide-gray-200">
+          <div v-if="absences.length > 0">
+            <div v-for="absence in absences.slice(0, 5)" :key="absence.id" class="px-6 py-4">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-gray-900">
+                    {{ formatDateComplete(absence.date_absence) }}
+                    <span class="ml-2 text-sm font-normal text-gray-500">
+                      {{ absence.matiere?.nom || 'Matière non spécifiée' }}
+                    </span>
+                  </p>
+                  <p class="mt-1 text-sm text-gray-500">
+                    {{ absence.heure_debut }} - {{ absence.heure_fin }}
+                    <span v-if="absence.motif" class="ml-2 text-gray-500">• {{ absence.motif }}</span>
+                  </p>
+                </div>
+                <span :class="absence.est_justifiee ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'" class="px-2 py-1 text-xs font-medium rounded-full">
+                  {{ absence.est_justifiee ? 'Justifiée' : 'Non justifiée' }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div v-else class="px-6 py-4">
+            <p class="text-sm text-gray-500">Aucune absence enregistrée</p>
+          </div>
+        </div>
+        <div class="bg-gray-50 px-6 py-3 text-right">
+          <Link :href="route('eleve.absences.index')" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+            Voir toutes les absences
+          </Link>
+        </div>
+      </div>
+
+      <!-- Prochains paiements -->
+      <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h2 class="text-lg font-medium text-gray-900">Prochains paiements</h2>
+        </div>
+        <div class="divide-y divide-gray-200">
+          <div v-if="paiements.length > 0">
+            <div v-for="paiement in paiements.slice(0, 3)" :key="paiement.id" class="px-6 py-4">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-gray-900">
+                    {{ paiement.libelle || 'Paiement' }}
+                    <span class="ml-2 text-sm font-normal text-gray-500">
+                      Échéance: {{ formatDateCourte(paiement.date_echeance) }}
+                    </span>
+                  </p>
+                  <p class="mt-1 text-sm text-gray-500">
+                    {{ paiement.description || 'Aucune description' }}
+                  </p>
+                </div>
+                <div class="text-right">
+                  <p class="text-sm font-medium text-gray-900">{{ formatMontant(paiement.montant) }}</p>
+                  <span :class="getPaiementStatusClass(paiement.statut)" class="px-2 py-1 text-xs font-medium rounded-full">
+                    {{ getPaiementStatusLabel(paiement.statut) }}
+                  </span>
+                </div>
+            <div class="ml-4 flex-1">
+              <p class="text-sm font-medium text-gray-500">Prochain cours</p>
+              <p v-if="prochainesSeances.length > 0" class="text-lg font-bold text-gray-900">
+                {{ formatDate(prochainesSeances[0].date_debut) }}
+              </p>
+              <p v-if="prochainesSeances.length > 0" class="text-sm text-gray-600">
+                {{ prochainesSeances[0].matiere.nom }}
+              </p>
+              <p v-else class="text-sm text-gray-500">Aucun cours prévu</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gray-50 px-5 py-3">
+          <div class="text-sm">
+            <Link :href="route('eleve.emploi-du-temps')" class="font-medium text-indigo-600 hover:text-indigo-500">
+              Voir l'emploi du temps
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <!-- Carte des paiements -->
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="p-3 rounded-full bg-green-100 text-green-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-500">Prochain paiement</p>
+              <p v-if="prochainPaiement" class="text-xl font-bold text-gray-900">
+                {{ formatMontant(prochainPaiement.montant) }}
+              </p>
+              <p v-else class="text-gray-500">Aucun paiement à venir</p>
+              <p v-if="prochainPaiement" class="mt-1 text-xs text-gray-500">
+                Échéance: {{ formatDateCourte(prochainPaiement.date_echeance) }}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gray-50 px-5 py-3">
+          <div class="text-sm">
+            <Link :href="route('eleve.paiements.index')" class="font-medium text-indigo-600 hover:text-indigo-500">
+              Voir les paiements
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+          <div v-if="prochainesSeances.length > 0">
+            <div v-for="seance in prochainesSeances.slice(0, 5)" :key="seance.id" class="p-4 hover:bg-gray-50">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 bg-blue-100 p-2 rounded-lg">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div class="ml-4">
+                  <div class="text-sm font-medium text-gray-900">{{ seance.matiere.nom }}</div>
+                  <div class="text-sm text-gray-500">
+                    {{ formatDate(seance.date_debut) }} - {{ formatHeure(seance.date_debut) }} à {{ formatHeure(seance.date_fin) }}
+                  </div>
+                  <div class="mt-1 text-sm text-gray-500">
+                    <span v-if="seance.salle">Salle {{ seance.salle }}</span>
+                    <span v-else>Salle non spécifiée</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="p-6 text-center text-gray-500">
+            Aucune séance à venir
+          </div>
+        </div>
+        <div v-if="prochainesSeances.length > 0" class="px-6 py-4 bg-gray-50 text-right">
+          <Link :href="route('eleve.emploi-du-temps')" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+            Voir tout l'emploi du temps
+          </Link>
+        </div>
+      </div>
+
+      <!-- Dernières notes -->
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-medium text-gray-900">Dernières notes</h3>
+        </div>
+        <div class="divide-y divide-gray-200">
+          <div v-if="derniereNotes.length > 0">
+            <div v-for="note in derniereNotes.slice(0, 5)" :key="note.id" class="p-4 hover:bg-gray-50">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <div :class="['flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center', getNoteColorClass(note)]">
+                    <span class="font-medium">{{ note.note }}</span>
+                  </div>
+                  <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-900">{{ note.matiere.nom }}</div>
+                    <div class="text-sm text-gray-500">{{ note.type_note }} • {{ formatDate(note.date_note) }}</div>
+                    <div v-if="note.commentaire" class="mt-1 text-sm text-gray-500 truncate">
+                      "{{ note.commentaire }}"
+                    </div>
+                  </div>
+                </div>
+                <div class="ml-2 flex-shrink-0">
+                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getNoteColorClass(note) + ' bg-opacity-30'">
+                    /20
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="p-6 text-center text-gray-500">
+            Aucune note pour le moment
+          </div>
+        </div>
+        <div v-if="derniereNotes.length > 0" class="px-6 py-4 bg-gray-50 text-right">
+          <Link :href="route('eleve.notes.index')" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+            Voir toutes les notes
+          </Link>
+        </div>
+      </div>
+    </div>
+  </EleveLayout>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { format, parseISO, isThisMonth, isAfter, formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import EleveLayout from '@/Layouts/EleveLayout.vue';
+import axios from 'axios';
+
+// Propriétés du composant
+const props = defineProps({
+  user: {
+    type: Object,
+    required: true
+  },
+  stats: {
+    type: Object,
+    required: true,
+    default: () => ({
+      notes: { total: 0, moyenne: 0 },
+      absences: { total: 0, non_justifiees: 0 },
+      paiements: { total: 0, en_retard: 0 }
+    })
+  },
+  prochainesSeances: {
+    type: Array,
+    default: () => []
+  },
+  derniereNotes: {
+    type: Array,
+    default: () => []
+  },
+  absences: {
+    type: Array,
+    default: () => []
+  },
+  prochainPaiement: {
+    type: Object,
+    default: null
+  },
+  notifications: {
+    type: Array,
+    default: () => []
+  }
+});
+
+// États réactifs
+const loading = ref(false);
+const notifications = ref(props.notifications || []);
+const unreadCount = computed(() => notifications.value.filter(n => !n.read_at).length);
+
+// Méthodes utilitaires
+const calculerMoyenne = () => {
+  try {
+    if (!props.derniereNotes?.length) return '--';
+    const notesValides = props.derniereNotes.filter(note => 
+      note?.note !== null && note?.note !== undefined
+    );
+    
+    if (!notesValides.length) return '--';
+    
+    const somme = notesValides.reduce((acc, note) => {
+      const noteValue = typeof note.note === 'number' ? note.note : parseFloat(note.note);
+      return acc + (isNaN(noteValue) ? 0 : noteValue);
+    }, 0);
+    
+    return (somme / notesValides.length).toFixed(2);
+  } catch (error) {
+    console.error('Erreur dans calculerMoyenne:', error);
+    return '--';
+  }
+};
+
+const formatDate = (dateString) => {
+  try {
+    if (!dateString) return '--';
+    return format(parseISO(dateString), 'EEEE d MMMM yyyy', { locale: fr });
+  } catch (error) {
+    console.error('Erreur de formatage de date:', error);
+    return '--';
+  }
+};
+
+const formatHeure = (dateString) => {
+  try {
+    if (!dateString) return '--:--';
+    return format(parseISO(dateString), 'HH:mm');
+  } catch (error) {
+    console.error('Erreur de formatage d\'heure:', error);
+    return '--:--';
+  }
+};
+
+const formatDateCourte = (dateString) => {
+  try {
+    if (!dateString) return '--';
+    return format(parseISO(dateString), 'dd/MM/yyyy');
+  } catch (error) {
+    console.error('Erreur de formatage de date courte:', error);
+    return '--';
+  }
+};
+
+const formatMontant = (montant) => {
+  try {
+    if (montant === null || montant === undefined) return '--';
+    const montantNumber = typeof montant === 'string' ? parseFloat(montant) : montant;
+    return new Intl.NumberFormat('fr-FR', { 
+      style: 'currency', 
+      currency: 'MAD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(montantNumber);
+  } catch (error) {
+    console.error('Erreur de formatage de montant:', error);
+    return '--';
+  }
+};
+
+const formatRelativeDate = (dateString) => {
+  try {
+    if (!dateString) return '';
+    return formatDistanceToNow(parseISO(dateString), { 
+      addSuffix: true,
+      locale: fr 
+    });
+  } catch (error) {
+    console.error('Erreur de formatage de date relative:', error);
+    return '';
+  }
+};
+
+const getNoteColorClass = (note) => {
+  try {
+    if (!note || note.note === undefined || note.note === null) {
+      return 'bg-gray-100 text-gray-800';
+    }
+    
+    const noteValue = typeof note.note === 'number' 
+      ? note.note 
+      : parseFloat(note.note);
+    
+    if (isNaN(noteValue)) return 'bg-gray-100 text-gray-800';
+    
+    if (noteValue >= 16) return 'bg-green-100 text-green-800';
+    if (noteValue >= 14) return 'bg-blue-100 text-blue-800';
+    if (noteValue >= 12) return 'bg-yellow-100 text-yellow-800';
+    if (noteValue >= 10) return 'bg-orange-100 text-orange-800';
+    return 'bg-red-100 text-red-800';
+  } catch (error) {
+    console.error('Erreur dans getNoteColorClass:', error);
+    return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const absencesCeMois = computed(() => {
+  try {
+    if (!Array.isArray(props.absences)) return [];
+    return props.absences.filter(absence => {
+      try {
+        return isThisMonth(parseISO(absence.date_absence));
+      } catch (e) {
+        console.error('Erreur de traitement d\'absence:', e);
+        return false;
+      }
+    });
+  } catch (error) {
+    console.error('Erreur dans absencesCeMois:', error);
+    return [];
+  }
+});
+
+const absencesNonJustifiees = computed(() => {
+  try {
+    return absencesCeMois.value.filter(absence => !absence.justifiee).length;
+  } catch (error) {
+    console.error('Erreur dans absencesNonJustifiees:', error);
+    return 0;
+  }
+});
+
+const prochainCours = computed(() => {
+  try {
+    if (!props.prochainesSeances?.length) return null;
+    return props.prochainesSeances[0];
+  } catch (error) {
+    console.error('Erreur dans prochainCours:', error);
+    return null;
+  }
+});
+
+const markAsRead = async (notificationId) => {
+  try {
+    loading.value = true;
+    await axios.post(route('notifications.read', notificationId));
+    
+    // Mise à jour locale
+    const index = notifications.value.findIndex(n => n.id === notificationId);
+    if (index !== -1) {
+      notifications.value[index].read_at = new Date().toISOString();
+    }
+  } catch (error) {
+    console.error('Erreur lors du marquage comme lu:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const markAllAsRead = async () => {
+  try {
+    loading.value = true;
+    await axios.post(route('notifications.read-all'));
+    
+    // Mise à jour locale
+    notifications.value = notifications.value.map(notification => ({
+      ...notification,
+      read_at: notification.read_at || new Date().toISOString()
+    }));
+  } catch (error) {
+    console.error('Erreur lors du marquage tout comme lu:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const loadMoreNotifications = async () => {
+  try {
+    const response = await axios.get(route('eleve.notifications.load-more'), {
+      params: {
+        offset: notifications.value.length
+      }
+    });
+    
+    if (response.data && response.data.length > 0) {
+      // Mise à jour réactive du tableau de notifications
+      notifications.value = [...notifications.value, ...response.data];
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement des notifications', error);
+  }
+};
+
+// Gestion des statuts de paiement
+const getPaiementStatusClass = (statut) => {
+  const classes = {
+    paye: 'bg-green-100 text-green-800',
+    en_retard: 'bg-red-100 text-red-800',
+    en_attente: 'bg-yellow-100 text-yellow-800',
+    annule: 'bg-gray-100 text-gray-800',
+    default: 'bg-gray-100 text-gray-800'
+  };
+  return classes[statut] || classes.default;
+};
+
+// Obtenir le libellé d'un statut de paiement
+const getPaiementStatusLabel = (statut) => {
+  const labels = {
+    paye: 'Payé',
+    en_attente: 'En attente',
+    en_retard: 'En retard',
+    annule: 'Annulé',
+    default: 'Inconnu'
+  };
+  return labels[statut] || labels.default;
+};
+
+// Hooks de cycle de vie
+onMounted(() => {
+  console.log('Tableau de bord Élève monté');
+  // Charger les notifications non lues au chargement
+  if (unreadCount.value > 0) {
+    markAllAsRead();
+  }
+});
+
+// Configuration de la page
+const page = usePage();
+
+// Titre de la page
+const pageTitle = 'Tableau de bord';
+
+// Métadonnées pour le head
+useHead({
+  title: pageTitle,
+  meta: [
+    { name: 'description', content: 'Tableau de bord de l\'élève - Suivi des notes, absences et paiements' }
+  ]
+});
+</script>

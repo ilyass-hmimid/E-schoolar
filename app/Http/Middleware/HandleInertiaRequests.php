@@ -32,6 +32,13 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
         
+        // Définir le layout par défaut pour les routes admin
+        if ($request->is('admin/*')) {
+            $this->rootView = 'admin';
+        } else {
+            $this->rootView = 'app';
+        }
+        
         $userData = null;
         if ($user) {
             // Convertir le rôle en chaîne de caractères en utilisant l'énumération RoleType
@@ -51,9 +58,6 @@ class HandleInertiaRequests extends Middleware
                     break;
                 case 4: // ELEVE
                     $roleLabel = 'eleve';
-                    break;
-                case 5: // PARENT
-                    $roleLabel = 'parent';
                     break;
                 default:
                     $roleLabel = 'guest';

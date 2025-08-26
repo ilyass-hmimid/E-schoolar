@@ -7,7 +7,7 @@ use App\Models\User;
 use App\Enums\RoleType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -61,13 +61,74 @@ class LoginController extends Controller
 
             $request->session()->regenerate();
 
-            // Rediriger selon le rôle
-            return $this->redirectBasedOnRole($user);
+            // Appeler la méthode authenticated pour la redirection
+            return $this->authenticated($request, $user) ?: redirect()->intended('/');
         }
 
         throw ValidationException::withMessages([
             'email' => 'Les identifiants fournis ne correspondent pas à nos enregistrements.',
         ]);
+    }
+
+    /**
+     * Méthode appelée après une authentification réussie
+     */
+    protected function authenticated(Request $request, $user)
+    {
+        // Rediriger selon le rôle
+        return $this->redirectBasedOnRole($user);
+    }
+
+    /**
+     * Rediriger l'utilisateur selon son rôle
+     */
+    private function redirectBasedOnRole(User $user)
+    {
+        // Récupérer le rôle de manière sécurisée
+        $role = $user->role;
+        
+        // Si c'est un enum, prendre la valeur
+        if (is_object($role) && method_exists($role, 'value')) {
+            $role = $role->value;
+        }
+        
+        // Convertir en minuscules
+        $role = strtolower(trim($role));
+        
+        // Correspondances directes
+        switch ($role) {
+            case 'admin':
+            case 'administrateur':
+            case '1':
+                return redirect()->route('admin.dashboard');
+                
+            case 'professeur':
+            case 'prof':
+            case 'teacher':
+            case '2':
+                return redirect()->route('professeur.dashboard');
+                
+            case 'assistant':
+            case 'assist':
+            case '3':
+                return redirect()->route('assistant.dashboard');
+                
+            case 'eleve':
+            case 'etudiant':
+            case 'student':
+            case '4':
+                return redirect()->route('eleve.dashboard');
+                
+            default:
+                // Log l'erreur et rediriger vers login
+                Log::error('Rôle non reconnu lors de la redirection', [
+                    'user_id' => $user->id,
+                    'role' => $role
+                ]);
+                return redirect()->route('login')->withErrors([
+                    'email' => 'Rôle utilisateur non reconnu. Contactez l\'administrateur.'
+                ]);
+        }
     }
 
     /**
@@ -81,82 +142,5 @@ class LoginController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
-    }
-
-    /**
-     * Rediriger l'utilisateur selon son rôle
-     */
-    private function redirectBasedOnRole(User $user)
-    {
-        // Récupérer la valeur du rôle de manière sécurisée
-        $roleValue = null;
-        if (is_object($user->role) && isset($user->role->value)) {
-            $roleValue = $user->role->value;
-        } elseif (is_numeric($user->role)) {
-            $roleValue = $user->role;
-        } else {
-            $roleValue = $user->role; // Si c'est déjà une chaîne
-        }
-        
-        // Convertir en minuscules pour la correspondance
-        $role = is_string($roleValue) ? strtolower($roleValue) : $roleValue;
-        
-        return match($role) {
-            RoleType::ADMIN->value, 'admin' => redirect()->route('admin.dashboard'),
-            RoleType::PROFESSEUR->value, 'professeur' => redirect()->route('professeur.dashboard'),
-            RoleType::ASSISTANT->value, 'assistant' => redirect()->route('assistant.dashboard'),
-            RoleType::ELEVE->value, 'eleve' => redirect()->route('eleve.dashboard'),
-            RoleType::PARENT->value, 'parent' => redirect()->route('parent.dashboard'),
-            default => redirect()->route('dashboard'),
-        };
-    }
-
-    /**
-     * Afficher le formulaire de réinitialisation de mot de passe
-     */
-    public function showForgotPasswordForm()
-    {
-        return Inertia::render('Auth/ForgotPassword');
-    }
-
-    /**
-     * Envoyer le lien de réinitialisation
-     */
-    public function sendResetLink(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email|exists:users,email',
-        ]);
-
-        // Ici vous pouvez implémenter l'envoi d'email de réinitialisation
-        // Pour l'instant, on simule un succès
-        return back()->with('status', 'Un lien de réinitialisation a été envoyé à votre adresse email.');
-    }
-
-    /**
-     * Afficher le formulaire de réinitialisation
-     */
-    public function showResetForm(Request $request, $token)
-    {
-        return Inertia::render('Auth/ResetPassword', [
-            'token' => $token,
-            'email' => $request->email,
-        ]);
-    }
-
-    /**
-     * Réinitialiser le mot de passe
-     */
-    public function reset(Request $request)
-    {
-        $request->validate([
-            'token' => 'required',
-            'email' => 'required|email',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        // Ici vous pouvez implémenter la logique de réinitialisation
-        // Pour l'instant, on simule un succès
-        return redirect()->route('login')->with('status', 'Votre mot de passe a été réinitialisé avec succès.');
     }
 }

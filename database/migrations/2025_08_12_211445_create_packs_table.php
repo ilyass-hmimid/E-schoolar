@@ -14,10 +14,14 @@ return new class extends Migration
         Schema::create('packs', function (Blueprint $table) {
             $table->id();
             $table->string('nom', 100);
+            $table->string('slug')->unique();
             $table->text('description')->nullable();
-            $table->integer('nombre_heures');
+            $table->enum('type', ['cours', 'abonnement', 'formation', 'autre'])->default('cours');
             $table->decimal('prix', 10, 2);
+            $table->decimal('prix_promo', 10, 2)->nullable();
+            $table->integer('duree_jours')->default(30);
             $table->boolean('est_actif')->default(true);
+            $table->boolean('est_populaire')->default(false);
             $table->timestamps();
             $table->softDeletes();
         });

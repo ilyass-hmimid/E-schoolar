@@ -11,10 +11,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -29,8 +30,6 @@ class User extends Authenticatable
         'role',
         'phone',
         'address',
-        'parent_phone',
-        'parent_email',
         'niveau_id',
         'filiere_id',
         'somme_a_payer',
@@ -56,11 +55,39 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
-        'role' => RoleType::class,
+        'role' => 'integer',
         'somme_a_payer' => 'decimal:2',
         'date_debut' => 'date',
         'is_active' => 'boolean',
     ];
+
+    /**
+     * Get the user's role as a RoleType enum
+     */
+    public function getRoleAttribute($value): RoleType
+    {
+        return RoleType::from($value);
+    }
+
+    /**
+     * Set the user's role
+     */
+    public function setRoleAttribute($value): void
+    {
+        if ($value instanceof RoleType) {
+            $this->attributes['role'] = $value->value;
+        } else {
+            $this->attributes['role'] = RoleType::from($value)->value;
+        }
+    }
+
+    /**
+     * Scopes
+     */
+    public function scopeProfesseurs($query)
+    {
+        return $query->where('role', RoleType::PROFESSEUR->value);
+    }
 
     /**
      * Relations
@@ -86,6 +113,17 @@ class User extends Authenticatable
         return $this->belongsToMany(Matiere::class, 'enseignements', 'professeur_id', 'matiere_id')
             ->withPivot(['niveau_id', 'filiere_id', 'nombre_heures_semaine'])
             ->withTimestamps();
+    }
+    
+    /**
+     * Récupérer les classes associées au professeur via les enseignements
+     */
+    public function classes(): BelongsToMany
+    {
+        return $this->belongsToMany(Classe::class, 'enseignements', 'professeur_id', 'classe_id')
+            ->withPivot(['matiere_id', 'nombre_heures_semaine'])
+            ->withTimestamps()
+            ->distinct();
     }
 
     public function salaires(): HasMany
@@ -133,10 +171,7 @@ class User extends Authenticatable
         return $query->where('role', RoleType::ADMIN);
     }
 
-    public function scopeProfesseurs($query)
-    {
-        return $query->where('role', RoleType::PROFESSEUR);
-    }
+    // Méthode scopeProfesseurs définie plus haut
 
     public function scopeAssistants($query)
     {
@@ -146,11 +181,6 @@ class User extends Authenticatable
     public function scopeEleves($query)
     {
         return $query->where('role', RoleType::ELEVE);
-    }
-
-    public function scopeParents($query)
-    {
-        return $query->where('role', RoleType::PARENT);
     }
 
     public function scopeActifs($query)
@@ -179,11 +209,6 @@ class User extends Authenticatable
     public function isEleve(): bool
     {
         return $this->role === RoleType::ELEVE;
-    }
-
-    public function isParent(): bool
-    {
-        return $this->role === RoleType::PARENT;
     }
 
     public function hasPermission(string $permission): bool

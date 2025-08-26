@@ -3,173 +3,147 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\Absence;
 use App\Models\Paiement;
-use App\Models\Salaire;
+use App\Models\Notification as NotificationModel;
 use App\Enums\RoleType;
-use App\Notifications\AbsenceNotification;
-use App\Notifications\PaymentNotification;
-use App\Notifications\PaymentReminderNotification;
-use App\Notifications\SystemNotification;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Inertia\Inertia;
+use Illuminate\Notifications\Notification;
 
 class NotificationController extends Controller
 {
+    protected $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+        $this->middleware('auth');
+    }
+
     /**
-     * Affiche la liste des notifications de l'utilisateur connecté
+     * Récupère les notifications non lues de l'utilisateur connecté
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function index(Request $request)
     {
-        $user = Auth::user();
-        $notifications = $user->notifications()
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
-
-        // Marquer comme lues si demandé
-        if ($request->has('mark_read')) {
-            $user->unreadNotifications->markAsRead();
-        }
-
-        return Inertia::render('Notifications/Index', [
+        $user = $request->user();
+        $limit = $request->input('limit', 10);
+        
+        $notifications = $this->notificationService->getUnreadNotifications($user->id, $limit);
+        
+        return response()->json([
             'notifications' => $notifications,
-            'unreadCount' => $user->unreadNotifications()->count(),
+            'unread_count' => $this->notificationService->getUnreadCount($user->id)
         ]);
     }
 
     /**
      * Marque une notification comme lue
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
      */
     public function markAsRead(Request $request, $id)
     {
-        $user = Auth::user();
-        $notification = $user->notifications()->findOrFail($id);
-        $notification->markAsRead();
-
-        return response()->json(['success' => true]);
+        $success = $this->notificationService->markAsRead($id, $request->user()->id);
+        
+        return response()->json([
+            'success' => $success,
+            'unread_count' => $this->notificationService->getUnreadCount($request->user()->id)
+        ]);
     }
 
     /**
      * Marque toutes les notifications comme lues
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function markAllAsRead(Request $request)
     {
-        $user = Auth::user();
-        $user->unreadNotifications->markAsRead();
-
-        return response()->json(['success' => true]);
-    }
-
-    /**
-     * Supprime une notification
-     */
-    public function destroy($id)
-    {
-        $user = Auth::user();
-        $notification = $user->notifications()->findOrFail($id);
-        $notification->delete();
-
-        return response()->json(['success' => true]);
-    }
-
-    /**
-     * Envoie une notification d'absence aux parents
-     */
-    public function notifierAbsence(Absence $absence)
-    {
-        try {
-            DB::beginTransaction();
-
-            $etudiant = $absence->etudiant;
-            
-            // Vérifier si l'étudiant a des informations de contact parent
-            if (!$etudiant->parent_email && !$etudiant->parent_phone) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Aucune information de contact parent disponible'
-                ], 400);
-            }
-
-            // Créer la notification
-            $notification = new AbsenceNotification($absence);
-            
-            // Envoyer par email si disponible
-            if ($etudiant->parent_email) {
-                try {
-                    Mail::to($etudiant->parent_email)->send($notification);
-                } catch (\Exception $e) {
-                    \Log::error('Erreur envoi email absence: ' . $e->getMessage());
-                }
-            }
-
-            // Envoyer par SMS si disponible (nécessite un service SMS)
-            if ($etudiant->parent_phone) {
-                $this->envoyerSMS($etudiant->parent_phone, $this->genererMessageAbsence($absence));
-            }
-
-            // Notifier l'admin
-            $admins = User::where('role', RoleType::ADMIN)->get();
-            Notification::send($admins, $notification);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Notification d\'absence envoyée avec succès'
+        $user = $request->user();
+        $updated = NotificationModel::where('user_id', $user->id)
+            ->where('status', NotificationModel::STATUS_NON_LU)
+            ->update([
+                'status' => NotificationModel::STATUS_LU,
+                'read_at' => now()
             ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de l\'envoi: ' . $e->getMessage()
-            ], 500);
-        }
+            
+        return response()->json([
+            'success' => true,
+            'marked_read' => $updated,
+            'unread_count' => 0
+        ]);
+    }
+    
+    /**
+     * Récupère le nombre de notifications non lues
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function unreadCount(Request $request)
+    {
+        $count = $this->notificationService->getUnreadCount($request->user()->id);
+        
+        return response()->json(['count' => $count]);
     }
 
     /**
-     * Envoie une notification de paiement
+     * Envoie une notification de paiement effectué
+     *
+     * @param  \App\Models\Paiement  $paiement
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function notifierPaiement(Paiement $paiement)
+    public function notifierPaiementEffectue(Paiement $paiement)
     {
         try {
-            DB::beginTransaction();
-
-            $etudiant = $paiement->etudiant;
-            $notification = new PaymentNotification($paiement);
-
-            // Notifier l'étudiant/parent
-            if ($etudiant->email) {
-                try {
-                    Mail::to($etudiant->email)->send($notification);
-                } catch (\Exception $e) {
-                    \Log::error('Erreur envoi email paiement: ' . $e->getMessage());
-                }
-            }
-
-            // Notifier l'admin
-            $admins = User::where('role', RoleType::ADMIN)->get();
-            Notification::send($admins, $notification);
-
-            DB::commit();
-
+            $this->notificationService->notifyPaiementEffectue($paiement);
+            
             return response()->json([
                 'success' => true,
                 'message' => 'Notification de paiement envoyée avec succès'
             ]);
-
+            
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors de l\'envoi: ' . $e->getMessage()
+                'message' => 'Erreur lors de l\'envoi de la notification: ' . $e->getMessage()
             ], 500);
         }
     }
+    
+    /**
+     * Vérifie et envoie les notifications pour les paiements en retard
+     * Cette méthode est conçue pour être appelée par une tâche planifiée
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function verifierRetardsPaiement()
+    {
+        try {
+            $this->notificationService->checkRetardsPaiement();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Vérification des retards de paiement terminée avec succès'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la vérification des retards: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 
     /**
      * Envoie des rappels de paiement
@@ -257,9 +231,6 @@ class NotificationController extends Controller
                         break;
                     case 'eleve':
                         $users = $users->merge(User::where('role', RoleType::ELEVE)->get());
-                        break;
-                    case 'parent':
-                        $users = $users->merge(User::where('role', RoleType::PARENT)->get());
                         break;
                 }
             }

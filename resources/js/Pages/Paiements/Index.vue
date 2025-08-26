@@ -16,15 +16,67 @@
               <p class="text-sm text-gray-600">Gérez les paiements des étudiants</p>
             </div>
             <div class="flex space-x-3">
-              <button
-                @click="exportPaiements"
-                class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150"
-              >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Exporter
-              </button>
+              <div class="relative inline-block text-left" x-data="{ open: false }">
+                <div>
+                  <button
+                    @click="open = !open"
+                    type="button"
+                    class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                    id="export-menu"
+                    aria-expanded="true"
+                    aria-haspopup="true"
+                  >
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Exporter
+                    <svg class="-mr-1 ml-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div
+                  x-show="open"
+                  @click.away="open = false"
+                  class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                  role="menu"
+                  aria-orientation="vertical"
+                  aria-labelledby="export-menu"
+                  tabindex="-1"
+                >
+                  <div class="py-1" role="none">
+                    <a
+                      href="#"
+                      @click="exportPaiements('pdf'); open = false"
+                      class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100"
+                      role="menuitem"
+                      tabindex="-1"
+                    >
+                      <div class="flex items-center">
+                        <svg class="w-4 h-4 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        Exporter en PDF
+                      </div>
+                    </a>
+                    <a
+                      href="#"
+                      @click="exportPaiements('excel'); open = false"
+                      class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100"
+                      role="menuitem"
+                      tabindex="-1"
+                    >
+                      <div class="flex items-center">
+                        <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Exporter en Excel
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              </div>
               <Link
                 v-if="canCreate"
                 :href="route('paiements.create')"
@@ -418,8 +470,25 @@ const cancelPaiement = (id) => {
   }
 }
 
-const exportPaiements = () => {
-  const params = new URLSearchParams(filters.value)
-  window.open(route('paiements.export') + '?' + params.toString(), '_blank')
-}
+const exportPaiements = (format = 'pdf') => {
+    // Récupérer les paramètres de filtrage actuels
+    const params = {
+        search: filters.value.search,
+        statut: filters.value.statut,
+        date_debut: filters.value.date_debut,
+        date_fin: filters.value.date_fin,
+        format: format
+    };
+    
+    // Construire l'URL avec les paramètres de requête
+    const queryString = new URLSearchParams(
+        Object.entries(params)
+            .filter(([_, value]) => value !== null && value !== undefined && value !== '')
+            .map(([key, value]) => [key, String(value)])
+    ).toString();
+    
+    // Ouvrir l'export dans un nouvel onglet
+    const url = route('rapports.paiements.export') + (queryString ? `?${queryString}` : '');
+    window.open(url, '_blank');
+};
 </script>

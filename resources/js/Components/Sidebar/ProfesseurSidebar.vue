@@ -1,5 +1,21 @@
+<script setup>
+import { Link } from '@inertiajs/vue3';
+import { useRoute } from '@/utils/route';
+
+const { route, currentRoute } = useRoute();
+const emit = defineEmits(['close']);
+
+const props = defineProps({
+  isOpen: {
+    type: Boolean,
+    required: true
+  }
+});
+</script>
+
 <template>
-  <div class="sidebar">
+  <div class="sidebar" :class="{ 'sidebar-closed': !isOpen }">
+    <div v-if="isOpen" class="sidebar-overlay" @click="$emit('close')"></div>
     <div class="sidebar-header">
       <h3>Espace Professeur</h3>
     </div>
@@ -7,7 +23,7 @@
     <nav class="sidebar-nav">
       <ul>
         <li>
-          <Link href="/dashboard" :class="{ 'active': $page.url === '/dashboard' }">
+          <Link :href="route('dashboard')" :class="{ 'active': currentRoute() === 'dashboard' }">
             <i class="fas fa-tachometer-alt"></i>
             <span>Tableau de bord</span>
           </Link>
@@ -17,19 +33,19 @@
           <span class="nav-section-title">Mes cours</span>
           <ul>
             <li>
-              <Link href="/professeur/emploi-du-temps" :class="{ 'active': $page.url.startsWith('/professeur/emploi-du-temps') }">
+              <Link :href="route('professeur.emploi-du-temps')" :class="{ 'active': currentRoute().startsWith('professeur.emploi-du-temps') }">
                 <i class="fas fa-calendar-alt"></i>
                 <span>Emploi du temps</span>
               </Link>
             </li>
             <li>
-              <Link href="/professeur/matieres" :class="{ 'active': $page.url.startsWith('/professeur/matieres') }">
+              <Link :href="route('professeur.matieres.index')" :class="{ 'active': currentRoute().startsWith('professeur.matieres') }">
                 <i class="fas fa-book"></i>
                 <span>Mes matières</span>
               </Link>
             </li>
             <li>
-              <Link href="/professeur/classes" :class="{ 'active': $page.url.startsWith('/professeur/classes') }">
+              <Link :href="route('professeur.classes.index')" :class="{ 'active': currentRoute().startsWith('professeur.classes') }">
                 <i class="fas fa-users"></i>
                 <span>Mes classes</span>
               </Link>
@@ -41,19 +57,19 @@
           <span class="nav-section-title">Évaluation</span>
           <ul>
             <li>
-              <Link href="/professeur/notes" :class="{ 'active': $page.url.startsWith('/professeur/notes') }">
+              <Link :href="route('professeur.notes.index')" :class="{ 'active': currentRoute().startsWith('professeur.notes') }">
                 <i class="fas fa-clipboard-check"></i>
                 <span>Saisir les notes</span>
               </Link>
             </li>
             <li>
-              <Link href="/professeur/absences" :class="{ 'active': $page.url.startsWith('/professeur/absences') }">
+              <Link :href="route('professeur.absences.index')" :class="{ 'active': currentRoute().startsWith('professeur.absences') }">
                 <i class="fas fa-user-times"></i>
                 <span>Gérer les absences</span>
               </Link>
             </li>
             <li>
-              <Link href="/professeur/bulletins" :class="{ 'active': $page.url.startsWith('/professeur/bulletins') }">
+              <Link :href="route('professeur.bulletins.index')" :class="{ 'active': currentRoute().startsWith('professeur.bulletins') }">
                 <i class="fas fa-file-alt"></i>
                 <span>Bulletins</span>
               </Link>
@@ -71,13 +87,13 @@
               </Link>
             </li>
             <li>
-              <Link href="/professeur/devoirs" :class="{ 'active': $page.url.startsWith('/professeur/devoirs') }">
+              <Link :href="route('professeur.devoirs.index')" :class="{ 'active': currentRoute().startsWith('professeur.devoirs') }">
                 <i class="fas fa-tasks"></i>
                 <span>Devoirs</span>
               </Link>
             </li>
             <li>
-              <Link href="/professeur/ressources" :class="{ 'active': $page.url.startsWith('/professeur/ressources') }">
+              <Link :href="route('professeur.ressources.index')" :class="{ 'active': currentRoute().startsWith('professeur.ressources') }">
                 <i class="fas fa-folder-open"></i>
                 <span>Ressources partagées</span>
               </Link>
@@ -89,15 +105,15 @@
           <span class="nav-section-title">Mon compte</span>
           <ul>
             <li>
-              <Link href="/professeur/profil" :class="{ 'active': $page.url.startsWith('/professeur/profil') }">
+              <Link :href="route('professeur.profil.edit')" :class="{ 'active': currentRoute().startsWith('professeur.profil') }">
                 <i class="fas fa-user-edit"></i>
                 <span>Mon profil</span>
               </Link>
             </li>
             <li>
-              <Link href="/professeur/salaires" :class="{ 'active': $page.url.startsWith('/professeur/salaires') }">
-                <i class="fas fa-file-invoice-dollar"></i>
-                <span>Mes salaires</span>
+              <Link :href="route('professeur.messagerie.index')" :class="{ 'active': currentRoute().startsWith('professeur.messagerie') }">
+                <i class="fas fa-envelope"></i>
+                <span>Messagerie</span>
               </Link>
             </li>
           </ul>
@@ -115,17 +131,13 @@
           <div class="user-role">Professeur</div>
         </div>
       </div>
-      <Link href="/logout" method="post" as="button" class="logout-btn">
+      <Link :href="route('logout')" method="post" as="button" class="logout-btn">
         <i class="fas fa-sign-out-alt"></i>
         <span>Déconnexion</span>
       </Link>
     </div>
   </div>
 </template>
-
-<script setup>
-import { Link } from '@inertiajs/vue3';
-</script>
 
 <style scoped>
 .sidebar {

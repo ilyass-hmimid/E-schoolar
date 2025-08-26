@@ -21,7 +21,7 @@
         </div>
         <div class="mt-4 flex md:mt-0 md:ml-4 space-x-3">
           <Link 
-            :href="route('eleves.edit', eleve.id)" 
+            :href="route('admin.eleves.edit', eleve.id)" 
             class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
           >
             <svg class="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -30,7 +30,7 @@
             Modifier
           </Link>
           <Link 
-            :href="route('eleves.index')" 
+            :href="route('admin.eleves.index')" 
             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
           >
             <svg class="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

@@ -27,8 +27,8 @@ class UserController extends Controller
     {
         $users = User::with(['niveau:id,nom', 'filiere:id,nom'])
             ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function($user) {
+            ->paginate(10)
+            ->through(function($user) {
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
@@ -39,15 +39,17 @@ class UserController extends Controller
                     'role_label' => $user->role->label(),
                     'is_active' => $user->is_active,
                     'niveau' => $user->niveau ? $user->niveau->nom : null,
+                    'niveau_id' => $user->niveau_id,
                     'filiere' => $user->filiere ? $user->filiere->nom : null,
+                    'filiere_id' => $user->filiere_id,
                     'somme_a_payer' => $user->somme_a_payer,
-                    'date_debut' => $user->date_debut ? $user->date_debut->format('d/m/Y') : null,
+                    'date_debut' => $user->date_debut ? $user->date_debut->format('Y-m-d') : null,
                     'created_at' => $user->created_at->format('d/m/Y'),
                     'avatar' => $user->avatar,
                 ];
             });
 
-        return Inertia::render('Users/Index', [
+        return Inertia::render('Admin/Users/Index', [
             'users' => $users
         ]);
     }
@@ -57,7 +59,7 @@ class UserController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Users/Create', [
+        return Inertia::render('Admin/Users/Create', [
             'roles' => RoleType::forSelect(),
             'niveaux' => \App\Models\Niveau::actifs()->get(['id', 'nom']),
             'filieres' => \App\Models\Filiere::actifs()->get(['id', 'nom']),
@@ -76,8 +78,6 @@ class UserController extends Controller
             'role' => ['required', Rule::in(RoleType::cases())],
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
-            'parent_phone' => 'nullable|string|max:20',
-            'parent_email' => 'nullable|email|max:255',
             'niveau_id' => 'nullable|exists:niveaux,id',
             'filiere_id' => 'nullable|exists:filieres,id',
             'somme_a_payer' => 'nullable|numeric|min:0',
@@ -85,23 +85,28 @@ class UserController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        $user = User::create([
+        // Création de l'utilisateur
+        $user = new User([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
             'phone' => $validated['phone'],
             'address' => $validated['address'],
-            'parent_phone' => $validated['parent_phone'],
-            'parent_email' => $validated['parent_email'],
             'niveau_id' => $validated['niveau_id'],
             'filiere_id' => $validated['filiere_id'],
             'somme_a_payer' => $validated['somme_a_payer'] ?? 0,
             'date_debut' => $validated['date_debut'],
             'is_active' => $validated['is_active'] ?? true,
         ]);
+        
+        $user->save();
+        
+        // Assigner le rôle à l'utilisateur
+        $roleName = RoleType::from($validated['role'])->name;
+        $user->assignRole($roleName);
 
-        return redirect()->route('users.index')
+        return redirect()->route('admin.users.index')
             ->with('success', 'Utilisateur créé avec succès.');
     }
 
@@ -112,7 +117,7 @@ class UserController extends Controller
     {
         $user->load(['niveau:id,nom', 'filiere:id,nom']);
         
-        return Inertia::render('Users/Show', [
+        return Inertia::render('Admin/Users/Show', [
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -123,13 +128,13 @@ class UserController extends Controller
                 'role_label' => $user->role->label(),
                 'is_active' => $user->is_active,
                 'niveau' => $user->niveau ? $user->niveau->nom : null,
+                'niveau_id' => $user->niveau_id,
                 'filiere' => $user->filiere ? $user->filiere->nom : null,
+                'filiere_id' => $user->filiere_id,
                 'somme_a_payer' => $user->somme_a_payer,
-                'date_debut' => $user->date_debut ? $user->date_debut->format('d/m/Y') : null,
-                'created_at' => $user->created_at->format('d/m/Y'),
+                'date_debut' => $user->date_debut ? $user->date_debut->format('Y-m-d') : null,
+                'created_at' => $user->created_at->format('d/m/Y H:i'),
                 'avatar' => $user->avatar,
-                'parent_phone' => $user->parent_phone,
-                'parent_email' => $user->parent_email,
             ]
         ]);
     }
@@ -139,7 +144,7 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
-        return Inertia::render('Users/Edit', [
+        return Inertia::render('Admin/Users/Edit', [
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -152,8 +157,6 @@ class UserController extends Controller
                 'filiere_id' => $user->filiere_id,
                 'somme_a_payer' => $user->somme_a_payer,
                 'date_debut' => $user->date_debut ? $user->date_debut->format('Y-m-d') : null,
-                'parent_phone' => $user->parent_phone,
-                'parent_email' => $user->parent_email,
             ],
             'roles' => RoleType::forSelect(),
             'niveaux' => \App\Models\Niveau::actifs()->get(['id', 'nom']),
@@ -173,8 +176,6 @@ class UserController extends Controller
             'role' => ['required', Rule::in(RoleType::cases())],
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
-            'parent_phone' => 'nullable|string|max:20',
-            'parent_email' => 'nullable|email|max:255',
             'niveau_id' => 'nullable|exists:niveaux,id',
             'filiere_id' => 'nullable|exists:filieres,id',
             'somme_a_payer' => 'nullable|numeric|min:0',
@@ -188,8 +189,6 @@ class UserController extends Controller
             'role' => $validated['role'],
             'phone' => $validated['phone'],
             'address' => $validated['address'],
-            'parent_phone' => $validated['parent_phone'],
-            'parent_email' => $validated['parent_email'],
             'niveau_id' => $validated['niveau_id'],
             'filiere_id' => $validated['filiere_id'],
             'somme_a_payer' => $validated['somme_a_payer'] ?? 0,
@@ -202,8 +201,12 @@ class UserController extends Controller
         }
 
         $user->update($updateData);
+        
+        // Mettre à jour le rôle avec Spatie Permission
+        $roleName = RoleType::from($validated['role'])->name;
+        $user->syncRoles([$roleName]);
 
-        return redirect()->route('users.index')
+        return redirect()->route('admin.users.index')
             ->with('success', 'Utilisateur mis à jour avec succès.');
     }
 
@@ -235,16 +238,15 @@ class UserController extends Controller
             activity()
                 ->causedBy(auth()->user())
                 ->performedOn($user)
-                ->withProperties([
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => $user->role->label(),
-                ])
-                ->log('Utilisateur supprimé');
+                ->log('Utilisateur supprimé : ' . $user->name);
 
+            // Supprimer les rôles de l'utilisateur
+            $user->roles()->detach();
+            
+            // Supprimer l'utilisateur
             $user->delete();
 
-            return redirect()->route('users.index')
+            return redirect()->route('admin.users.index')
                 ->with('success', 'Utilisateur supprimé avec succès.');
                 
         } catch (\Exception $e) {
@@ -307,7 +309,6 @@ class UserController extends Controller
             'professeurs' => User::professeurs()->count(),
             'assistants' => User::assistants()->count(),
             'eleves' => User::eleves()->count(),
-            'parents' => User::parents()->count(),
             'actifs' => User::actifs()->count(),
             'inactifs' => User::where('is_active', false)->count(),
         ];

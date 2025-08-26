@@ -29,10 +29,9 @@ class TestDataSeeder extends Seeder
             [
                 'nom' => 'Mathématiques',
                 'description' => 'Cours de mathématiques',
-                'coefficient' => 4,
-                'nombre_heures' => 6,
-                'prix_mensuel' => 250,
-                'commission_prof' => 30
+                'prix' => 250, // Prix pour l'élève
+                'prix_prof' => 30, // Rémunération du professeur
+                'est_actif' => true
             ]
         );
 

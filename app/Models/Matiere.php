@@ -20,13 +20,12 @@ class Matiere extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'nom',
         'code',
+        'nom',
+        'type',
         'description',
-        'coefficient',
-        'nombre_heures',
-        'prix_mensuel',
-        'commission_prof',
+        'prix',
+        'prix_prof',
         'est_actif',
     ];
 
@@ -36,23 +35,70 @@ class Matiere extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'coefficient' => 'integer',
-        'nombre_heures' => 'integer',
-        'prix_mensuel' => 'decimal:2',
-        'commission_prof' => 'decimal:2',
+        'type' => 'string',
+        'prix' => 'decimal:2',
+        'prix_prof' => 'decimal:2',
         'est_actif' => 'boolean',
+    ];
+    
+    /**
+     * Les types de matières disponibles
+     */
+    public static $types = [
+        'scientifique' => 'Scientifique',
+        'litteraire' => 'Littéraire',
+        'technique' => 'Technique',
+        'langue' => 'Langue',
+        'informatique' => 'Informatique',
+        'autre' => 'Autre',
     ];
 
     /**
      * Relations
      */
-    public function users(): BelongsToMany
+    
+    /**
+     * Les professeurs qui enseignent cette matière
+     */
+    public function professeurs(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'enseignements', 'matiere_id', 'professeur_id')
-            ->withPivot(['niveau_id', 'filiere_id', 'nombre_heures_semaine'])
+        return $this->belongsToMany(User::class, 'matiere_professeur', 'matiere_id', 'user_id')
+            ->withTimestamps()
+            ->withPivot(['created_at', 'updated_at']);
+    }
+    
+    /**
+     * Les niveaux dans lesquels cette matière est enseignée
+     */
+    public function niveaux(): BelongsToMany
+    {
+        return $this->belongsToMany(Niveau::class, 'matiere_niveau')
             ->withTimestamps();
     }
-
+    
+    /**
+     * Les filières dans lesquelles cette matière est enseignée
+     */
+    public function filieres(): BelongsToMany
+    {
+        return $this->belongsToMany(Filiere::class, 'filiere_matiere')
+            ->withTimestamps();
+    }
+    
+    /**
+     * Les classes dans lesquelles cette matière est enseignée
+     */
+    public function classes(): BelongsToMany
+    {
+        return $this->belongsToMany(Classe::class, 'enseignements', 'matiere_id', 'classe_id')
+            ->withPivot(['professeur_id', 'nombre_heures_semaine'])
+            ->withTimestamps()
+            ->distinct();
+    }
+    
+    /**
+     * Les enseignements associés à cette matière
+     */
     public function enseignements(): HasMany
     {
         return $this->hasMany(Enseignement::class);
@@ -78,6 +124,9 @@ class Matiere extends Model
         return $this->hasMany(Salaire::class);
     }
 
+    /**
+     * Relation many-to-many avec les packs.
+     */
     public function packs(): BelongsToMany
     {
         return $this->belongsToMany(Pack::class, 'matiere_pack')
@@ -93,22 +142,29 @@ class Matiere extends Model
         return $query->where('est_actif', true);
     }
 
-    public function scopeParCode($query, $code)
+    public function scopePourNiveau($query, $niveauId)
     {
-        return $query->where('code', $code);
+        return $query->whereHas('niveaux', function($q) use ($niveauId) {
+            $q->where('niveaux.id', $niveauId);
+        });
     }
 
     /**
      * Méthodes utilitaires
      */
-    public function getPrixFormattedAttribute(): string
+    public function getPrixFormateAttribute(): string
     {
-        return number_format($this->prix_mensuel, 2, ',', ' ') . ' DH';
+        return number_format($this->prix, 2, ',', ' ') . ' DH';
     }
 
-    public function getCommissionFormattedAttribute(): string
+    public function getPrixProfFormateAttribute(): string
     {
-        return $this->commission_prof . '%';
+        return number_format($this->prix_prof, 2, ',', ' ') . ' DH';
+    }
+
+    public function getStatutLibelleAttribute(): string
+    {
+        return $this->est_actif ? 'Actif' : 'Inactif';
     }
 
     public function getNombreElevesAttribute(): int
@@ -118,13 +174,5 @@ class Matiere extends Model
                 $query->where('role', 2); // PROFESSEUR
             })
             ->count();
-    }
-
-    public function getChiffreAffairesMensuelAttribute(): float
-    {
-        return $this->paiements()
-            ->valides()
-            ->where('mois_periode', now()->format('Y-m'))
-            ->sum('montant');
     }
 }

@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\Vente;
 
 class Pack extends Model
 {
@@ -17,10 +19,14 @@ class Pack extends Model
      */
     protected $fillable = [
         'nom',
+        'slug',
         'description',
-        'nombre_heures',
+        'type',
         'prix',
+        'prix_promo',
+        'duree_jours',
         'est_actif',
+        'est_populaire',
     ];
 
     /**
@@ -30,8 +36,35 @@ class Pack extends Model
      */
     protected $casts = [
         'prix' => 'decimal:2',
+        'prix_promo' => 'decimal:2',
         'est_actif' => 'boolean',
-        'nombre_heures' => 'integer',
+        'est_populaire' => 'boolean',
+        'duree_jours' => 'integer',
+    ];
+
+    /**
+     * Récupère les types de packs disponibles depuis la configuration.
+     *
+     * @return array
+     */
+    public static function getTypes()
+    {
+        return array_map(function($type) {
+            return $type['name'];
+        }, config('packs.types', []));
+    }
+
+    /**
+     * Les types de packs disponibles.
+     *
+     * @deprecated Utiliser getTypes() à la place
+     * @var array
+     */
+    public static $types = [
+        'cours' => 'Cours',
+        'abonnement' => 'Abonnement',
+        'formation' => 'Formation',
+        'autre' => 'Autre',
     ];
 
     /**
@@ -52,11 +85,71 @@ class Pack extends Model
     }
 
     /**
+     * Relation many-to-many avec le modèle Vente.
+     */
+    public function ventes()
+    {
+        return $this->belongsToMany(Vente::class, 'pack_vente')
+            ->withPivot('prix_unitaire', 'quantite', 'prix_total')
+            ->withTimestamps();
+    }
+
+    /**
      * Relation avec les inscriptions (étudiants qui ont souscrit à ce pack).
      */
     public function inscriptions()
     {
         return $this->hasMany(Inscription::class, 'pack_id');
+    }
+
+    /**
+     * Générateur d'URL pour le pack.
+     *
+     * @return string
+     */
+    public function getRouteKeyName()
+    {
+        return 'slug';
+    }
+
+    /**
+     * Boot du modèle.
+     */
+    public static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($pack) {
+            if (empty($pack->slug)) {
+                $pack->slug = Str::slug($pack->nom);
+            }
+        });
+
+        static::updating(function ($pack) {
+            if ($pack->isDirty('nom') && empty($pack->slug)) {
+                $pack->slug = Str::slug($pack->nom);
+            }
+        });
+    }
+
+    /**
+     * Règles de validation pour les packs
+     *
+     * @return array
+     */
+    public static function rules()
+    {
+        return [
+            'nom' => 'required|string|max:255',
+            'slug' => 'nullable|string|max:255|unique:packs,slug',
+            'description' => 'nullable|string',
+            'type' => 'required|in:' . implode(',', array_keys(config('packs.types', []))),
+            'prix' => 'required|numeric|min:0',
+            'prix_promo' => 'nullable|numeric|min:0|lt:prix',
+            'duree_jours' => 'required|integer|min:1',
+            'est_actif' => 'boolean',
+            'est_populaire' => 'boolean',
+        ];
     }
 
     /**
@@ -66,13 +159,56 @@ class Pack extends Model
     {
         return $query->where('est_actif', true);
     }
+    
+    /**
+     * Scope pour les packs populaires.
+     */
+    public function scopePopular($query)
+    {
+        return $query->where('est_populaire', true);
+    }
+    
+    /**
+     * Vérifie si le pack peut être supprimé.
+     * Un pack ne peut pas être supprimé s'il a des ventes associées.
+     *
+     * @return bool
+     */
+    public function isDeletable(): bool
+    {
+        return $this->ventes()->count() === 0;
+    }
+    
+    /**
+     * Retourne le prix affiché (prix promo si disponible, sinon prix normal).
+     *
+     * @return string
+     */
+    public function getDisplayPrice(): string
+    {
+        return $this->prix_promo ?? $this->prix;
+    }
+    
+    /**
+     * Calcule le pourcentage de réduction.
+     *
+     * @return float|null Retourne null si pas de promotion
+     */
+    public function getDiscountPercentage(): ?float
+    {
+        if (!$this->prix_promo || $this->prix <= 0) {
+            return null;
+        }
+        
+        return round((($this->prix - $this->prix_promo) / $this->prix) * 100, 2);
+    }
 
     /**
-     * Vérifie si le pack est actif.
+     * Scope pour les packs actifs.
      */
-    public function estActif(): bool
+    public function scopeActive($query)
     {
-        return $this->est_actif === true;
+        return $query->where('est_actif', true);
     }
 
     /**

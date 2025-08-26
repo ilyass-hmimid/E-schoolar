@@ -205,15 +205,16 @@ class PaiementController extends Controller
         }
 
         if ($paiement->statut !== 'en_attente') {
-            return back()->withErrors(['error' => 'Ce paiement ne peut pas être validé.']);
+            return back()->with('error', 'Seuls les paiements en attente peuvent être validés.');
         }
 
         try {
             DB::beginTransaction();
-
+            
             $paiement->update([
                 'statut' => 'valide',
-                'date_paiement' => now(),
+                'date_validation' => now(),
+                'validated_by' => $user->id,
             ]);
 
             // Mettre à jour la somme à payer de l'étudiant
@@ -221,12 +222,160 @@ class PaiementController extends Controller
 
             DB::commit();
 
-            return back()->with('success', 'Paiement validé avec succès.');
+            return redirect()->back()
+                ->with('success', 'Le paiement a été validé avec succès.');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withErrors(['error' => 'Erreur lors de la validation: ' . $e->getMessage()]);
+            return back()->withErrors(['error' => 'Erreur lors de la validation du paiement: ' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * Affiche le formulaire de modification d'un paiement
+     */
+    public function edit(Paiement $paiement)
+    {
+        $user = Auth::user();
+        
+        // Vérifier les permissions
+        if (!in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT]) || 
+            ($user->role === RoleType::ASSISTANT && $paiement->assistant_id !== $user->id)) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        if ($paiement->statut === 'valide') {
+            return back()->with('error', 'Impossible de modifier un paiement déjà validé.');
+        }
+
+        $paiement->load(['etudiant', 'matiere', 'pack']);
+        $eleves = User::eleves()->actifs()->get(['id', 'name', 'email', 'somme_a_payer']);
+        $matieres = Matiere::actifs()->get(['id', 'nom', 'prix_mensuel']);
+        $packs = Pack::all(['id', 'nom', 'prix']);
+
+        return Inertia::render('Paiements/Edit', [
+            'paiement' => $paiement,
+            'eleves' => $eleves,
+            'matieres' => $matieres,
+            'packs' => $packs,
+            'modes_paiement' => [
+                'especes' => 'Espèces',
+                'cheque' => 'Chèque',
+                'virement' => 'Virement bancaire',
+                'carte' => 'Carte bancaire',
+            ],
+        ]);
+    }
+
+    /**
+     * Met à jour un paiement existant
+     */
+    public function update(Request $request, Paiement $paiement)
+    {
+        $user = Auth::user();
+        
+        // Vérifier les permissions
+        if (!in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT]) || 
+            ($user->role === RoleType::ASSISTANT && $paiement->assistant_id !== $user->id)) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        if ($paiement->statut === 'valide') {
+            return back()->with('error', 'Impossible de modifier un paiement déjà validé.');
+        }
+
+        $validated = $request->validate([
+            'etudiant_id' => 'required|exists:users,id',
+            'matiere_id' => 'nullable|exists:matieres,id',
+            'pack_id' => 'nullable|exists:packs,id',
+            'montant' => 'required|numeric|min:0',
+            'mode_paiement' => 'required|in:especes,cheque,virement,carte',
+            'reference_paiement' => 'nullable|string|max:255',
+            'commentaires' => 'nullable|string|max:500',
+            'mois_periode' => 'nullable|date_format:Y-m',
+        ]);
+
+        // Vérifier que soit matiere_id soit pack_id est fourni
+        if (empty($validated['matiere_id']) && empty($validated['pack_id'])) {
+            return back()->withErrors(['matiere_id' => 'Veuillez sélectionner une matière ou un pack']);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Mettre à jour le paiement
+            $paiement->update([
+                'etudiant_id' => $validated['etudiant_id'],
+                'matiere_id' => $validated['matiere_id'],
+                'pack_id' => $validated['pack_id'],
+                'montant' => $validated['montant'],
+                'mode_paiement' => $validated['mode_paiement'],
+                'reference_paiement' => $validated['reference_paiement'] ?? $paiement->reference_paiement,
+                'commentaires' => $validated['commentaires'],
+                'mois_periode' => $validated['mois_periode'] ?? now()->format('Y-m'),
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('paiements.show', $paiement->id)
+                ->with('success', 'Le paiement a été mis à jour avec succès.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Erreur lors de la mise à jour du paiement: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Supprime un paiement
+     */
+    public function destroy(Paiement $paiement)
+    {
+        $user = Auth::user();
+        
+        // Seul un admin peut supprimer un paiement
+        if ($user->role !== RoleType::ADMIN) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        if ($paiement->statut === 'valide') {
+            return back()->with('error', 'Impossible de supprimer un paiement déjà validé.');
+        }
+
+        try {
+            $paiement->delete();
+            return redirect()->route('paiements.index')
+                ->with('success', 'Le paiement a été supprimé avec succès.');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Erreur lors de la suppression du paiement: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Télécharge le reçu de paiement
+     */
+    public function downloadReceipt(Paiement $paiement)
+    {
+        $user = Auth::user();
+        
+        // Vérifier les permissions
+        if (!in_array($user->role, [RoleType::ADMIN, RoleType::ASSISTANT]) && 
+            ($user->role !== RoleType::ELEVE || $paiement->etudiant_id !== $user->id)) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        if ($paiement->statut !== 'valide') {
+            return back()->with('error', 'Seuls les paiements validés peuvent générer un reçu.');
+        }
+
+        // Générer le PDF du reçu (à implémenter avec DomPDF ou similaire)
+        // $pdf = PDF::loadView('pdf.receipt', ['paiement' => $paiement]);
+        // return $pdf->download('recu-paiement-' . $paiement->reference_paiement . '.pdf');
+        
+        // Pour l'instant, on redirige vers la vue d'impression
+        return Inertia::render('Paiements/Print', [
+            'paiement' => $paiement->load(['etudiant', 'matiere', 'pack', 'assistant'])
+        ]);
     }
 
     /**

@@ -1,5 +1,21 @@
+<script setup>
+import { Link } from '@inertiajs/vue3';
+import { useRoute } from '@/utils/route';
+
+const { route, currentRoute } = useRoute();
+const emit = defineEmits(['close']);
+
+const props = defineProps({
+  isOpen: {
+    type: Boolean,
+    required: true
+  }
+});
+</script>
+
 <template>
-  <div class="sidebar">
+  <div class="sidebar" :class="{ 'sidebar-closed': !isOpen }">
+    <div v-if="isOpen" class="sidebar-overlay" @click="$emit('close')"></div>
     <div class="sidebar-header">
       <h3>Espace Assistant</h3>
     </div>
@@ -7,7 +23,7 @@
     <nav class="sidebar-nav">
       <ul>
         <li>
-          <Link href="/dashboard" :class="{ 'active': $page.url === '/dashboard' }">
+          <Link :href="route('dashboard')" :class="{ 'active': currentRoute() === 'dashboard' }">
             <i class="fas fa-tachometer-alt"></i>
             <span>Tableau de bord</span>
           </Link>
@@ -17,19 +33,19 @@
           <span class="nav-section-title">Gestion des élèves</span>
           <ul>
             <li>
-              <Link href="/assistant/eleves" :class="{ 'active': $page.url.startsWith('/assistant/eleves') }">
+              <Link :href="route('assistant.eleves.index')" :class="{ 'active': currentRoute().startsWith('assistant.eleves') }">
                 <i class="fas fa-user-graduate"></i>
                 <span>Liste des élèves</span>
               </Link>
             </li>
             <li>
-              <Link href="/assistant/inscriptions" :class="{ 'active': $page.url.startsWith('/assistant/inscriptions') }">
+              <Link :href="route('assistant.inscriptions.index')" :class="{ 'active': currentRoute().startsWith('assistant.inscriptions') }">
                 <i class="fas fa-clipboard-check"></i>
                 <span>Inscriptions</span>
               </Link>
             </li>
             <li>
-              <Link href="/assistant/absences" :class="{ 'active': $page.url.startsWith('/assistant/absences') }">
+              <Link :href="route('assistant.absences.index')" :class="{ 'active': currentRoute().startsWith('assistant.absences') }">
                 <i class="fas fa-user-times"></i>
                 <span>Gestion des absences</span>
               </Link>
@@ -41,19 +57,19 @@
           <span class="nav-section-title">Communication</span>
           <ul>
             <li>
-              <Link href="/assistant/messagerie" :class="{ 'active': $page.url.startsWith('/assistant/messagerie') }">
+              <Link :href="route('assistant.messagerie.index')" :class="{ 'active': currentRoute().startsWith('assistant.messagerie') }">
                 <i class="fas fa-envelope"></i>
                 <span>Messagerie</span>
               </Link>
             </li>
             <li>
-              <Link href="/assistant/annonces" :class="{ 'active': $page.url.startsWith('/assistant/annonces') }">
+              <Link :href="route('assistant.annonces.index')" :class="{ 'active': currentRoute().startsWith('assistant.annonces') }">
                 <i class="fas fa-bullhorn"></i>
                 <span>Annonces</span>
               </Link>
             </li>
             <li>
-              <Link href="/assistant/evenements" :class="{ 'active': $page.url.startsWith('/assistant/evenements') }">
+              <Link :href="route('assistant.evenements.index')" :class="{ 'active': currentRoute().startsWith('assistant.evenements') }">
                 <i class="fas fa-calendar-alt"></i>
                 <span>Événements</span>
               </Link>
@@ -65,13 +81,13 @@
           <span class="nav-section-title">Ressources</span>
           <ul>
             <li>
-              <Link href="/assistant/documents" :class="{ 'active': $page.url.startsWith('/assistant/documents') }">
+              <Link :href="route('assistant.documents.index')" :class="{ 'active': currentRoute().startsWith('assistant.documents') }">
                 <i class="fas fa-file-alt"></i>
                 <span>Documents</span>
               </Link>
             </li>
             <li>
-              <Link href="/assistant/ressources" :class="{ 'active': $page.url.startsWith('/assistant/ressources') }">
+              <Link :href="route('assistant.calendrier.index')" :class="{ 'active': currentRoute().startsWith('assistant.calendrier') }">
                 <i class="fas fa-folder-open"></i>
                 <span>Ressources partagées</span>
               </Link>
@@ -83,13 +99,13 @@
           <span class="nav-section-title">Mon espace</span>
           <ul>
             <li>
-              <Link href="/assistant/profil" :class="{ 'active': $page.url.startsWith('/assistant/profil') }">
+              <Link :href="route('assistant.profil.edit')" :class="{ 'active': currentRoute().startsWith('assistant.profil') }">
                 <i class="fas fa-user-edit"></i>
                 <span>Mon profil</span>
               </Link>
             </li>
             <li>
-              <Link href="/assistant/parametres" :class="{ 'active': $page.url.startsWith('/assistant/parametres') }">
+              <Link :href="route('assistant.parametres.index')" :class="{ 'active': currentRoute().startsWith('assistant.parametres') }">
                 <i class="fas fa-cog"></i>
                 <span>Paramètres</span>
               </Link>
@@ -109,17 +125,13 @@
           <div class="user-role">Assistant</div>
         </div>
       </div>
-      <Link href="/logout" method="post" as="button" class="logout-btn">
+      <Link :href="route('logout')" method="post" as="button" class="logout-btn">
         <i class="fas fa-sign-out-alt"></i>
         <span>Déconnexion</span>
       </Link>
     </div>
   </div>
 </template>
-
-<script setup>
-import { Link } from '@inertiajs/vue3';
-</script>
 
 <style scoped>
 .sidebar {

@@ -3,83 +3,180 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Notifications\AbsenceNotification;
-use App\Notifications\PaymentNotification;
-use App\Notifications\GradeNotification;
-use App\Notifications\SystemNotification;
-use Illuminate\Support\Facades\Notification;
+use App\Models\Paiement;
+use App\Models\Notification as NotificationModel;
+use App\Enums\RoleType;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class NotificationService
 {
     /**
-     * Envoyer une notification d'absence
+     * Envoyer une notification de retard de paiement
      *
-     * @param  \App\Models\Absence  $absence
-     * @param  array  $channels
-     * @return void
+     * @param  \App\Models\User  $eleve
+     * @param  int  $joursRetard
+     * @param  float  $montantDu
+     * @param  array  $matieres
+     * @return bool
      */
-    public function sendAbsenceNotification($absence, array $channels = ['mail', 'database'])
+    public function notifyPaiementRetard($eleve, $joursRetard, $montantDu, $matieres)
     {
         try {
-            $student = $absence->student;
-            $parent = $student->parent;
+            // Vérifier si une notification similaire a déjà été envoyée aujourd'hui
+            $today = now()->startOfDay();
+            $exists = NotificationModel::where('eleve_id', $eleve->id)
+                ->where('type', NotificationModel::TYPE_PAIEMENT_RETARD)
+                ->whereDate('created_at', $today)
+                ->exists();
             
-            // Notifier les administrateurs
-            $admins = User::role('admin')->get();
-            Notification::send($admins, new AbsenceNotification($absence, 'admin'));
-            
-            // Notifier le professeur
-            if ($absence->course && $absence->course->teacher) {
-                $absence->course->teacher->user->notify(
-                    new AbsenceNotification($absence, 'teacher')
-                );
+            if ($exists) {
+                Log::info("Une notification de retard a déjà été envoyée aujourd'hui pour l'élève ID: {$eleve->id}");
+                return false;
             }
             
-            // Notifier le parent si configuré
-            if (config('notifications.settings.absence.notify_parent') && $parent) {
-                $parent->user->notify(
-                    (new AbsenceNotification($absence, 'parent'))->onQueue('notifications')
-                );
-            }
+            // Créer la notification
+            NotificationModel::createPaiementRetardNotification($eleve, $joursRetard, $montantDu, $matieres);
             
-            // Journalisation
-            Log::info("Notification d'absence envoyée pour l'étudiant ID: {$student->id}");
-            
+            Log::info("Notification de retard de paiement envoyée pour l'élève ID: {$eleve->id}");
             return true;
+            
         } catch (\Exception $e) {
-            Log::error("Erreur lors de l'envoi de la notification d'absence: " . $e->getMessage());
+            Log::error("Erreur lors de l'envoi de la notification de retard de paiement: " . $e->getMessage());
             return false;
+        }
+    }
+    
+    /**
+     * Envoyer une notification de paiement effectué
+     *
+     * @param  \App\Models\Paiement  $paiement
+     * @return bool
+     */
+    public function notifyPaiementEffectue($paiement)
+    {
+        try {
+            // Créer la notification
+            NotificationModel::createPaiementEffectueNotification($paiement);
+            
+            Log::info("Notification de paiement effectué envoyée pour le paiement ID: {$paiement->id}");
+            return true;
+            
+        } catch (\Exception $e) {
+            Log::error("Erreur lors de l'envoi de la notification de paiement effectué: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Marquer une notification comme lue
+     *
+     * @param  int  $notificationId
+     * @param  int  $userId
+     * @return bool
+     */
+    public function markAsRead($notificationId, $userId)
+    {
+        try {
+            $notification = NotificationModel::where('id', $notificationId)
+                ->where('user_id', $userId)
+                ->first();
+                
+            if ($notification) {
+                $notification->markAsRead();
+                return true;
+            }
+            
+            return false;
+            
+        } catch (\Exception $e) {
+            Log::error("Erreur lors du marquage de la notification comme lue: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Récupère les notifications non lues d'un utilisateur
+     *
+     * @param  int  $userId
+     * @param  int  $limit
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getUnreadNotifications($userId, $limit = 10)
+    {
+        return NotificationModel::with('eleve')
+            ->where('user_id', $userId)
+            ->where('status', NotificationModel::STATUS_NON_LU)
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get();
+    }
+    
+    /**
+     * Compte le nombre de notifications non lues pour un utilisateur
+     *
+     * @param  int  $userId
+     * @return int
+     */
+    public function getUnreadCount($userId)
+    {
+        return NotificationModel::where('user_id', $userId)
+            ->where('status', NotificationModel::STATUS_NON_LU)
+            ->count();
+    }
+    
+    /**
+     * Vérifier les paiements en retard et envoyer des notifications
+     * Cette méthode doit être planifiée pour s'exécuter quotidiennement
+     *
+     * @return void
+     */
+    public function checkRetardsPaiement()
+    {
+        try {
+            $today = now();
+            $dateLimite = $today->copy()->subDays(config('app.paiement.jours_avant_rappel', 5));
+            
+            // Récupérer les paiements en retard
+            $paiementsEnRetard = Paiement::where('statut', 'en_attente')
+                ->whereDate('date_limite', '<=', $dateLimite)
+                ->with(['etudiant', 'matiere'])
+                ->get()
+                ->groupBy('etudiant_id');
+            
+            foreach ($paiementsEnRetard as $eleveId => $paiements) {
+                $eleve = $paiements->first()->etudiant;
+                $joursRetard = $today->diffInDays($paiements->min('date_limite'));
+                $montantTotal = $paiements->sum('montant');
+                $matieres = $paiements->pluck('matiere.nom')->filter()->unique()->toArray();
+                
+                $this->notifyPaiementRetard($eleve, $joursRetard, $montantTotal, $matieres);
+            }
+            
+            Log::info("Vérification des retards de paiement terminée. " . count($paiementsEnRetard) . " élèves en retard.");
+            
+        } catch (\Exception $e) {
+            Log::error("Erreur lors de la vérification des retards de paiement: " . $e->getMessage());
         }
     }
     
     /**
      * Envoyer une notification de paiement
      *
-     * @param  \App\Models\Payment  $payment
+     * @param  \App\Models\Paiement  $paiement
      * @param  string  $type
      * @return bool
      */
-    public function sendPaymentNotification($payment, string $type = 'confirmation'): bool
+    public function sendPaymentNotification($paiement, $type = 'success')
     {
         try {
-            $student = $payment->student;
-            
-            $notification = new PaymentNotification($payment, $type);
-            
-            // Notifier l'étudiant
-            $student->user->notify($notification);
-            
-            // Notifier les administrateurs pour les paiements importants
-            if ($payment->amount > 5000) {
-                $admins = User::role('admin')->get();
-                Notification::send($admins, $notification);
+            if ($type === 'success') {
+                return $this->notifyPaiementEffectue($paiement);
             }
             
-            Log::info("Notification de paiement {$type} envoyée pour le paiement ID: {$payment->id}");
+            return false;
             
-            return true;
         } catch (\Exception $e) {
             Log::error("Erreur lors de l'envoi de la notification de paiement: " . $e->getMessage());
             return false;

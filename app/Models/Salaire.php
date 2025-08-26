@@ -124,7 +124,7 @@ class Salaire extends Model
     {
         $this->montant_brut = $this->nombre_eleves * $this->prix_unitaire;
         $this->montant_commission = $this->montant_brut * ($this->commission_prof / 100);
-        $this->montant_net = $this->montant_commission;
+        $this->montant_net = $this->montant_brut - $this->montant_commission;
     }
 
     /**

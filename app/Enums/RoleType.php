@@ -10,7 +10,6 @@ enum RoleType: int
     case PROFESSEUR = 2;
     case ASSISTANT = 3;
     case ELEVE = 4;
-    case PARENT = 5;
 
     /**
      * Obtenir le libellé du rôle
@@ -22,7 +21,6 @@ enum RoleType: int
             self::PROFESSEUR => 'Professeur',
             self::ASSISTANT => 'Assistant',
             self::ELEVE => 'Élève',
-            self::PARENT => 'Parent',
         };
     }
 
@@ -36,7 +34,6 @@ enum RoleType: int
             self::PROFESSEUR => 'bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full',
             self::ASSISTANT => 'bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full',
             self::ELEVE => 'bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full',
-            self::PARENT => 'bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full',
         };
     }
 

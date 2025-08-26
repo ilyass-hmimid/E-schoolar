@@ -54,7 +54,21 @@ class TestController extends Controller
     public function testStudent()
     {
         return Inertia::render('Test/Student', [
-            'message' => 'Page réservée aux élèves uniquement.',
+            'message' => 'Page réservée aux étudiants uniquement.',
+        ]);
+    }
+
+    public function testSpatieRoles()
+    {
+        $user = Auth::user();
+        
+        return response()->json([
+            'user' => $user->only(['id', 'name', 'email']),
+            'roles' => $user->getRoleNames(),
+            'permissions' => $user->getAllPermissions()->pluck('name'),
+            'has_role_admin' => $user->hasRole('admin'),
+            'has_any_role' => $user->hasAnyRole(['admin', 'professeur', 'assistant', 'eleve']),
+            'has_all_roles' => $user->hasAllRoles(['admin']),
         ]);
     }
 }

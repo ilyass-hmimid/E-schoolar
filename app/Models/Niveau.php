@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Niveau extends Model
 {
@@ -22,6 +23,7 @@ class Niveau extends Model
         'nom',
         'code',
         'description',
+        'type',
         'ordre',
         'est_actif',
     ];
@@ -47,6 +49,23 @@ class Niveau extends Model
     public function enseignements(): HasMany
     {
         return $this->hasMany(Enseignement::class);
+    }
+
+    /**
+     * Les filières associées à ce niveau
+     */
+    public function filieres(): HasMany
+    {
+        return $this->hasMany(Filiere::class);
+    }
+
+    /**
+     * Les matières associées à ce niveau
+     */
+    public function matieres(): BelongsToMany
+    {
+        return $this->belongsToMany(Matiere::class, 'matiere_niveau')
+            ->withTimestamps();
     }
 
     /**

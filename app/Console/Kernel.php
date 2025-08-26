@@ -4,6 +4,7 @@ namespace App\Console;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use Illuminate\Support\Facades\Log;
 
 class Kernel extends ConsoleKernel
 {
@@ -12,7 +13,15 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Vérification quotidienne des retards de paiement à 9h du matin
+        $schedule->command('paiements:check-retards')
+                ->dailyAt('09:00')
+                ->onSuccess(function () {
+                    Log::info('Vérification des retards de paiement exécutée avec succès');
+                })
+                ->onFailure(function () {
+                    Log::error('Échec de la vérification des retards de paiement');
+                });
     }
 
     /**

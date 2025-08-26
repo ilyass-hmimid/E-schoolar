@@ -246,15 +246,23 @@ const goToNotifications = () => {
 
 const getNotificationIconClass = (type) => {
   const classes = {
-    'absence': 'bg-red-500',
-    'payment': 'bg-green-500',
-    'system': 'bg-blue-500',
-    'warning': 'bg-yellow-500',
-    'error': 'bg-red-500',
-    'success': 'bg-green-500',
-    'info': 'bg-blue-500',
+    'paiement_retard': 'bg-red-500',
+    'paiement_effectue': 'bg-green-500',
+    'default': 'bg-blue-500'
   };
-  return classes[type] || 'bg-gray-500';
+  
+  return classes[type] || classes.default;
+};
+
+const getNotificationTitle = (notification) => {
+  switch (notification.type) {
+    case 'paiement_retard':
+      return `Retard de paiement - ${notification.data.eleve_nom}`;
+    case 'paiement_effectue':
+      return `Paiement reçu - ${notification.data.eleve_nom}`;
+    default:
+      return 'Notification';
+  }
 };
 
 const formatTimeAgo = (dateString) => {

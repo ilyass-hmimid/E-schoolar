@@ -38,44 +38,56 @@ class CheckRole
             return $next($request);
         }
 
-        // Récupérer le rôle de l'utilisateur sous forme de chaîne
-        $userRole = $user->role;
-        
-        // Si le rôle est un objet (enum), on récupère sa valeur
-        if (is_object($userRole) && method_exists($userRole, 'value')) {
-            $userRole = $userRole->value;
-        }
-        
-        // Convertir le rôle en minuscules pour la comparaison si c'est une chaîne
-        $userRole = is_string($userRole) ? strtolower($userRole) : $userRole;
-        
-        // Vérifier si l'utilisateur a l'un des rôles requis
+        // Vérifier si l'utilisateur a un des rôles requis via Spatie Permission
         foreach ($roles as $role) {
-            $role = is_string($role) ? strtolower($role) : $role;
-            
-            // Si le rôle correspond ou si c'est un admin (accès complet)
-            if ($userRole === $role || $userRole === 'admin' || $userRole === 1) {
+            // Vérifier si le rôle est un nom de rôle Spatie
+            if ($user->hasRole($role)) {
                 return $next($request);
             }
             
-            // Gestion des alias de rôles
-            $roleAliases = [
-                'admin' => [1, 'admin', 'administrateur'],
-                'professeur' => [2, 'professeur', 'teacher', 'prof'],
-                'assistant' => [3, 'assistant', 'assist'],
-                'eleve' => [4, 'eleve', 'etudiant', 'student'],
-                'parent' => [5, 'parent', 'tuteur']
-            ];
-            
             // Vérifier les alias de rôles
-            foreach ($roleAliases as $mainRole => $aliases) {
-                if (in_array($role, $aliases) && in_array($userRole, $aliases)) {
+            $roleAliases = $this->getRoleAliases($role);
+            foreach ($roleAliases as $alias) {
+                if ($user->hasRole($alias)) {
                     return $next($request);
                 }
             }
         }
-
-        // Accès refusé
+        
+        // Si on arrive ici, l'utilisateur n'a aucun des rôles requis
         abort(403, 'Accès non autorisé pour votre rôle.');
+    }
+    
+    /**
+     * Récupère les alias pour un rôle donné
+     */
+    private function getRoleAliases($role)
+    {
+        // Convertir en chaîne et en minuscules pour la comparaison
+        $role = strtolower((string)$role);
+        
+        // Définition des alias de rôles
+        $aliases = [
+            // Admin
+            '1' => ['admin', 'administrateur', 'administrator'],
+            'admin' => ['admin', 'administrateur', 'administrator'],
+            'administrateur' => ['admin', 'administrateur', 'administrator'],
+            
+            // Professeur
+            '2' => ['professeur', 'prof', 'teacher'],
+            'professeur' => ['professeur', 'prof', 'teacher'],
+            'prof' => ['professeur', 'prof', 'teacher'],
+            
+            // Assistant
+            '3' => ['assistant', 'assist', 'aide'],
+            'assistant' => ['assistant', 'assist', 'aide'],
+            
+            // Élève
+            '4' => ['eleve', 'etudiant', 'student'],
+            'eleve' => ['eleve', 'etudiant', 'student'],
+            'etudiant' => ['eleve', 'etudiant', 'student'],
+        ];
+        
+        return $aliases[$role] ?? [$role];
     }
 }

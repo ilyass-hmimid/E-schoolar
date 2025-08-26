@@ -10,15 +10,13 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PaiementController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Profile\AvatarController;
-use App\Http\Controllers\MatiereController;
-use App\Http\Controllers\FiliereController;
-use App\Http\Controllers\NiveauController;
 use App\Http\Controllers\EnseignementController;
 use App\Http\Controllers\AbsenceController;
 use App\Http\Controllers\SalaireController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RapportController;
 use App\Http\Controllers\ComponentExampleController;
+use App\Http\Controllers\TestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -46,14 +44,26 @@ Route::get('/logout-complete', function () {
     return redirect('/')->with('status', 'Déconnexion effectuée');
 });
 
-// Routes d'authentification
+// Routes accessibles aux invités
 Route::middleware('guest')->group(function () {
+    Route::get('/test/auth', [TestController::class, 'testAuth'])->name('test.auth');
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login']);
     Route::get('/forgot-password', [LoginController::class, 'showForgotPasswordForm'])->name('password.request');
     Route::post('/forgot-password', [LoginController::class, 'sendResetLink'])->name('password.email');
     Route::get('/reset-password/{token}', [LoginController::class, 'showResetForm'])->name('password.reset');
     Route::post('/reset-password', [LoginController::class, 'reset'])->name('password.update');
+});
+
+// Routes protégées par authentification
+Route::middleware('auth')->group(function () {
+    // Routes de test protégées par rôles
+    Route::get('/test/role', [TestController::class, 'testRole'])->middleware('role:admin')->name('test.role');
+    Route::get('/test/admin', [TestController::class, 'testAdmin'])->middleware('role:admin')->name('test.admin');
+    Route::get('/test/professor', [TestController::class, 'testProfessor'])->middleware('role:professeur')->name('test.professor');
+    Route::get('/test/assistant', [TestController::class, 'testAssistant'])->middleware('role:assistant')->name('test.assistant');
+    Route::get('/test/student', [TestController::class, 'testStudent'])->middleware('role:eleve')->name('test.student');
+    Route::get('/test/spatie-roles', [TestController::class, 'testSpatieRoles'])->name('test.spatie-roles');
 });
 
 // ============================================================================
@@ -85,96 +95,144 @@ Route::middleware(['auth', 'active'])->group(function () {
     // ROUTES ADMIN (Super utilisateur)
     // ============================================================================
     
+    // Inclure les routes administratives
+    require __DIR__.'/admin.php';
+    
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         // Tableau de bord
-        Route::get('/dashboard', [DashboardController::class, 'admin'])->name('dashboard');
+        Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
         
+        // Gestion des packs
+        Route::prefix('packs')->name('packs.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\PackController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\Admin\PackController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\Admin\PackController::class, 'store'])->name('store');
+            Route::get('/{pack}', [\App\Http\Controllers\Admin\PackController::class, 'show'])->name('show');
+            Route::get('/{pack}/edit', [\App\Http\Controllers\Admin\PackController::class, 'edit'])->name('edit');
+            Route::put('/{pack}', [\App\Http\Controllers\Admin\PackController::class, 'update'])->name('update');
+            Route::delete('/{pack}', [\App\Http\Controllers\Admin\PackController::class, 'destroy'])->name('destroy');
+            
+            // Actions supplémentaires
+            Route::post('/{pack}/toggle-status', [\App\Http\Controllers\Admin\PackController::class, 'toggleStatus'])
+                ->name('toggle-status');
+            Route::post('/{pack}/toggle-popularity', [\App\Http\Controllers\Admin\PackController::class, 'togglePopularity'])
+                ->name('toggle-popularity');
+            Route::get('/{pack}/duplicate', [\App\Http\Controllers\Admin\PackController::class, 'duplicate'])
+                ->name('duplicate');
+        });
+
         // Gestion des utilisateurs
-        Route::resource('users', UserController::class);
-        Route::get('/api/users', [UserController::class, 'apiIndex'])->name('users.api.index');
-        Route::get('/api/users/stats', [UserController::class, 'apiStats'])->name('users.api.stats');
+        Route::resource('users', \App\Http\Controllers\UserController::class);
+        Route::get('/api/users', [\App\Http\Controllers\UserController::class, 'apiIndex'])->name('users.api.index');
+        Route::get('/api/users/stats', [\App\Http\Controllers\UserController::class, 'apiStats'])->name('users.api.stats');
         
         // Gestion des élèves
         Route::resource('eleves', \App\Http\Controllers\EleveController::class);
         
         // Gestion des professeurs
-        Route::resource('professeurs', \App\Http\Controllers\ProfesseurController::class);
+        Route::resource('professeurs', \App\Http\Controllers\Admin\ProfesseurController::class);
         
         // Gestion des assistants
-        Route::resource('assistants', \App\Http\Controllers\AssistantController::class);
-        
-        // Gestion des matières
-        Route::resource('matieres', MatiereController::class);
-        Route::get('/api/matieres/stats', [MatiereController::class, 'stats'])->name('matieres.api.stats');
-        
-        // Gestion des filières
-        Route::resource('filieres', FiliereController::class);
-        
-        // Gestion des niveaux
-        Route::resource('niveaux', NiveauController::class);
+        Route::resource('assistants', \App\Http\Controllers\Admin\AssistantController::class);
         
         // Gestion des inscriptions
-        Route::resource('inscriptions', \App\Http\Controllers\InscriptionController::class);
+        Route::resource('inscriptions', \App\Http\Controllers\Admin\InscriptionController::class);
         
         // Gestion des absences
-        Route::resource('absences', AbsenceController::class);
+        Route::resource('absences', \App\Http\Controllers\AbsenceController::class);
         
         // Gestion des paiements
-        Route::resource('paiements', PaiementController::class);
+        Route::resource('paiements', \App\Http\Controllers\PaiementController::class);
+        Route::post('/paiements/{paiement}/validate', [\App\Http\Controllers\PaiementController::class, 'validatePaiement'])->name('paiements.validate');
+        Route::get('/paiements/{paiement}/receipt', [\App\Http\Controllers\PaiementController::class, 'downloadReceipt'])->name('paiements.receipt');
         
         // Gestion des salaires
-        Route::resource('salaires', SalaireController::class);
-        Route::post('/salaires/generer', [SalaireController::class, 'generer'])->name('salaires.generer');
-        Route::post('/salaires/{salaire}/valider', [SalaireController::class, 'valider'])->name('salaires.valider');
+        Route::prefix('salaires')->name('salaires.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\SalaireController::class, 'index'])->name('index');
+            Route::get('/calculer', [\App\Http\Controllers\SalaireController::class, 'calculer'])->name('calculer');
+            Route::post('/calculer', [\App\Http\Controllers\SalaireController::class, 'calculerSalaires'])->name('calculer.store');
+            Route::get('/{salaire}', [\App\Http\Controllers\SalaireController::class, 'show'])->name('show');
+            Route::get('/{salaire}/edit', [\App\Http\Controllers\SalaireController::class, 'edit'])->name('edit');
+            Route::put('/{salaire}', [\App\Http\Controllers\SalaireController::class, 'update'])->name('update');
+            Route::post('/{salaire}/valider', [\App\Http\Controllers\SalaireController::class, 'validerPaiement'])->name('valider');
+            Route::post('/{salaire}/annuler', [\App\Http\Controllers\SalaireController::class, 'annuler'])->name('annuler');
+            Route::get('/export/excel', [\App\Http\Controllers\SalaireController::class, 'exportExcel'])->name('export.excel');
+            Route::get('/export/pdf', [\App\Http\Controllers\SalaireController::class, 'exportPdf'])->name('export.pdf');
+            Route::post('/generer', [\App\Http\Controllers\SalaireController::class, 'generer'])->name('generer');
+            
+            // Configuration des salaires
+            Route::prefix('configuration')->name('configuration.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\SalaireController::class, 'configuration'])->name('index');
+                Route::post('/', [\App\Http\Controllers\SalaireController::class, 'storeConfiguration'])->name('store');
+                Route::put('/{configuration}', [\App\Http\Controllers\SalaireController::class, 'updateConfiguration'])->name('update');
+                Route::delete('/{configuration}', [\App\Http\Controllers\SalaireController::class, 'destroyConfiguration'])->name('destroy');
+                Route::get('/matiere/{matiereId}', [\App\Http\Controllers\SalaireController::class, 'getConfigurationByMatiere'])->name('matiere');
+            });
+        });
         
         // Rapports et statistiques
-        Route::get('/rapports', [RapportController::class, 'index'])->name('rapports.index');
-        Route::get('/statistiques', [RapportController::class, 'statistiques'])->name('statistiques');
-        Route::get('/api/filieres/stats', [FiliereController::class, 'stats'])->name('filieres.api.stats');
+        Route::get('/rapports', [\App\Http\Controllers\RapportController::class, 'index'])->name('rapports.index');
+        Route::get('/statistiques', [\App\Http\Controllers\RapportController::class, 'statistiques'])->name('statistiques');
+        Route::get('/api/filieres/stats', [\App\Http\Controllers\Admin\FiliereController::class, 'stats'])->name('filieres.api.stats');
         
         // Gestion des niveaux
-        Route::resource('niveaux', NiveauController::class);
-        Route::get('/api/niveaux/stats', [NiveauController::class, 'stats'])->name('niveaux.api.stats');
+        Route::resource('niveaux', \App\Http\Controllers\Admin\NiveauController::class);
+        Route::get('/api/niveaux/stats', [\App\Http\Controllers\Admin\NiveauController::class, 'stats'])->name('niveaux.api.stats');
         
         // Gestion des enseignements
-        Route::resource('enseignements', EnseignementController::class);
-        Route::get('/api/enseignements/stats', [EnseignementController::class, 'stats'])->name('enseignements.api.stats');
+        Route::resource('enseignements', \App\Http\Controllers\EnseignementController::class);
+        Route::get('/api/enseignements/stats', [\App\Http\Controllers\EnseignementController::class, 'stats'])->name('enseignements.api.stats');
         
         // Gestion des salaires
-        Route::resource('salaires', SalaireController::class);
-        Route::post('/salaires/{salaire}/payer', [SalaireController::class, 'payer'])->name('salaires.payer');
-        Route::post('/salaires/calculer-automatiquement', [SalaireController::class, 'calculerAutomatiquement'])->name('salaires.calculer-automatiquement');
-        Route::get('/salaires/rapport', [SalaireController::class, 'genererRapport'])->name('salaires.rapport');
+        Route::resource('salaires', \App\Http\Controllers\SalaireController::class);
+        Route::post('/salaires/{salaire}/payer', [\App\Http\Controllers\SalaireController::class, 'payer'])->name('salaires.payer');
+        Route::post('/salaires/calculer-automatiquement', [\App\Http\Controllers\SalaireController::class, 'calculerAutomatiquement'])->name('salaires.calculer-automatiquement');
+        Route::get('/salaires/rapport', [\App\Http\Controllers\SalaireController::class, 'genererRapport'])->name('salaires.rapport');
         
         // Gestion des notifications
         Route::prefix('notifications')->name('notifications.')->group(function () {
-            Route::get('/', [NotificationController::class, 'index'])->name('index');
-            Route::post('/{id}/mark-read', [NotificationController::class, 'markAsRead'])->name('mark-read');
-            Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
-            Route::delete('/{id}', [NotificationController::class, 'destroy'])->name('destroy');
-            Route::get('/statistiques', [NotificationController::class, 'statistiques'])->name('statistiques');
-            Route::post('/absence/{absence}', [NotificationController::class, 'notifierAbsence'])->name('absence');
-            Route::post('/paiement/{paiement}', [NotificationController::class, 'notifierPaiement'])->name('paiement');
-            Route::post('/rappels-paiement', [NotificationController::class, 'envoyerRappelsPaiement'])->name('rappels-paiement');
-            Route::post('/systeme', [NotificationController::class, 'envoyerNotificationSysteme'])->name('systeme');
-            Route::get('/tester-configuration', [NotificationController::class, 'testerConfiguration'])->name('tester-configuration');
+            Route::get('/', [\App\Http\Controllers\NotificationController::class, 'index'])->name('index');
+            Route::post('/{id}/mark-read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('mark-read');
+            Route::post('/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
+            Route::delete('/{id}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('destroy');
+            Route::get('/statistiques', [\App\Http\Controllers\NotificationController::class, 'statistiques'])->name('statistiques');
+            Route::post('/absence/{absence}', [\App\Http\Controllers\NotificationController::class, 'notifierAbsence'])->name('absence');
+            Route::post('/paiement/{paiement}', [\App\Http\Controllers\NotificationController::class, 'notifierPaiement'])->name('paiement');
+            Route::post('/rappels-paiement', [\App\Http\Controllers\NotificationController::class, 'envoyerRappelsPaiement'])->name('rappels-paiement');
+            Route::post('/systeme', [\App\Http\Controllers\NotificationController::class, 'envoyerNotificationSysteme'])->name('systeme');
+            Route::get('/tester-configuration', [\App\Http\Controllers\NotificationController::class, 'testerConfiguration'])->name('tester-configuration');
         });
         
         // Gestion des rapports
         Route::prefix('rapports')->name('rapports.')->group(function () {
-            Route::get('/', [RapportController::class, 'index'])->name('index');
-            Route::get('/absences', [RapportController::class, 'absences'])->name('absences');
-            Route::get('/paiements', [RapportController::class, 'paiements'])->name('paiements');
-            Route::get('/salaires', [RapportController::class, 'salaires'])->name('salaires');
+            Route::get('/', [\App\Http\Controllers\RapportController::class, 'index'])->name('index');
             
-            // Export PDF des rapports
-            Route::get('/global/export', [RapportController::class, 'exportGlobal'])->name('export-global');
-            Route::get('/absences/export', [RapportController::class, 'exportAbsences'])->name('export-absences');
-            Route::get('/paiements/export', [RapportController::class, 'exportPaiements'])->name('export-paiements');
-            Route::get('/salaires/export', [RapportController::class, 'exportSalaires'])->name('export-salaires');
-            Route::get('/salaires/{salaire}/bulletin', [RapportController::class, 'exportSalarySlip'])->name('export-salary-slip');
+            // Rapports d'absences
+            Route::prefix('absences')->name('absences.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\RapportController::class, 'absences'])->name('index');
+                Route::get('/export', [\App\Http\Controllers\RapportController::class, 'exportAbsences'])->name('export');
+            });
+            
+            // Rapports de paiements
+            Route::prefix('paiements')->name('paiements.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\RapportController::class, 'paiements'])->name('index');
+                Route::get('/export', [\App\Http\Controllers\RapportController::class, 'exportPaiements'])->name('export');
+            });
+            
+            // Rapports d'effectifs
+            Route::prefix('effectifs')->name('effectifs.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\RapportController::class, 'effectifs'])->name('index');
+                Route::get('/export', [\App\Http\Controllers\RapportController::class, 'exportEffectifs'])->name('export');
+            });
+            
+            // Rapports financiers
+            Route::prefix('financiers')->name('financiers.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\RapportController::class, 'financiers'])->name('index');
+                Route::get('/export', [\App\Http\Controllers\RapportController::class, 'exportFinanciers'])->name('export');
+            });
         });
-    });
+    
+    }); // Fin du groupe admin
     
     // ============================================================================
     // ROUTES PROFESSEUR
@@ -182,7 +240,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     
     Route::middleware('role:professeur')->prefix('professeur')->name('professeur.')->group(function () {
         // Tableau de bord
-        Route::get('/dashboard', [DashboardController::class, 'professeur'])->name('dashboard');
+        Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'professeur'])->name('dashboard');
         
         // Emploi du temps
         Route::get('/emploi-du-temps', function () {
@@ -202,8 +260,37 @@ Route::middleware(['auth', 'active'])->group(function () {
         // Gestion des notes
         Route::resource('notes', \App\Http\Controllers\Professeur\NoteController::class);
         
+        // Routes API pour la gestion des notes
+        Route::prefix('api')->group(function () {
+            // Récupérer les étudiants d'une classe pour une matière
+            Route::get('/classes/{classe}/matieres/{matiere}/etudiants', [\App\Http\Controllers\Professeur\NoteController::class, 'getEtudiantsByClasseMatiere'])
+                ->name('api.etudiants.by-classe-matiere');
+                
+            // Récupérer les notes d'un étudiant pour une matière
+            Route::get('/etudiants/{etudiant}/matieres/{matiere}/notes', [\App\Http\Controllers\Professeur\NoteController::class, 'getNotesEtudiantMatiere'])
+                ->name('api.notes.etudiant-matiere');
+        });
+        
         // Gestion des absences
         Route::resource('absences', \App\Http\Controllers\Professeur\AbsenceController::class);
+        
+        // Gestion des présences
+        Route::resource('presences', \App\Http\Controllers\Professeur\PresenceController::class);
+        
+        // Routes API pour la gestion des présences
+        Route::prefix('api')->group(function () {
+            // Récupérer les étudiants d'une classe pour une matière
+            Route::get('/etudiants/by-classe-matiere', [\App\Http\Controllers\Professeur\PresenceController::class, 'getEtudiantsByClasseMatiere'])
+                ->name('api.etudiants.by-classe-matiere');
+                
+            // Marquer les présences pour une séance
+            Route::post('/presences/marquer', [\App\Http\Controllers\Professeur\PresenceController::class, 'marquerPresences'])
+                ->name('api.presences.marquer');
+                
+            // Récupérer les statistiques de présence
+            Route::get('/presences/statistiques', [\App\Http\Controllers\Professeur\PresenceController::class, 'getStatistiques'])
+                ->name('api.presences.statistiques');
+        });
         
         // Bulletins
         Route::get('/bulletins', function () {
@@ -226,135 +313,20 @@ Route::middleware(['auth', 'active'])->group(function () {
         // Gestion des salaires
         Route::get('/salaires', [\App\Http\Controllers\Professeur\SalaireController::class, 'index'])->name('salaires.index');
         Route::get('/salaires/{salaire}', [\App\Http\Controllers\Professeur\SalaireController::class, 'show'])->name('salaires.show');
-    });
+    }); // Fin du groupe professeur
     
     // ============================================================================
     // ROUTES ASSISTANT
     // ============================================================================
     
-    Route::middleware('role:assistant')->prefix('assistant')->name('assistant.')->group(function () {
-        // Tableau de bord
-        Route::get('/dashboard', [DashboardController::class, 'assistant'])->name('dashboard');
-        
-        // Gestion des élèves
-        Route::get('/eleves', function () {
-            return Inertia::render('Assistant/Eleves');
-        })->name('eleves');
-        
-        // Gestion des inscriptions
-        Route::get('/inscriptions', function () {
-            return Inertia::render('Assistant/Inscriptions');
-        })->name('inscriptions');
-        
-        // Gestion des absences
-        Route::get('/absences', function () {
-            return Inertia::render('Assistant/Absences');
-        })->name('absences');
-        
-        // Messagerie
-        Route::get('/messagerie', function () {
-            return Inertia::render('Assistant/Messagerie');
-        })->name('messagerie');
-        
-        // Annonces
-        Route::get('/annonces', function () {
-            return Inertia::render('Assistant/Annonces');
-        })->name('annonces');
-        
-        // Événements
-        Route::get('/evenements', function () {
-            return Inertia::render('Assistant/Evenements');
-        })->name('evenements');
-        
-        // Documents
-        Route::get('/documents', function () {
-            return Inertia::render('Assistant/Documents');
-        })->name('documents');
-        
-        // Ressources partagées
-        Route::get('/ressources', function () {
-            return Inertia::render('Assistant/Ressources');
-        })->name('ressources');
-        
-        // Profil
-        Route::get('/profil', function () {
-            return Inertia::render('Assistant/Profil');
-        })->name('profil');
-        
-        // Paramètres
-        Route::get('/parametres', function () {
-            return Inertia::render('Assistant/Parametres');
-        })->name('parametres');
-    });
-    
-    // ============================================================================
-    // ROUTES ÉLÈVE
-    // ============================================================================
-    
-    Route::middleware('role:eleve')->prefix('eleve')->name('eleve.')->group(function () {
-        // Tableau de bord
-        Route::get('/dashboard', [DashboardController::class, 'eleve'])->name('dashboard');
-        
-        // Emploi du temps
-        Route::get('/emploi-du-temps', function () {
-            return Inertia::render('Eleve/EmploiDuTemps');
-        })->name('emploi-du-temps');
-        
-        // Matières suivies
-        Route::get('/matieres', function () {
-            return Inertia::render('Eleve/MesMatieres');
-        })->name('matieres');
-        
-        // Notes
-        Route::get('/notes', function () {
-            return Inertia::render('Eleve/MesNotes');
-        })->name('notes');
-        
-        // Absences
-        Route::get('/absences', function () {
-            return Inertia::render('Eleve/MesAbsences');
-        })->name('absences');
-        
-        // Devoirs
-        Route::get('/devoirs', function () {
-            return Inertia::render('Eleve/MesDevoirs');
-        })->name('devoirs');
-        
-        // Cours en ligne
-        Route::get('/cours', function () {
-            return Inertia::render('Eleve/CoursEnLigne');
-        })->name('cours');
-        
-        // Ressources
-        Route::get('/ressources', function () {
-            return Inertia::render('Eleve/Ressources');
-        })->name('ressources');
-        
-        // Bulletins
-        Route::get('/bulletins', function () {
-            return Inertia::render('Eleve/MesBulletins');
-        })->name('bulletins');
-        
-        // Événements
-        Route::get('/evenements', function () {
-            return Inertia::render('Eleve/Evenements');
-        })->name('evenements');
-        
-        // Messagerie
-        Route::get('/messagerie', function () {
-            return Inertia::render('Eleve/Messagerie');
-        })->name('messagerie');
-        
-        // Profil
-        Route::get('/profil', function () {
-            return Inertia::render('Eleve/Profil');
-        })->name('profil');
-        
-        // Paramètres
-        Route::get('/parametres', function () {
-            return Inertia::render('Eleve/Parametres');
-        })->name('parametres');
-    });
+    require __DIR__.'/assistant.php';
+}); // Fin du groupe auth active
+
+// Routes de test (à supprimer en production)
+Route::prefix('test')->group(function () {
+    Route::get('/salaires/calculer/{mois?}', [\App\Http\Controllers\TestSalaireController::class, 'testCalculerSalaires'])->name('test.salaires.calculer');
+    Route::post('/salaires/{salaire}/valider', [\App\Http\Controllers\TestSalaireController::class, 'testValiderPaiement'])->name('test.salaires.valider');
+    Route::post('/salaires/{salaire}/annuler', [\App\Http\Controllers\TestSalaireController::class, 'testAnnulerSalaire'])->name('test.salaires.annuler');
 });
 
 // ============================================================================

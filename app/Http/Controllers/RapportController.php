@@ -116,55 +116,57 @@ class RapportController extends Controller
             abort(403, 'Accès non autorisé');
         }
 
-        $filters = $request->only(['date_debut', 'date_fin', 'statut', 'niveau_id']);
+        $filters = $request->only(['date_debut', 'date_fin', 'statut', 'niveau_id', 'format', 'search']);
         
-        $paiements = Paiement::with(['etudiant', 'matiere'])
-            ->when($filters['date_debut'] ?? null, function ($query, $date) {
-                return $query->where('date_paiement', '>=', $date);
-            })
-            ->when($filters['date_fin'] ?? null, function ($query, $date) {
-                return $query->where('date_paiement', '<=', $date);
-            })
-            ->when($filters['statut'] ?? null, function ($query, $statut) {
-                return $query->where('statut', $statut);
-            })
-            ->when($filters['niveau_id'] ?? null, function ($query, $niveauId) {
-                return $query->whereHas('etudiant', function ($q) use ($niveauId) {
-                    $q->where('niveau_id', $niveauId);
-                });
-            })
-            ->orderBy('date_paiement', 'desc')
-            ->get();
-
-        $filename = 'rapport_paiements_' . date('Y-m-d_H-i-s') . '.csv';
+        $query = Paiement::with(['etudiant', 'matiere', 'pack']);
         
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ];
+        // Appliquer les filtres
+        if (!empty($filters['date_debut'])) {
+            $query->where('date_paiement', '>=', $filters['date_debut']);
+        }
+        
+        if (!empty($filters['date_fin'])) {
+            $query->where('date_paiement', '<=', $filters['date_fin']);
+        }
+        
+        if (!empty($filters['statut'])) {
+            $query->where('statut', $filters['statut']);
+        }
+        
+        if (!empty($filters['niveau_id'])) {
+            $query->whereHas('etudiant', function($q) use ($filters) {
+                $q->where('niveau_id', $filters['niveau_id']);
+            });
+        }
+        
+        // Filtre de recherche
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function($q) use ($search) {
+                $q->where('reference_paiement', 'like', "%{$search}%")
+                  ->orWhereHas('etudiant', function($q) use ($search) {
+                      $q->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+        
+        // Si l'utilisateur est un assistant, ne voir que ses paiements
+        if ($user->role === RoleType::ASSISTANT) {
+            $query->where('assistant_id', $user->id);
+        }
+        
+        $paiements = $query->orderBy('date_paiement', 'desc')->get();
 
-        $callback = function() use ($paiements) {
-            $file = fopen('php://output', 'w');
-            
-            fputcsv($file, [
-                'Étudiant', 'Matière', 'Montant', 'Date', 'Statut', 'Méthode'
-            ]);
-
-            foreach ($paiements as $paiement) {
-                fputcsv($file, [
-                    $paiement->etudiant->name,
-                    $paiement->matiere->nom,
-                    number_format($paiement->montant, 2) . ' DH',
-                    $paiement->date_paiement->format('d/m/Y'),
-                    $paiement->statut,
-                    $paiement->methode_paiement,
-                ]);
-            }
-
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        $exportService = new \App\Services\PaiementExportService();
+        
+        $format = strtolower($filters['format'] ?? 'pdf');
+        
+        if ($format === 'excel') {
+            return $exportService->exportToExcel($paiements);
+        }
+        
+        // Par défaut, on exporte en PDF
+        return $exportService->exportToPdf($paiements);
     }
 
     public function exportGlobal(Request $request)

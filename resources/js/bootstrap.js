@@ -5,6 +5,10 @@
  */
 
 import axios from 'axios';
+import { Ziggy } from './ziggy';
+
+// Make Ziggy available globally
+window.Ziggy = Ziggy;
 
 // Configuration d'axios
 window.axios = axios.create({
