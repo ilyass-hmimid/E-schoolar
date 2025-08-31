@@ -1,86 +1,41 @@
-// Import des styles
-import '../css/app.css';
+// Fichier JavaScript principal
+console.log('Application JavaScript chargée');
 
-// Import des dépendances JavaScript
-import 'bootstrap';
-import * as bootstrap from 'bootstrap';
-import Alpine from 'alpinejs';
-import focus from '@alpinejs/focus';
-import { createApp, h } from 'vue';
-import { createInertiaApp, Link, Head } from '@inertiajs/vue3';
-import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
-import { ZiggyVue } from 'ziggy-js';
-import { Ziggy } from './ziggy';
+// Initialisation des graphiques du tableau de bord
+function initDashboardCharts() {
+    const chartEl = document.getElementById('activityChart');
+    if (!chartEl) return;
 
-// Configuration globale
-window.bootstrap = bootstrap;
+    console.log('Initialisation du graphique...');
+    
+    // Vérifier si Chart.js est disponible
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js n\'est pas chargé');
+        return;
+    }
 
-// Initialisation d'Alpine.js
-window.Alpine = Alpine;
-Alpine.plugin(focus);
-Alpine.start();
-
-// Création de l'application Inertia
-createInertiaApp({
-    // Résolution des composants de page
-    resolve: (name) => {
-        const pages = import.meta.glob('./Pages/**/*.vue', { eager: true });
-        const page = pages[`./Pages/${name}.vue`] || pages[`./Pages/${name}/Index.vue`];
-        
-        if (!page) {
-            throw new Error(`Page not found: ${name}.vue or ${name}/Index.vue`);
+    // Créer un graphique simple
+    new Chart(chartEl, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Fév', 'Mar', 'Avr'],
+            datasets: [{
+                label: 'Activité',
+                data: [30, 45, 28, 50],
+                borderColor: '#10B981',
+                borderWidth: 2,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
         }
-        
-        return page;
-    },
-    // Configuration de la page de base
-    setup({ el, App, props, plugin }) {
-        // Création de l'application Vue
-        const app = createApp({ render: () => h(App, props) });
-        
-        // Utilisation des plugins
-        app.use(plugin)
-           .use(ZiggyVue, Ziggy)
-           .component('Link', Link)
-           .component('Head', Head);
-        
-        // Make route() function available in all components
-        app.config.globalProperties.$route = window.route;
-        
-        // Montage de l'application
-        app.mount(el);
-        
-        // Initialisation des composants Bootstrap après le montage
-        const initBootstrap = () => {
-            // Initialisation des tooltips
-            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            tooltipTriggerList.forEach(tooltipTriggerEl => {
-                try {
-                    new bootstrap.Tooltip(tooltipTriggerEl);
-                } catch (error) {
-                    console.error('Erreur lors de l\'initialisation du tooltip:', error);
-                }
-            });
-            
-            // Initialisation des popovers
-            const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-            popoverTriggerList.forEach(popoverTriggerEl => {
-                try {
-                    new bootstrap.Popover(popoverTriggerEl);
-                } catch (error) {
-                    console.error('Erreur lors de l\'initialisation du popover:', error);
-                }
-            });
-        };
-        
-        // Initialisation de Bootstrap après le rendu du composant
-        app.mixin({
-            mounted() {
-                initBootstrap();
-            },
-            updated() {
-                initBootstrap();
-            }
-        });
-    },
+    });
+}
+
+// Initialiser les composants au chargement du document
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM chargé, initialisation...');
+    initDashboardCharts();
 });

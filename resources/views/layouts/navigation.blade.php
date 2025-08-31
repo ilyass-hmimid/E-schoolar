@@ -23,7 +23,7 @@
                 
                 @can('viewAny', App\Models\User::class)
                 <li class="nav-item">
-                    <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')" class="nav-link">
+                    <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')" class="nav-link">
                         <i class="fas fa-users me-2"></i>
                         {{ __('Utilisateurs') }}
                     </x-nav-link>

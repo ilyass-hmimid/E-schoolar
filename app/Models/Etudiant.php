@@ -9,6 +9,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\User;
 
 class Etudiant extends Authenticatable
 {
@@ -24,6 +25,7 @@ class Etudiant extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
+        'user_id',
         'nom',
         'prenom',
         'email',
@@ -67,6 +69,14 @@ class Etudiant extends Authenticatable
         'date_inscription' => 'date',
         'est_actif' => 'boolean',
     ];
+
+    /**
+     * Relation avec l'utilisateur associé
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
     /**
      * Relation avec la classe de l'étudiant
@@ -131,7 +141,14 @@ class Etudiant extends Authenticatable
      */
     public function paiements(): HasMany
     {
-        return $this->hasMany(Paiement::class, 'etudiant_id');
+        // Vérifier si le modèle Paiement existe, sinon utiliser Paiment
+        if (class_exists(Paiement::class)) {
+            return $this->hasMany(Paiement::class, 'etudiant_id')
+                ->orderBy('date_paiement', 'desc');
+        }
+        
+        return $this->hasMany(Paiment::class, 'etudiant_id')
+            ->orderBy('date_paiement', 'desc');
     }
 
     /**
@@ -187,7 +204,19 @@ class Etudiant extends Authenticatable
      */
     public function inscriptions(): HasMany
     {
-        return $this->hasMany(Inscription::class, 'etudiant_id');
+        return $this->hasMany(Inscription::class, 'etudiant_id')
+            ->with('matiere', 'niveau', 'filiere')
+            ->orderBy('annee_scolaire', 'desc');
+    }
+
+    /**
+     * Relation avec les notes de l'étudiant avec les détails de la matière
+     */
+    public function notesAvecDetails()
+    {
+        return $this->hasMany(Note::class, 'etudiant_id')
+            ->with(['matiere', 'evaluation'])
+            ->orderBy('date_evaluation', 'desc');
     }
 
 

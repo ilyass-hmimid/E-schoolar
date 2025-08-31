@@ -3,32 +3,30 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\Absence;
-use App\Models\Matiere;
-use App\Models\Paiement;
-use App\Models\Salaire;
-use App\Models\Pack;
-use App\Models\Note;
-use App\Models\Enseignement;
 use App\Enums\RoleType;
-use Carbon\Carbon;
-use Carbon\CarbonPeriod;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
     /**
-     * Affiche le tableau de bord selon le rôle de l'utilisateur
+     * Constructeur du contrôleur
+     */
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('active');
+    }
+    
+    /**
+     * Redirige l'utilisateur vers le tableau de bord approprié selon son rôle
      */
     public function index()
     {
-        $user = auth()->user();
+        $user = Auth::user();
         
         // Vérifier que l'utilisateur est actif
         if (!$user->is_active) {
-            auth()->logout();
+            Auth::logout();
             return redirect()->route('login')->withErrors([
                 'email' => 'Votre compte a été désactivé. Veuillez contacter l\'administrateur.',
             ]);
@@ -42,69 +40,26 @@ class DashboardController extends Controller
             $roleValue = $user->role;
         }
         
-        return match($roleValue) {
-            RoleType::ADMIN->value => $this->admin(),
-            RoleType::PROFESSEUR->value => $this->professeur(),
-            RoleType::ASSISTANT->value => $this->assistant(),
-            RoleType::ELEVE->value => $this->eleve(),
-            default => redirect()->route('login')->withErrors([
-                'email' => 'Rôle utilisateur non reconnu.',
-            ]),
-        };
-    }
-
-    /**
-     * Affiche le tableau de bord administrateur
-     */
-    public function admin()
-    {
-        // Statistiques générales
-        $stats = [
-            'totalUsers' => User::count(),
-            'eleves' => User::where('role', RoleType::ELEVE)->count(),
-            'professeurs' => User::where('role', RoleType::PROFESSEUR)->count(),
-            'assistants' => User::where('role', RoleType::ASSISTANT)->count(),
-            'revenusMois' => Paiement::whereMonth('date_paiement', now()->month)
-                ->whereYear('date_paiement', now()->year)
-                ->where('statut', 'payé')
-                ->sum('montant'),
-            'coursActifs' => Enseignement::where('date_fin', '>=', now())->count(),
-            'absencesMois' => Absence::whereMonth('date_absence', now()->month)
-                ->whereYear('date_absence', now()->year)
-                ->count(),
-        ];
-
-        // Derniers paiements
-        $derniersPaiements = Paiement::with(['etudiant'])
-            ->orderBy('date_paiement', 'desc')
-            ->limit(5)
-            ->get();
-
-        // Dernières absences
-        $dernieresAbsences = Absence::with(['etudiant', 'matiere'])
-            ->orderBy('date_absence', 'desc')
-            ->limit(5)
-            ->get();
-
-        // Données pour les graphiques
-        $revenusParMois = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $date = now()->subMonths($i);
-            $revenusParMois[] = [
-                'mois' => $date->format('M'),
-                'montant' => Paiement::whereMonth('date_paiement', $date->month)
-                    ->whereYear('date_paiement', $date->year)
-                    ->where('statut', 'payé')
-                    ->sum('montant')
-            ];
+        // Rediriger vers le contrôleur approprié selon le rôle
+        switch ($roleValue) {
+            case RoleType::ADMIN->value:
+                return redirect()->route('admin.dashboard');
+                
+            case RoleType::PROFESSEUR->value:
+                return redirect()->route('professeur.dashboard');
+                
+            case RoleType::ASSISTANT->value:
+                return redirect()->route('assistant.dashboard');
+                
+            case RoleType::ELEVE->value:
+                return redirect()->route('eleve.dashboard');
+                
+            default:
+                Auth::logout();
+                return redirect()->route('login')->withErrors([
+                    'email' => 'Rôle utilisateur non reconnu. Veuillez contacter l\'administrateur.',
+                ]);
         }
-
-        return Inertia::render('Dashboard/Admin/Index', [
-            'stats' => $stats,
-            'derniersPaiements' => $derniersPaiements,
-            'dernieresAbsences' => $dernieresAbsences,
-            'revenusParMois' => $revenusParMois,
-        ]);
     }
 
     /**
@@ -127,9 +82,19 @@ class DashboardController extends Controller
                 ->count(),
         ];
 
-        // Récupérer les matières enseignées par le professeur
+        // Récupérer les matières enseignées par le professeur avec eager loading
         $matieres = $user->matieresEnseignees()
-            ->with(['niveau', 'filiere'])
+            ->with([
+                'niveau:id,nom',
+                'filiere:id,nom',
+                'cours' => function($query) use ($user) {
+                    $query->where('professeur_id', $user->id)
+                        ->where('date_fin', '>=', now())
+                        ->orderBy('date_debut')
+                        ->limit(1);
+                }
+            ])
+            ->select('matieres.id', 'matieres.nom', 'niveau_id', 'filiere_id')
             ->get()
             ->map(function($matiere) {
                 return [
@@ -137,15 +102,25 @@ class DashboardController extends Controller
                     'nom' => $matiere->nom,
                     'niveau' => $matiere->niveau->nom ?? 'N/A',
                     'filiere' => $matiere->filiere->nom ?? 'N/A',
+                    'prochain_cours' => $matiere->cours->first()?->date_debut->format('d/m/Y H:i') ?? 'Aucun cours prévu'
                 ];
             });
 
-        // Prochains cours
+        // Prochains cours avec eager loading optimisé
         $prochainsCours = $user->cours()
             ->where('date_debut', '>=', now())
             ->orderBy('date_debut')
             ->limit(5)
-            ->with(['matiere', 'salle'])
+            ->with([
+                'matiere:id,nom',
+                'salle:id,nom',
+                'classe:id,nom',
+                'absences' => function($query) {
+                    $query->select('id', 'cours_id', 'etudiant_id', 'justifiee')
+                        ->whereDate('date_absence', now()->toDateString());
+                }
+            ])
+            ->select('id', 'matiere_id', 'salle_id', 'classe_id', 'date_debut', 'date_fin')
             ->get()
             ->map(function($cours) {
                 return [
@@ -154,12 +129,19 @@ class DashboardController extends Controller
                     'date_debut' => $cours->date_debut->format('d/m/Y H:i'),
                     'date_fin' => $cours->date_fin->format('H:i'),
                     'salle' => $cours->salle->nom ?? 'N/A',
+                    'classe' => $cours->classe->nom ?? 'N/A',
+                    'absents' => $cours->absences->count()
                 ];
             });
             
-        // Dernières notes saisies
+        // Dernières notes saisies avec eager loading optimisé
         $dernieresNotes = $user->notes()
-            ->with(['etudiant', 'matiere'])
+            ->with([
+                'etudiant:id,name',
+                'matiere:id,nom',
+                'cours:id,date_debut'
+            ])
+            ->select('id', 'etudiant_id', 'matiere_id', 'cours_id', 'valeur', 'type', 'created_at')
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get()
@@ -171,12 +153,19 @@ class DashboardController extends Controller
                     'valeur' => $note->valeur,
                     'type' => $note->type,
                     'date' => $note->created_at->format('d/m/Y'),
+                    'cours_date' => $note->cours ? $note->cours->date_debut->format('d/m/Y') : 'N/A'
                 ];
             });
             
-        // Dernières absences enregistrées
+        // Dernières absences enregistrées avec eager loading optimisé
         $dernieresAbsences = Absence::where('professeur_id', $user->id)
-            ->with(['etudiant', 'matiere'])
+            ->with([
+                'etudiant:id,name',
+                'matiere:id,nom',
+                'cours:id,date_debut',
+                'justification:id,motif,piece_jointe'
+            ])
+            ->select('id', 'etudiant_id', 'matiere_id', 'cours_id', 'date_absence', 'justifiee', 'justification_id')
             ->orderBy('date_absence', 'desc')
             ->limit(5)
             ->get()
@@ -187,6 +176,8 @@ class DashboardController extends Controller
                     'matiere' => $absence->matiere->nom,
                     'date' => $absence->date_absence->format('d/m/Y'),
                     'justifiee' => $absence->justifiee ? 'Oui' : 'Non',
+                    'cours_date' => $absence->cours ? $absence->cours->date_debut->format('d/m/Y H:i') : 'N/A',
+                    'justification' => $absence->justification ? 'Oui' : 'Non'
                 ];
             });
         

@@ -7,6 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\User;
+use App\Models\Niveau;
+use App\Models\Filiere;
+use App\Models\Classe;
+use App\Models\Note;
+use App\Models\Absence;
+use App\Models\Enseignement;
 
 class Matiere extends Model
 {
@@ -40,18 +47,6 @@ class Matiere extends Model
         'prix_prof' => 'decimal:2',
         'est_actif' => 'boolean',
     ];
-    
-    /**
-     * Les types de matières disponibles
-     */
-    public static $types = [
-        'scientifique' => 'Scientifique',
-        'litteraire' => 'Littéraire',
-        'technique' => 'Technique',
-        'langue' => 'Langue',
-        'informatique' => 'Informatique',
-        'autre' => 'Autre',
-    ];
 
     /**
      * Relations
@@ -64,7 +59,17 @@ class Matiere extends Model
     {
         return $this->belongsToMany(User::class, 'matiere_professeur', 'matiere_id', 'user_id')
             ->withTimestamps()
-            ->withPivot(['created_at', 'updated_at']);
+            ->withPivot([
+                'created_at',
+                'updated_at',
+                'est_coordinateur' // Si un professeur est coordinateur de la matière
+            ])
+            ->wherePivot('est_actif', true) // Pour ne récupérer que les affectations actives
+            ->where('role', 'professeur')
+            ->withDefault([
+                'name' => 'Non affecté',
+                'email' => 'non.affecte@exemple.com'
+            ]);
     }
     
     /**
@@ -73,7 +78,12 @@ class Matiere extends Model
     public function niveaux(): BelongsToMany
     {
         return $this->belongsToMany(Niveau::class, 'matiere_niveau')
-            ->withTimestamps();
+            ->withTimestamps()
+            ->withPivot([
+                'coefficient',
+                'volume_horaire',
+                'est_obligatoire'
+            ]);
     }
     
     /**
@@ -82,7 +92,12 @@ class Matiere extends Model
     public function filieres(): BelongsToMany
     {
         return $this->belongsToMany(Filiere::class, 'filiere_matiere')
-            ->withTimestamps();
+            ->withTimestamps()
+            ->withPivot([
+                'coefficient',
+                'est_principale',
+                'est_optionnelle'
+            ]);
     }
     
     /**
@@ -91,8 +106,19 @@ class Matiere extends Model
     public function classes(): BelongsToMany
     {
         return $this->belongsToMany(Classe::class, 'enseignements', 'matiere_id', 'classe_id')
-            ->withPivot(['professeur_id', 'nombre_heures_semaine'])
+            ->withPivot([
+                'professeur_id',
+                'niveau_id',
+                'filiere_id',
+                'nombre_heures_semaine',
+                'jour_cours',
+                'heure_debut',
+                'heure_fin',
+                'salle',
+                'est_actif'
+            ])
             ->withTimestamps()
+            ->wherePivot('est_actif', true) // Pour ne récupérer que les affectations actives
             ->distinct();
     }
     
@@ -101,27 +127,119 @@ class Matiere extends Model
      */
     public function enseignements(): HasMany
     {
-        return $this->hasMany(Enseignement::class);
+        return $this->hasMany(Enseignement::class, 'matiere_id')
+            ->where('est_actif', true);
     }
-
-    public function absences(): HasMany
-    {
-        return $this->hasMany(Absence::class);
-    }
-
-    public function paiements(): HasMany
-    {
-        return $this->hasMany(Paiement::class);
-    }
-
+    
+    /**
+     * Les notes attribuées pour cette matière
+     */
     public function notes(): HasMany
     {
-        return $this->hasMany(Note::class);
+        return $this->hasMany(Note::class, 'matiere_id')
+            ->orderBy('date_evaluation', 'desc');
     }
-
-    public function salaires(): HasMany
+    
+    /**
+     * Les absences enregistrées pour cette matière
+     */
+    public function absences(): HasMany
     {
-        return $this->hasMany(Salaire::class);
+        return $this->hasMany(Absence::class, 'matiere_id')
+            ->orderBy('date_absence', 'desc');
+    }
+    
+    /**
+     * Les étudiants inscrits à cette matière
+     */
+    public function etudiants(): BelongsToMany
+    {
+        return $this->belongsToMany(Etudiant::class, 'inscriptions', 'matiere_id', 'etudiant_id')
+            ->withPivot([
+                'annee_scolaire',
+                'date_inscription',
+                'est_actif',
+                'montant_inscription',
+                'statut_paiement'
+            ])
+            ->withTimestamps()
+            ->wherePivot('est_actif', true);
+    }
+    
+    /**
+     * Méthodes utilitaires
+     */
+    
+    /**
+     * Vérifie si la matière est enseignée par un professeur donné
+     */
+    public function estEnseigneePar(int $professeurId): bool
+    {
+        return $this->professeurs()->where('user_id', $professeurId)->exists();
+    }
+    
+    /**
+     * Obtient le coefficient de la matière selon le type
+     */
+    public function getCoefficientParDefaut(): int
+    {
+        return self::COEFFICIENTS[$this->type] ?? 1;
+    }
+    
+    /**
+     * Vérifie si la matière est obligatoire pour un niveau donné
+     */
+    public function estObligatoirePourNiveau(int $niveauId): bool
+    {
+        return $this->niveaux()
+            ->where('niveau_id', $niveauId)
+            ->wherePivot('est_obligatoire', true)
+            ->exists();
+    }
+    
+    /**
+     * Calcule la moyenne de la matière pour un étudiant donné
+     */
+    public function calculerMoyenneEtudiant(int $etudiantId, string $trimestre = null): ?float
+    {
+        $query = $this->notes()
+            ->where('etudiant_id', $etudiantId);
+            
+        if ($trimestre) {
+            $query->where('trimestre', $trimestre);
+        }
+        
+        $notes = $query->get();
+        
+        if ($notes->isEmpty()) {
+            return null;
+        }
+        
+        $totalPondere = $notes->sum(function ($note) {
+            return $note->note * $note->coefficient;
+        });
+        
+        $totalCoefficients = $notes->sum('coefficient');
+        
+        return $totalCoefficients > 0 ? round($totalPondere / $totalCoefficients, 2) : null;
+    }
+    /**
+     * Les paiements associés à cette matière
+     */
+    public function paiements(): HasMany
+    {
+        return $this->hasMany(Paiement::class)
+            ->orderBy('date_paiement', 'desc');
+    }
+    
+    /**
+     * Les tarifs associés à cette matière
+     */
+    public function tarifs(): HasMany
+    {
+        return $this->hasMany(Tarif::class)
+            ->where('est_actif', true)
+            ->orderBy('montant');
     }
 
     /**
@@ -131,7 +249,18 @@ class Matiere extends Model
     {
         return $this->belongsToMany(Pack::class, 'matiere_pack')
             ->withPivot('nombre_heures_par_matiere')
-            ->withTimestamps();
+            ->withTimestamps()
+            ->wherePivot('est_actif', true);
+    }
+    
+    /**
+     * Relation avec les salaires des professeurs pour cette matière
+     */
+    public function salaires(): HasMany
+    {
+        return $this->hasMany(Salaire::class, 'matiere_id')
+            ->where('est_actif', true)
+            ->orderBy('date_debut', 'desc');
     }
 
     /**

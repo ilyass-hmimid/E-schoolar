@@ -23,47 +23,129 @@ class AbsenceController extends Controller
      * @var int
      */
     protected $cacheTtl = 1440; // 24 heures
+    
     /**
-     * Affiche la liste des absences
+     * Nombre d'éléments par page pour la pagination
+     *
+     * @var int
+     */
+    protected $perPage = 20;
+    
+    /**
+     * Affiche la liste des absences avec des requêtes optimisées
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Inertia\Response
      */
     public function index(Request $request)
     {
         $filters = $request->only(['search', 'matiere', 'date_debut', 'date_fin', 'justifiee']);
         $cacheKey = 'absences_prof_' . Auth::id() . '_' . md5(json_encode($filters));
         
-        // Récupérer les matières enseignées par le professeur avec mise en cache
-        $matieres = $this->cached('matieres_prof_' . Auth::id(), function() {
+        // Utilisation de rememberForever avec un tag pour pouvoir l'invalider plus tard si nécessaire
+        $matieres = cache()->remember('matieres_prof_' . Auth::id(), now()->addDay(), function() {
             return Auth::user()->matieresEnseignees()
+                ->select(['id', 'nom', 'code'])
                 ->orderBy('nom')
-                ->get(['id', 'nom']);
-        }, $this->cacheTtl);
+                ->get()
+                ->map(function($matiere) {
+                    return [
+                        'id' => $matiere->id,
+                        'nom' => $matiere->nom,
+                        'code' => $matiere->code
+                    ];
+                });
+        });
         
-        // Récupérer les absences avec les relations et mise en cache
-        $absences = $this->cached($cacheKey, function() use ($filters) {
-            return Absence::with(['etudiant:id,user_id', 'matiere:id,nom'])
-                ->where('professeur_id', Auth::id())
-                ->when($filters['search'] ?? null, function ($query, $search) {
-                    $query->whereHas('etudiant.user', function($q) use ($search) {
-                        $q->where('nom', 'like', "%{$search}%")
-                          ->orWhere('prenom', 'like', "%{$search}%");
-                    });
-                })
-                ->when($filters['matiere'] ?? null, function ($query, $matiere) {
-                    $query->where('matiere_id', $matiere);
-                })
-                ->when($filters['date_debut'] ?? null, function ($query, $date) {
-                    $query->where('date_absence', '>=', $date);
-                })
-                ->when($filters['date_fin'] ?? null, function ($query, $date) {
-                    $query->where('date_absence', '<=', $date);
-                })
-                ->when(isset($filters['justifiee']) && $filters['justifiee'] !== '', function ($query) use ($filters) {
-                    $query->where('justifiee', $filters['justifiee'] === '1');
-                })
-                ->orderBy('date_absence', 'desc')
-                ->select(['id', 'etudiant_id', 'matiere_id', 'date_absence', 'heure_debut', 'heure_fin', 'type', 'justifiee', 'created_at'])
-                ->paginate(15);
-        }, 30); // Mise en cache pour 30 minutes
+        // Récupérer les absences avec des requêtes optimisées
+        $absences = cache()->remember($cacheKey, now()->addHours(2), function() use ($filters, $matieres) {
+            $query = Absence::query()
+                ->select([
+                    'absences.id',
+                    'absences.etudiant_id',
+                    'absences.matiere_id',
+                    'absences.date_absence',
+                    'absences.heure_debut',
+                    'absences.heure_fin',
+                    'absences.type',
+                    'absences.justifiee',
+                    'absences.created_at',
+                    'absences.updated_at',
+                    'etudiants.user_id',
+                    'users.nom',
+                    'users.prenom',
+                    'matieres.nom as matiere_nom'
+                ])
+                ->join('etudiants', 'absences.etudiant_id', '=', 'etudiants.id')
+                ->join('users', 'etudiants.user_id', '=', 'users.id')
+                ->join('matieres', 'absences.matiere_id', '=', 'matieres.id')
+                ->where('absences.professeur_id', Auth::id())
+                ->withCasts([
+                    'date_absence' => 'date:Y-m-d',
+                    'heure_debut' => 'datetime:H:i',
+                    'heure_fin' => 'datetime:H:i',
+                    'created_at' => 'datetime:d/m/Y H:i',
+                    'updated_at' => 'datetime:d/m/Y H:i'
+                ]);
+            
+            // Filtrage par recherche
+            if (!empty($filters['search'])) {
+                $search = $filters['search'];
+                $query->where(function($q) use ($search) {
+                    $q->where('users.nom', 'like', "%{$search}%")
+                      ->orWhere('users.prenom', 'like', "%{$search}%")
+                      ->orWhere('users.email', 'like', "%{$search}%");
+                });
+            }
+            
+            // Filtrage par matière
+            if (!empty($filters['matiere'])) {
+                $query->where('absences.matiere_id', $filters['matiere']);
+            }
+            
+            // Filtrage par plage de dates
+            if (!empty($filters['date_debut'])) {
+                $query->whereDate('absences.date_absence', '>=', $filters['date_debut']);
+            }
+            
+            if (!empty($filters['date_fin'])) {
+                $query->whereDate('absences.date_absence', '<=', $filters['date_fin']);
+            }
+            
+            // Filtrage par statut de justification
+            if (isset($filters['justifiee']) && $filters['justifiee'] !== '') {
+                $query->where('absences.justifiee', (bool)$filters['justifiee']);
+            }
+            
+            // Optimisation: Utilisation de l'index composite sur (professeur_id, date_absence)
+            return $query->orderBy('absences.date_absence', 'desc')
+                        ->orderBy('absences.heure_debut', 'desc')
+                        ->paginate($this->perPage)
+                        ->withQueryString()
+                        ->through(function ($absence) {
+                            return [
+                                'id' => $absence->id,
+                                'etudiant' => [
+                                    'id' => $absence->etudiant_id,
+                                    'user_id' => $absence->user_id,
+                                    'nom' => $absence->nom,
+                                    'prenom' => $absence->prenom,
+                                    'nom_complet' => "{$absence->prenom} {$absence->nom}",
+                                ],
+                                'matiere' => [
+                                    'id' => $absence->matiere_id,
+                                    'nom' => $absence->matiere_nom,
+                                ],
+                                'date_absence' => $absence->date_absence,
+                                'heure_debut' => $absence->heure_debut,
+                                'heure_fin' => $absence->heure_fin,
+                                'type' => $absence->type,
+                                'justifiee' => $absence->justifiee,
+                                'created_at' => $absence->created_at,
+                                'updated_at' => $absence->updated_at,
+                            ];
+                        });
+        });
 
         return Inertia::render('Professeur/Absences/Index', [
             'absences' => $absences,

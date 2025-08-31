@@ -1,0 +1,365 @@
+/* Styles spécifiques au module Salaires */
+.salaires-container {
+  min-height: 100vh;
+  background-color: var(--gray-50);
+}
+
+.salaires-header {
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.salaires-header-content {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1.5rem 1rem;
+}
+
+.salaires-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.salaires-subtitle {
+  margin-top: 0.5rem;
+  color: var(--gray-600);
+}
+
+.salaires-content {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 2rem 1rem;
+}
+
+.salaires-card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.salaires-card-content {
+  padding: 1.5rem;
+}
+
+.salaires-empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.salaires-empty-icon {
+  margin-left: auto;
+  margin-right: auto;
+  height: 3rem;
+  width: 3rem;
+  color: var(--gray-400);
+}
+
+.salaires-empty-title {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--gray-900);
+}
+
+.salaires-empty-message {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--gray-500);
+}
+
+.salaires-table {
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+.salaires-table thead {
+  background-color: var(--gray-50);
+}
+
+.salaires-table th {
+  padding: 0.75rem 1.5rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.salaires-table th.text-right {
+  text-align: right;
+}
+
+.salaires-table td {
+  padding: 1rem 1.5rem;
+  white-space: nowrap;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.salaires-table tr:last-child td {
+  border-bottom: none;
+}
+
+.salaires-table tr:hover {
+  background-color: var(--gray-50);
+}
+
+.salaires-table-cell {
+  font-size: 0.875rem;
+  color: var(--gray-900);
+}
+
+.salaires-table-cell-muted {
+  color: var(--gray-500);
+}
+
+.salaires-table-cell-amount {
+  font-weight: 500;
+  text-align: right;
+}
+
+.salaires-action-link {
+  color: var(--primary);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.salaires-action-link:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+/* Styles spécifiques à la vue détaillée d'une fiche de paie */
+.salaire-detail-container {
+  min-height: 100vh;
+  background-color: var(--gray-50);
+}
+
+.salaire-detail-header {
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.salaire-detail-header-content {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1.5rem 1rem;
+}
+
+.salaire-detail-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.salaire-detail-subtitle {
+  margin-top: 0.5rem;
+  color: var(--gray-600);
+}
+
+.salaire-detail-print-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--gray-300);
+  border-radius: 0.375rem;
+  background-color: white;
+  color: var(--gray-700);
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
+}
+
+.salaire-detail-print-button:hover {
+  background-color: var(--gray-50);
+}
+
+.salaire-detail-print-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.salaire-detail-print-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-right: 0.5rem;
+  color: var(--gray-500);
+}
+
+.salaire-detail-content {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 2rem 1rem;
+}
+
+.salaire-detail-card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.salaire-detail-card-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.salaire-detail-card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.salaire-detail-card-subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--gray-500);
+}
+
+.salaire-detail-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.salaire-detail-status.paid {
+  background-color: var(--green-100);
+  color: var(--green-800);
+}
+
+.salaire-detail-status.pending {
+  background-color: var(--yellow-100);
+  color: var(--yellow-800);
+}
+
+.salaire-detail-status.cancelled {
+  background-color: var(--gray-100);
+  color: var(--gray-800);
+}
+
+.salaire-detail-card-body {
+  padding: 1.5rem;
+}
+
+.salaire-detail-card-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--gray-200);
+  background-color: var(--gray-50);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.salaire-detail-section {
+  margin-bottom: 1.5rem;
+}
+
+.salaire-detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.salaire-detail-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.salaire-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .salaire-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.salaire-detail-item {
+  padding: 0.75rem;
+  background-color: var(--gray-50);
+  border-radius: 0.375rem;
+}
+
+.salaire-detail-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.salaire-detail-value {
+  font-size: 0.875rem;
+  color: var(--gray-900);
+  font-weight: 500;
+}
+
+.salaire-detail-amount {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.salaire-detail-amount.total {
+  font-size: 1.25rem;
+  color: var(--primary);
+}
+
+.salaire-detail-back-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--gray-300);
+  border-radius: 0.375rem;
+  background-color: white;
+  color: var(--gray-700);
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
+}
+
+.salaire-detail-back-button:hover {
+  background-color: var(--gray-50);
+}
+
+.salaire-detail-back-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+/* Styles pour l'impression */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .salaire-detail-container {
+    background-color: white;
+  }
+  
+  .salaire-detail-card {
+    box-shadow: none;
+    border: 1px solid var(--gray-200);
+  }
+}
+

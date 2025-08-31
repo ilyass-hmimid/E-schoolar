@@ -24,15 +24,23 @@
         <!-- Bootstrap Icons -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
         
-        <!-- Scripts -->
-        @routes
-        @vite([
-            'resources/sass/app.scss',
-            'resources/js/app.js',
-            'resources/js/bootstrap.js'
-        ])
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
         
-        <!-- Styles -->
+        <!-- Scripts -->
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        
+        <!-- Alpine.js -->
+        <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+        
+        <!-- Vite JS -->
+        @vite(['resources/css/app.css', 'resources/js/app.js', 'public/css/admin-dashboard.css'])
+        
+        <!-- Chart.js -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        
+        <!-- Styles personnalisés -->
         @stack('styles')
         <style>
             [x-cloak] { display: none !important; }
@@ -91,7 +99,8 @@
 
                 <!-- Contenu de la page -->
                 <div class="container py-4">
-                    {{ $slot }}
+                    @yield('content')
+                    {{ $slot ?? '' }}
                 </div>
             </main>
 

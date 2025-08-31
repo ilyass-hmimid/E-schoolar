@@ -16,9 +16,8 @@ class Parametre extends Model
         'description',
     ];
 
-    protected $casts = [
-        'valeur' => 'json',
-    ];
+    // Suppression du cast en JSON pour la valeur
+    // car nous stockons directement la valeur en tant que chaîne de caractères
 
     /**
      * Récupère la valeur d'un paramètre

@@ -3,8 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-
-
+use Illuminate\Pagination\Paginator;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,6 +20,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-
+        // Utiliser le template de pagination Bootstrap 5
+        Paginator::useBootstrapFive();
+        
+        // Définir le nombre d'éléments par page par défaut
+        Paginator::defaultView('vendor.pagination.bootstrap-5');
     }
 }

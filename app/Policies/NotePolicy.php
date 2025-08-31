@@ -15,6 +15,27 @@ class NotePolicy
      */
     public function viewAny(User $user): bool
     {
+        // Les administrateurs peuvent tout voir
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+        
+        // Les professeurs peuvent voir les notes de leurs élèves
+        if ($user->hasRole('professeur')) {
+            return true;
+        }
+        
+        // Les parents peuvent voir les notes de leurs enfants
+        if ($user->hasRole('parent')) {
+            return true;
+        }
+        
+        // Les étudiants peuvent voir leurs propres notes
+        if ($user->hasRole('etudiant')) {
+            return true;
+        }
+        
+        // Vérifier la permission spécifique
         return $user->can('view_any_note');
     }
 
@@ -49,8 +70,29 @@ class NotePolicy
      */
     public function create(User $user): bool
     {
-        // Seuls les professeurs et administrateurs peuvent créer des notes
-        return $user->hasRole(['professeur', 'admin']) && $user->can('create_note');
+        // Vérifier d'abord la permission basée sur le rôle
+        if (!$user->hasAnyRole(['admin', 'professeur'])) {
+            return false;
+        }
+        
+        // Vérifier si la période de saisie des notes est ouverte
+        if (!$this->isNoteSubmissionPeriodOpen()) {
+            // Seuls les administrateurs peuvent saisir des notes en dehors des périodes autorisées
+            return $user->hasRole('admin');
+        }
+        
+        // Vérifier la permission spécifique
+        return $user->can('create_note');
+    }
+    
+    /**
+     * Vérifie si la période de saisie des notes est ouverte.
+     */
+    protected function isNoteSubmissionPeriodOpen(): bool
+    {
+        // Implémentez la logique pour vérifier si la période de saisie est ouverte
+        // Par exemple, en vérifiant les dates dans la base de données ou dans un fichier de configuration
+        return true; // À remplacer par la logique réelle
     }
 
     /**
@@ -118,25 +160,35 @@ class NotePolicy
     public function viewBulletin(User $user, ?User $etudiant = null): bool
     {
         // L'administrateur peut voir tous les bulletins
-        if ($user->can('view_any_note')) {
+        if ($user->hasRole('admin')) {
             return true;
         }
         
+        // Si aucun étudiant n'est spécifié, seul l'admin peut voir
+        if (!$etudiant) {
+            return false;
+        }
+        
         // Un étudiant peut voir son propre bulletin
-        if ($etudiant && $user->id === $etudiant->id && $user->role === 'etudiant') {
+        if ($user->id === $etudiant->id && $user->hasRole('etudiant')) {
             return true;
         }
         
         // Un parent peut voir le bulletin de son enfant
-        if ($etudiant && $user->role === 'parent' && $user->id === $etudiant->parent_id) {
+        if ($user->hasRole('parent') && $user->id === $etudiant->parent_id) {
             return true;
         }
         
         // Un professeur peut voir les bulletins de ses élèves
-        if ($etudiant && $user->role === 'professeur') {
+        if ($user->hasRole('professeur')) {
             // Vérifier si le professeur enseigne à cet étudiant
             $classesEnseignees = $user->classesEnseignees->pluck('id');
             return $etudiant->classe && $classesEnseignees->contains($etudiant->classe->id);
+        }
+        
+        // La direction peut voir tous les bulletins
+        if ($user->hasRole('direction')) {
+            return true;
         }
         
         return false;
@@ -147,7 +199,54 @@ class NotePolicy
      */
     public function editBulletin(User $user): bool
     {
-        // Seuls les professeurs et administrateurs peuvent éditer les bulletins
-        return $user->hasRole(['professeur', 'admin']) && $user->can('edit_bulletin');
+        // Vérifier d'abord le rôle
+        if (!$user->hasAnyRole(['admin', 'professeur', 'direction'])) {
+            return false;
+        }
+        
+        // Vérifier si la période d'édition est ouverte
+        if (!$this->isBulletinEditingPeriodOpen() && !$user->hasRole('admin')) {
+            return false;
+        }
+        
+        // Vérifier la permission spécifique
+        return $user->can('edit_bulletin');
+    }
+    
+    /**
+     * Vérifie si la période d'édition des bulletins est ouverte.
+     */
+    protected function isBulletinEditingPeriodOpen(): bool
+    {
+        // Implémentez la logique pour vérifier si la période d'édition est ouverte
+        // Par exemple, en vérifiant les dates dans la base de données ou dans un fichier de configuration
+        return true; // À remplacer par la logique réelle
+    }
+    
+    /**
+     * Détermine si l'utilisateur peut valider un bulletin de notes.
+     */
+    public function validateBulletin(User $user): bool
+    {
+        // Seuls les administrateurs et la direction peuvent valider les bulletins
+        return $user->hasAnyRole(['admin', 'direction']) && $user->can('validate_bulletin');
+    }
+    
+    /**
+     * Détermine si l'utilisateur peut publier les notes aux étudiants.
+     */
+    public function publishNotes(User $user): bool
+    {
+        // Seuls les administrateurs et la direction peuvent publier les notes
+        return $user->hasAnyRole(['admin', 'direction']) && $user->can('publish_notes');
+    }
+    
+    /**
+     * Détermine si l'utilisateur peut consulter les statistiques des notes.
+     */
+    public function viewStatistics(User $user): bool
+    {
+        // Les administrateurs, la direction et les professeurs peuvent voir les statistiques
+        return $user->hasAnyRole(['admin', 'direction', 'professeur']) && $user->can('view_note_statistics');
     }
 }

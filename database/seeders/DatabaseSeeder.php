@@ -18,9 +18,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Exécuter le seeder des rôles et permissions
+        // Exécuter les seeders des rôles, permissions et configurations
         $this->call([
             RolePermissionSeeder::class,
+            PermissionSeeder::class,
+            ConfigurationSalaireSeeder::class,
+            UserSeeder::class,  // Ajout du UserSeeder
         ]);
 
         // Créer l'administrateur principal
@@ -38,11 +41,6 @@ class DatabaseSeeder extends Seeder
         // Attribuer le rôle admin à l'utilisateur admin
         $admin->assignRole('admin');
 
-        // Seed test data
-        $this->call([
-            TestDataSeeder::class,
-        ]);
-        
         // Seed des configurations de salaire
         $this->call([
             ConfigurationSalaireSeeder::class,

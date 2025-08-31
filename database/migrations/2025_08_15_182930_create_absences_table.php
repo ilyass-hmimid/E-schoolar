@@ -20,7 +20,7 @@ return new class extends Migration
             $table->date('date_absence');
             $table->time('heure_debut')->nullable();
             $table->time('heure_fin')->nullable();
-            $table->enum('type', ['absence', 'retard'])->default('absence');
+            $table->enum('type', ['absence', 'retard', 'sortie_anticipée'])->default('absence');
             $table->integer('duree_retard')->nullable(); // En minutes pour les retards
             $table->text('motif')->nullable();
             $table->boolean('justifiee')->default(false);

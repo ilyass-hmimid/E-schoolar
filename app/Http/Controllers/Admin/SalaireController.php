@@ -9,7 +9,7 @@ use App\Models\Matiere;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
 class SalaireController extends Controller
 {
@@ -49,9 +49,8 @@ class SalaireController extends Controller
             ['value' => 'annule', 'label' => 'Annulé'],
         ];
 
-        return Inertia::render('Admin/Salaires/Index', [
+        return view('admin.salaires.index', [
             'salaires' => $salaires,
-            'filters' => $request->all(['mois_periode', 'statut', 'professeur_id']),
             'professeurs' => $professeurs,
             'statuts' => $statuts,
         ]);
@@ -69,7 +68,7 @@ class SalaireController extends Controller
 
         $matieres = Matiere::orderBy('nom')->get(['id', 'nom']);
 
-        return Inertia::render('Admin/Salaires/Create', [
+        return view('admin.salaires.create', [
             'professeurs' => $professeurs,
             'matieres' => $matieres,
         ]);
@@ -82,7 +81,7 @@ class SalaireController extends Controller
     {
         $salaire = Salaire::with(['professeur', 'matiere'])->findOrFail($id);
         
-        return Inertia::render('Admin/Salaires/Show', [
+        return view('admin.salaires.show', [
             'salaire' => $salaire,
         ]);
     }
@@ -105,7 +104,7 @@ class SalaireController extends Controller
             ['value' => 'annule', 'label' => 'Annulé'],
         ];
 
-        return Inertia::render('Admin/Salaires/Edit', [
+        return view('admin.salaires.edit', [
             'salaire' => $salaire,
             'professeurs' => $professeurs,
             'matieres' => $matieres,

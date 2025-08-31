@@ -21,13 +21,18 @@
         <!-- Bootstrap Icons -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
         
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        
         <!-- Scripts -->
-        @routes
-        @vite([
-            'resources/sass/app.scss',
-            'resources/js/app.js',
-            'resources/js/bootstrap.js'
-        ])
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        
+        <!-- Custom CSS -->
+        <link href="{{ asset('css/auth.css') }}" rel="stylesheet">
+        
+        <!-- Custom JS -->
+        <script src="{{ asset('js/auth.js') }}" defer></script>
         
         <style>
             /* Animations */

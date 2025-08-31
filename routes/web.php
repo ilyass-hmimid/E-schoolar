@@ -1,88 +1,110 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\CentreController;
-use App\Http\Controllers\ProfesseurController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ApplicationController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\PaiementController;
+use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
+
+// Contrôleurs principaux
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Profile\AvatarController;
-use App\Http\Controllers\EnseignementController;
-use App\Http\Controllers\AbsenceController;
-use App\Http\Controllers\SalaireController;
-use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\RapportController;
-use App\Http\Controllers\ComponentExampleController;
-use App\Http\Controllers\TestController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AvatarController;
+use App\Http\Controllers\DashboardController;
+
+// Contrôleurs Admin
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\CentreController as AdminCentreController;
+use App\Http\Controllers\Admin\ProfesseurController as AdminProfesseurController;
+use App\Http\Controllers\Admin\EleveController as AdminEleveController;
+use App\Http\Controllers\Admin\PaiementController as AdminPaiementController;
+use App\Http\Controllers\Admin\EnseignementController as AdminEnseignementController;
+use App\Http\Controllers\Admin\AbsenceController as AdminAbsenceController;
+use App\Http\Controllers\Admin\SalaireController as AdminSalaireController;
+use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
+use App\Http\Controllers\Admin\RapportController as AdminRapportController;
+use App\Http\Controllers\Admin\EvenementController as AdminEvenementController;
+
+// Contrôleurs Professeur
+use App\Http\Controllers\Professeur\DashboardController as ProfesseurDashboardController;
+use App\Http\Controllers\Professeur\ClasseController as ProfesseurClasseController;
+use App\Http\Controllers\Professeur\NoteController as ProfesseurNoteController;
+use App\Http\Controllers\Professeur\AbsenceController as ProfesseurAbsenceController;
+
+// Contrôleurs Assistant
+use App\Http\Controllers\Assistant\DashboardController as AssistantDashboardController;
+use App\Http\Controllers\Assistant\AbsenceController as AssistantAbsenceController;
+use App\Http\Controllers\Assistant\EleveController as AssistantEleveController;
+use App\Http\Controllers\Assistant\ClasseController as AssistantClasseController;
+
+// Contrôleurs Élève
+use App\Http\Controllers\Eleve\DashboardController as EleveDashboardController;
+use App\Http\Controllers\Eleve\ProfilController as EleveProfilController;
+use App\Http\Controllers\Eleve\CoursController as EleveCoursController;
+use App\Http\Controllers\Eleve\NoteController as EleveNoteController;
+use App\Http\Controllers\Eleve\DevoirController as EleveDevoirController;
+use App\Http\Controllers\Eleve\AbsenceController as EleveAbsenceController;
+use App\Http\Controllers\Eleve\PaiementController as ElevePaiementController;
 
 /*
 |--------------------------------------------------------------------------
-| Routes Web - Allo Tawjih
-|--------------------------------------------------------------------------
-| Routes pour la plateforme de gestion des centres de cours
+| Routes Publiques
 |--------------------------------------------------------------------------
 */
 
-// ============================================================================
-// ROUTES PUBLIQUES
-// ============================================================================
-
 // Page d'accueil
-Route::get('/', [App\Http\Controllers\WelcomeController::class, 'index'])->name('welcome');
+Route::get('/', function () {
+    if (Auth::check()) {
+        return app(LoginController::class)->redirectBasedOnRole(Auth::user());
+    }
+    return view('welcome');
+})->name('welcome');
 
-// Exemples de composants
-Route::get('/composants', [ComponentExampleController::class, 'index'])->name('components.examples');
-
-// Déconnexion complète
-Route::get('/logout-complete', function () {
-    Auth::logout();
-    request()->session()->invalidate();
-    request()->session()->regenerateToken();
-    return redirect('/')->with('status', 'Déconnexion effectuée');
-});
+// Authentification
+Auth::routes(['verify' => true]);
 
 // Routes accessibles aux invités
 Route::middleware('guest')->group(function () {
-    Route::get('/test/auth', [TestController::class, 'testAuth'])->name('test.auth');
-    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [LoginController::class, 'login']);
     Route::get('/forgot-password', [LoginController::class, 'showForgotPasswordForm'])->name('password.request');
     Route::post('/forgot-password', [LoginController::class, 'sendResetLink'])->name('password.email');
     Route::get('/reset-password/{token}', [LoginController::class, 'showResetForm'])->name('password.reset');
     Route::post('/reset-password', [LoginController::class, 'reset'])->name('password.update');
 });
 
-// Routes protégées par authentification
-Route::middleware('auth')->group(function () {
-    // Routes de test protégées par rôles
-    Route::get('/test/role', [TestController::class, 'testRole'])->middleware('role:admin')->name('test.role');
-    Route::get('/test/admin', [TestController::class, 'testAdmin'])->middleware('role:admin')->name('test.admin');
-    Route::get('/test/professor', [TestController::class, 'testProfessor'])->middleware('role:professeur')->name('test.professor');
-    Route::get('/test/assistant', [TestController::class, 'testAssistant'])->middleware('role:assistant')->name('test.assistant');
-    Route::get('/test/student', [TestController::class, 'testStudent'])->middleware('role:eleve')->name('test.student');
-    Route::get('/test/spatie-roles', [TestController::class, 'testSpatieRoles'])->name('test.spatie-roles');
-});
+// Page d'aide
+Route::get('/aide', function () {
+    return view('help.index');
+})->name('aide');
 
-// ============================================================================
-// ROUTES AUTHENTIFIÉES
-// ============================================================================
+// Page de contact
+Route::get('/contact', function () {
+    return view('support.contact');
+})->name('contact');
 
-Route::middleware(['auth', 'active'])->group(function () {
-    
-    // Déconnexion
-    Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
-    
-    // Redirection pour les utilisateurs authentifiés
-    Route::get('/home', function () {
-        return redirect()->route('dashboard');
-    })->name('home');
-    
-    // Route du dashboard principal (redirige selon le rôle)
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    
+// Email verification
+Route::post('/email/verification-notification', function (\Illuminate\Http\Request $request) {
+    $request->user()->sendEmailVerificationNotification();
+    return back()->with('status', 'verification-link-sent');
+})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
+
+/*
+|--------------------------------------------------------------------------
+| Routes Protégées
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'verified', 'active'])->group(function () {
+    // Tableau de bord selon le rôle
+    Route::get('/dashboard', function () {
+        if (auth()->user()->hasRole('admin')) {
+            return redirect()->route('admin.dashboard');
+        } elseif (auth()->user()->hasRole('professeur')) {
+            return redirect()->route('professeur.dashboard');
+        } elseif (auth()->user()->hasRole('assistant')) {
+            return redirect()->route('assistant.dashboard');
+        } else {
+            return redirect()->route('eleve.dashboard');
+        }
+    })->name('dashboard');
+
     // Routes du profil utilisateur
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'edit'])->name('edit');
@@ -90,256 +112,194 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::patch('/avatar', [AvatarController::class, 'update'])->name('avatar');
         Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
     });
-    
-    // ============================================================================
-    // ROUTES ADMIN (Super utilisateur)
-    // ============================================================================
-    
-    // Inclure les routes administratives
-    require __DIR__.'/admin.php';
-    
-    Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
-        // Tableau de bord
-        Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
-        
-        // Gestion des packs
-        Route::prefix('packs')->name('packs.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\Admin\PackController::class, 'index'])->name('index');
-            Route::get('/create', [\App\Http\Controllers\Admin\PackController::class, 'create'])->name('create');
-            Route::post('/', [\App\Http\Controllers\Admin\PackController::class, 'store'])->name('store');
-            Route::get('/{pack}', [\App\Http\Controllers\Admin\PackController::class, 'show'])->name('show');
-            Route::get('/{pack}/edit', [\App\Http\Controllers\Admin\PackController::class, 'edit'])->name('edit');
-            Route::put('/{pack}', [\App\Http\Controllers\Admin\PackController::class, 'update'])->name('update');
-            Route::delete('/{pack}', [\App\Http\Controllers\Admin\PackController::class, 'destroy'])->name('destroy');
-            
-            // Actions supplémentaires
-            Route::post('/{pack}/toggle-status', [\App\Http\Controllers\Admin\PackController::class, 'toggleStatus'])
-                ->name('toggle-status');
-            Route::post('/{pack}/toggle-popularity', [\App\Http\Controllers\Admin\PackController::class, 'togglePopularity'])
-                ->name('toggle-popularity');
-            Route::get('/{pack}/duplicate', [\App\Http\Controllers\Admin\PackController::class, 'duplicate'])
-                ->name('duplicate');
-        });
 
-        // Gestion des utilisateurs
-        Route::resource('users', \App\Http\Controllers\UserController::class);
-        Route::get('/api/users', [\App\Http\Controllers\UserController::class, 'apiIndex'])->name('users.api.index');
-        Route::get('/api/users/stats', [\App\Http\Controllers\UserController::class, 'apiStats'])->name('users.api.stats');
+    /*
+    |--------------------------------------------------------------------------
+    | Routes Administrateur
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
+        // Gestion des événements
+        Route::resource('evenements', AdminEvenementController::class);
+        // Tableau de bord
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         
-        // Gestion des élèves
-        Route::resource('eleves', \App\Http\Controllers\EleveController::class);
+        // Gestion des utilisateurs
+        Route::resource('users', AdminUserController::class);
+        Route::post('users/{user}/toggle-status', [AdminUserController::class, 'toggleStatus'])->name('users.toggle-status');
+        Route::post('users/import', [AdminUserController::class, 'import'])->name('users.import');
+        Route::get('users/export', [AdminUserController::class, 'export'])->name('users.export');
+        
+        // Gestion des centres
+        Route::resource('centres', AdminCentreController::class);
+        Route::post('centres/{centre}/toggle-status', [AdminCentreController::class, 'toggleStatus'])->name('centres.toggle-status');
+        Route::post('centres/import', [AdminCentreController::class, 'import'])->name('centres.import');
+        Route::get('centres/export', [AdminCentreController::class, 'export'])->name('centres.export');
         
         // Gestion des professeurs
-        Route::resource('professeurs', \App\Http\Controllers\Admin\ProfesseurController::class);
+        Route::resource('professeurs', AdminProfesseurController::class);
+        Route::post('professeurs/{professeur}/toggle-status', [AdminProfesseurController::class, 'toggleStatus'])->name('professeurs.toggle-status');
+        Route::post('professeurs/import', [AdminProfesseurController::class, 'import'])->name('professeurs.import');
+        Route::get('professeurs/export', [AdminProfesseurController::class, 'export'])->name('professeurs.export');
         
-        // Gestion des assistants
-        Route::resource('assistants', \App\Http\Controllers\Admin\AssistantController::class);
+        // Gestion des élèves
+        Route::resource('eleves', AdminEleveController::class);
+        Route::post('eleves/{eleve}/toggle-status', [AdminEleveController::class, 'toggleStatus'])->name('eleves.toggle-status');
+        Route::post('eleves/import', [AdminEleveController::class, 'import'])->name('eleves.import');
+        Route::get('eleves/export', [AdminEleveController::class, 'export'])->name('eleves.export');
         
-        // Gestion des inscriptions
-        Route::resource('inscriptions', \App\Http\Controllers\Admin\InscriptionController::class);
-        
-        // Gestion des absences
-        Route::resource('absences', \App\Http\Controllers\AbsenceController::class);
+        // Gestion des cours
+        Route::resource('cours', \App\Http\Controllers\Admin\CoursController::class);
         
         // Gestion des paiements
-        Route::resource('paiements', \App\Http\Controllers\PaiementController::class);
-        Route::post('/paiements/{paiement}/validate', [\App\Http\Controllers\PaiementController::class, 'validatePaiement'])->name('paiements.validate');
-        Route::get('/paiements/{paiement}/receipt', [\App\Http\Controllers\PaiementController::class, 'downloadReceipt'])->name('paiements.receipt');
-        
-        // Gestion des salaires
-        Route::prefix('salaires')->name('salaires.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\SalaireController::class, 'index'])->name('index');
-            Route::get('/calculer', [\App\Http\Controllers\SalaireController::class, 'calculer'])->name('calculer');
-            Route::post('/calculer', [\App\Http\Controllers\SalaireController::class, 'calculerSalaires'])->name('calculer.store');
-            Route::get('/{salaire}', [\App\Http\Controllers\SalaireController::class, 'show'])->name('show');
-            Route::get('/{salaire}/edit', [\App\Http\Controllers\SalaireController::class, 'edit'])->name('edit');
-            Route::put('/{salaire}', [\App\Http\Controllers\SalaireController::class, 'update'])->name('update');
-            Route::post('/{salaire}/valider', [\App\Http\Controllers\SalaireController::class, 'validerPaiement'])->name('valider');
-            Route::post('/{salaire}/annuler', [\App\Http\Controllers\SalaireController::class, 'annuler'])->name('annuler');
-            Route::get('/export/excel', [\App\Http\Controllers\SalaireController::class, 'exportExcel'])->name('export.excel');
-            Route::get('/export/pdf', [\App\Http\Controllers\SalaireController::class, 'exportPdf'])->name('export.pdf');
-            Route::post('/generer', [\App\Http\Controllers\SalaireController::class, 'generer'])->name('generer');
-            
-            // Configuration des salaires
-            Route::prefix('configuration')->name('configuration.')->group(function () {
-                Route::get('/', [\App\Http\Controllers\SalaireController::class, 'configuration'])->name('index');
-                Route::post('/', [\App\Http\Controllers\SalaireController::class, 'storeConfiguration'])->name('store');
-                Route::put('/{configuration}', [\App\Http\Controllers\SalaireController::class, 'updateConfiguration'])->name('update');
-                Route::delete('/{configuration}', [\App\Http\Controllers\SalaireController::class, 'destroyConfiguration'])->name('destroy');
-                Route::get('/matiere/{matiereId}', [\App\Http\Controllers\SalaireController::class, 'getConfigurationByMatiere'])->name('matiere');
-            });
-        });
-        
-        // Rapports et statistiques
-        Route::get('/rapports', [\App\Http\Controllers\RapportController::class, 'index'])->name('rapports.index');
-        Route::get('/statistiques', [\App\Http\Controllers\RapportController::class, 'statistiques'])->name('statistiques');
-        Route::get('/api/filieres/stats', [\App\Http\Controllers\Admin\FiliereController::class, 'stats'])->name('filieres.api.stats');
-        
-        // Gestion des niveaux
-        Route::resource('niveaux', \App\Http\Controllers\Admin\NiveauController::class);
-        Route::get('/api/niveaux/stats', [\App\Http\Controllers\Admin\NiveauController::class, 'stats'])->name('niveaux.api.stats');
+        Route::resource('paiements', AdminPaiementController::class);
+        Route::post('paiements/import', [AdminPaiementController::class, 'import'])->name('paiements.import');
+        Route::get('paiements/export', [AdminPaiementController::class, 'export'])->name('paiements.export');
         
         // Gestion des enseignements
-        Route::resource('enseignements', \App\Http\Controllers\EnseignementController::class);
-        Route::get('/api/enseignements/stats', [\App\Http\Controllers\EnseignementController::class, 'stats'])->name('enseignements.api.stats');
+        Route::resource('enseignements', AdminEnseignementController::class);
+        Route::post('enseignements/{enseignement}/toggle-status', [AdminEnseignementController::class, 'toggleStatus'])->name('enseignements.toggle-status');
+        
+        // Gestion des absences
+        Route::resource('absences', AdminAbsenceController::class);
         
         // Gestion des salaires
-        Route::resource('salaires', \App\Http\Controllers\SalaireController::class);
-        Route::post('/salaires/{salaire}/payer', [\App\Http\Controllers\SalaireController::class, 'payer'])->name('salaires.payer');
-        Route::post('/salaires/calculer-automatiquement', [\App\Http\Controllers\SalaireController::class, 'calculerAutomatiquement'])->name('salaires.calculer-automatiquement');
-        Route::get('/salaires/rapport', [\App\Http\Controllers\SalaireController::class, 'genererRapport'])->name('salaires.rapport');
+        Route::resource('salaires', AdminSalaireController::class);
         
         // Gestion des notifications
-        Route::prefix('notifications')->name('notifications.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\NotificationController::class, 'index'])->name('index');
-            Route::post('/{id}/mark-read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('mark-read');
-            Route::post('/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
-            Route::delete('/{id}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('destroy');
-            Route::get('/statistiques', [\App\Http\Controllers\NotificationController::class, 'statistiques'])->name('statistiques');
-            Route::post('/absence/{absence}', [\App\Http\Controllers\NotificationController::class, 'notifierAbsence'])->name('absence');
-            Route::post('/paiement/{paiement}', [\App\Http\Controllers\NotificationController::class, 'notifierPaiement'])->name('paiement');
-            Route::post('/rappels-paiement', [\App\Http\Controllers\NotificationController::class, 'envoyerRappelsPaiement'])->name('rappels-paiement');
-            Route::post('/systeme', [\App\Http\Controllers\NotificationController::class, 'envoyerNotificationSysteme'])->name('systeme');
-            Route::get('/tester-configuration', [\App\Http\Controllers\NotificationController::class, 'testerConfiguration'])->name('tester-configuration');
-        });
+        Route::resource('notifications', AdminNotificationController::class);
         
         // Gestion des rapports
         Route::prefix('rapports')->name('rapports.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\RapportController::class, 'index'])->name('index');
-            
-            // Rapports d'absences
-            Route::prefix('absences')->name('absences.')->group(function () {
-                Route::get('/', [\App\Http\Controllers\RapportController::class, 'absences'])->name('index');
-                Route::get('/export', [\App\Http\Controllers\RapportController::class, 'exportAbsences'])->name('export');
-            });
-            
-            // Rapports de paiements
-            Route::prefix('paiements')->name('paiements.')->group(function () {
-                Route::get('/', [\App\Http\Controllers\RapportController::class, 'paiements'])->name('index');
-                Route::get('/export', [\App\Http\Controllers\RapportController::class, 'exportPaiements'])->name('export');
-            });
-            
-            // Rapports d'effectifs
-            Route::prefix('effectifs')->name('effectifs.')->group(function () {
-                Route::get('/', [\App\Http\Controllers\RapportController::class, 'effectifs'])->name('index');
-                Route::get('/export', [\App\Http\Controllers\RapportController::class, 'exportEffectifs'])->name('export');
-            });
-            
-            // Rapports financiers
-            Route::prefix('financiers')->name('financiers.')->group(function () {
-                Route::get('/', [\App\Http\Controllers\RapportController::class, 'financiers'])->name('index');
-                Route::get('/export', [\App\Http\Controllers\RapportController::class, 'exportFinanciers'])->name('export');
-            });
+            Route::get('/', [AdminRapportController::class, 'index'])->name('index');
+            Route::get('generer', [AdminRapportController::class, 'generer'])->name('generer');
+            Route::get('telecharger', [AdminRapportController::class, 'telecharger'])->name('telecharger');
+            Route::get('export', [AdminRapportController::class, 'export'])->name('export');
         });
-    
-    }); // Fin du groupe admin
-    
-    // ============================================================================
-    // ROUTES PROFESSEUR
-    // ============================================================================
-    
-    Route::middleware('role:professeur')->prefix('professeur')->name('professeur.')->group(function () {
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Routes Professeur
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware(['role:professeur'])->prefix('professeur')->name('professeur.')->group(function () {
         // Tableau de bord
-        Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'professeur'])->name('dashboard');
+        Route::get('/dashboard', [ProfesseurDashboardController::class, 'index'])->name('dashboard');
         
-        // Emploi du temps
-        Route::get('/emploi-du-temps', function () {
-            return Inertia::render('Professeur/EmploiDuTemps');
-        })->name('emploi-du-temps');
-        
-        // Matières enseignées
-        Route::get('/matieres', function () {
-            return Inertia::render('Professeur/MesMatieres');
-        })->name('matieres');
-        
-        // Classes assignées
-        Route::get('/classes', function () {
-            return Inertia::render('Professeur/MesClasses');
-        })->name('classes');
+        // Gestion des classes
+        Route::resource('classes', ProfesseurClasseController::class);
+        Route::get('classes/{classe}/export', [ProfesseurClasseController::class, 'export'])->name('classes.export');
+        Route::post('classes/{classe}/eleves', [ProfesseurClasseController::class, 'addEleve'])->name('classes.eleves.add');
+        Route::delete('classes/{classe}/eleves/{eleve}', [ProfesseurClasseController::class, 'removeEleve'])->name('classes.eleves.remove');
         
         // Gestion des notes
-        Route::resource('notes', \App\Http\Controllers\Professeur\NoteController::class);
+        Route::resource('notes', ProfesseurNoteController::class);
         
-        // Routes API pour la gestion des notes
-        Route::prefix('api')->group(function () {
-            // Récupérer les étudiants d'une classe pour une matière
-            Route::get('/classes/{classe}/matieres/{matiere}/etudiants', [\App\Http\Controllers\Professeur\NoteController::class, 'getEtudiantsByClasseMatiere'])
-                ->name('api.etudiants.by-classe-matiere');
-                
-            // Récupérer les notes d'un étudiant pour une matière
-            Route::get('/etudiants/{etudiant}/matieres/{matiere}/notes', [\App\Http\Controllers\Professeur\NoteController::class, 'getNotesEtudiantMatiere'])
-                ->name('api.notes.etudiant-matiere');
-        });
+        // Calculer la moyenne d'un étudiant dans une matière
+        Route::get('/notes/etudiant/{etudiantId}/matiere/{matiereId}/moyenne', 
+            [ProfesseurNoteController::class, 'calculerMoyenne']
+        )->name('notes.calculer-moyenne');
         
         // Gestion des absences
-        Route::resource('absences', \App\Http\Controllers\Professeur\AbsenceController::class);
+        Route::resource('absences', ProfesseurAbsenceController::class);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Routes Assistant
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware(['role:assistant'])->prefix('assistant')->name('assistant.')->group(function () {
+        // Tableau de bord
+        Route::get('/dashboard', [AssistantDashboardController::class, 'index'])->name('dashboard');
         
-        // Gestion des présences
-        Route::resource('presences', \App\Http\Controllers\Professeur\PresenceController::class);
+        // Gestion des absences
+        Route::resource('absences', AssistantAbsenceController::class);
+        Route::get('absences/eleve/{eleve}', [AssistantAbsenceController::class, 'byEleve'])->name('absences.by_eleve');
+        Route::post('absences/import', [AssistantAbsenceController::class, 'import'])->name('absences.import');
+        Route::get('absences/export', [AssistantAbsenceController::class, 'export'])->name('absences.export');
+            
+        // Gestion des élèves (lecture seule)
+        Route::get('eleves', [AssistantEleveController::class, 'index'])->name('eleves.index');
+        Route::get('eleves/{eleve}', [AssistantEleveController::class, 'show'])->name('eleves.show');
+            
+        // Gestion des classes (lecture seule)
+        Route::get('classes', [AssistantClasseController::class, 'index'])->name('classes.index');
+        Route::get('classes/{classe}', [AssistantClasseController::class, 'show'])->name('classes.show');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Routes Élève
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware(['role:eleve'])->prefix('eleve')->name('eleve.')->group(function () {
+        // Tableau de bord
+        Route::get('/dashboard', [EleveDashboardController::class, 'index'])->name('dashboard');
         
-        // Routes API pour la gestion des présences
-        Route::prefix('api')->group(function () {
-            // Récupérer les étudiants d'une classe pour une matière
-            Route::get('/etudiants/by-classe-matiere', [\App\Http\Controllers\Professeur\PresenceController::class, 'getEtudiantsByClasseMatiere'])
-                ->name('api.etudiants.by-classe-matiere');
-                
-            // Marquer les présences pour une séance
-            Route::post('/presences/marquer', [\App\Http\Controllers\Professeur\PresenceController::class, 'marquerPresences'])
-                ->name('api.presences.marquer');
-                
-            // Récupérer les statistiques de présence
-            Route::get('/presences/statistiques', [\App\Http\Controllers\Professeur\PresenceController::class, 'getStatistiques'])
-                ->name('api.presences.statistiques');
-        });
+        // Gestion du profil
+        Route::get('/profil', [EleveProfilController::class, 'edit'])->name('profil.edit');
+        Route::put('/profil', [EleveProfilController::class, 'update'])->name('profil.update');
+        Route::put('/profil/password', [EleveProfilController::class, 'updatePassword'])->name('profil.password');
         
-        // Bulletins
-        Route::get('/bulletins', function () {
-            return Inertia::render('Professeur/Bulletins');
-        })->name('bulletins');
+        // Gestion des cours
+        Route::get('/cours', [EleveCoursController::class, 'index'])->name('cours.index');
+        Route::get('/cours/{cours}', [EleveCoursController::class, 'show'])->name('cours.show');
         
-        // Dépôt de cours
-        Route::resource('cours', \App\Http\Controllers\Professeur\CoursController::class);
+        // Gestion des notes
+        Route::get('/notes', [EleveNoteController::class, 'index'])->name('notes.index');
+        Route::get('/notes/{note}', [EleveNoteController::class, 'show'])->name('notes.show');
         
         // Gestion des devoirs
-        Route::resource('devoirs', \App\Http\Controllers\Professeur\DevoirController::class);
+        Route::get('/devoirs', [EleveDevoirController::class, 'index'])->name('devoirs.index');
+        Route::get('/devoirs/{devoir}', [EleveDevoirController::class, 'show'])->name('devoirs.show');
+        Route::get('/devoirs/{devoir}/rendre', [EleveDevoirController::class, 'showRendreForm'])->name('devoirs.rendre');
+        Route::post('/devoirs/{devoir}/rendre', [EleveDevoirController::class, 'rendreDevoir'])->name('devoirs.rendre.store');
         
-        // Ressources partagées
-        Route::resource('ressources', \App\Http\Controllers\Professeur\RessourceController::class);
+        // Gestion des absences
+        Route::get('/absences', [EleveAbsenceController::class, 'index'])->name('absences.index');
+        Route::get('/absences/{absence}', [EleveAbsenceController::class, 'show'])->name('absences.show');
+        Route::get('/absences/{absence}/justifier', [EleveAbsenceController::class, 'showJustificationForm'])->name('absences.justifier');
+        Route::post('/absences/{absence}/justifier', [EleveAbsenceController::class, 'justifier'])->name('absences.justifier.store');
         
-        // Profil
-        Route::get('/profil', [\App\Http\Controllers\Professeur\ProfilController::class, 'edit'])->name('profil.edit');
-        Route::put('/profil', [\App\Http\Controllers\Professeur\ProfilController::class, 'update'])->name('profil.update');
-        
-        // Gestion des salaires
-        Route::get('/salaires', [\App\Http\Controllers\Professeur\SalaireController::class, 'index'])->name('salaires.index');
-        Route::get('/salaires/{salaire}', [\App\Http\Controllers\Professeur\SalaireController::class, 'show'])->name('salaires.show');
-    }); // Fin du groupe professeur
-    
-    // ============================================================================
-    // ROUTES ASSISTANT
-    // ============================================================================
-    
-    require __DIR__.'/assistant.php';
-}); // Fin du groupe auth active
-
-// Routes de test (à supprimer en production)
-Route::prefix('test')->group(function () {
-    Route::get('/salaires/calculer/{mois?}', [\App\Http\Controllers\TestSalaireController::class, 'testCalculerSalaires'])->name('test.salaires.calculer');
-    Route::post('/salaires/{salaire}/valider', [\App\Http\Controllers\TestSalaireController::class, 'testValiderPaiement'])->name('test.salaires.valider');
-    Route::post('/salaires/{salaire}/annuler', [\App\Http\Controllers\TestSalaireController::class, 'testAnnulerSalaire'])->name('test.salaires.annuler');
+        // Gestion des paiements
+        Route::get('/paiements', [ElevePaiementController::class, 'index'])->name('paiements.index');
+        Route::get('/paiements/{paiement}', [ElevePaiementController::class, 'show'])->name('paiements.show');
+        Route::get('/paiements/{paiement}/facture', [ElevePaiementController::class, 'facture'])->name('paiements.facture');
+    });
 });
 
-// ============================================================================
-// ROUTE CATCH-ALL POUR INERTIA.JS (doit être en dernier et seulement pour les routes non définies)
-// ============================================================================
+// Routes d'authentification
+Auth::routes(['verify' => true]);
 
-Route::fallback(function () {
-    if (request()->is('api/*') || request()->is('_debugbar/*')) {
-        abort(404);
+// Route racine
+Route::get('/', function () {
+    if (auth()->check()) {
+        if (auth()->user()->hasRole('admin')) {
+            return redirect()->route('admin.dashboard');
+        } elseif (auth()->user()->hasRole('professeur')) {
+            return redirect()->route('professeur.dashboard');
+        } elseif (auth()->user()->hasRole('assistant')) {
+            return redirect()->route('assistant.dashboard');
+        } else {
+            return redirect()->route('eleve.dashboard');
+        }
     }
-    
-    // Si la route n'existe pas, on renvoie la vue d'erreur 404
-    return Inertia::render('Errors/404', [
-        'status' => 404,
-    ])->toResponse(request())->setStatusCode(404);
+    return view('home');
+})->name('home');
+
+// Routes de contact support
+Route::prefix('contact')->name('support.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\SupportController::class, 'contact'])
+        ->name('contact');
+    Route::post('/', [\App\Http\Controllers\SupportController::class, 'send'])
+        ->name('contact.send');
 });
+
+// Ancienne route home (redirige vers le tableau de bord si connecté)
+Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])
+    ->name('home.legacy');
+
+// Importer les routes d'administration
+require __DIR__.'/admin.php';

@@ -19,6 +19,12 @@ class NewPasswordController extends Controller
      */
     public function create(Request $request): View
     {
+        // Vérifier que l'utilisateur n'est pas déjà connecté
+        if (auth()->check()) {
+            return view('auth.reset-password', ['request' => $request])
+                ->with('warning', 'Vous êtes déjà connecté. Si vous souhaitez changer votre mot de passe, veuillez utiliser la page de profil.');
+        }
+        
         return view('auth.reset-password', ['request' => $request]);
     }
 
@@ -29,6 +35,12 @@ class NewPasswordController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        // Vérifier que l'utilisateur n'est pas déjà connecté
+        if (auth()->check()) {
+            return redirect()->route('profile.edit')
+                ->with('warning', 'Vous êtes déjà connecté. Veuillez utiliser la page de profil pour changer votre mot de passe.');
+        }
+
         $request->validate([
             'token' => ['required'],
             'email' => ['required', 'email'],

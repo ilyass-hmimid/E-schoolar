@@ -16,6 +16,7 @@ return [
         'sms' => env('NOTIFICATION_SMS_ENABLED', true),
         'database' => env('NOTIFICATION_DATABASE_ENABLED', true),
         'push' => env('NOTIFICATION_PUSH_ENABLED', false),
+        'realtime' => env('NOTIFICATION_REALTIME_ENABLED', true),
     ],
 
     /*
@@ -84,6 +85,12 @@ return [
         'grades' => [
             'notify_on_new_grade' => true,
             'notify_on_final_grade' => true,
+        ],
+        'realtime' => [
+            'enabled' => env('BROADCAST_DRIVER') !== null && env('BROADCAST_DRIVER') !== 'null',
+            'driver' => env('BROADCAST_DRIVER', 'pusher'),
+            'channel' => 'App.Models.User.{id}',
+            'event' => 'NewNotificationEvent',
         ],
     ],
 

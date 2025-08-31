@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Matiere;
 use App\Models\Enseignement;
 use App\Enums\RoleType;
+use App\Notifications\EleveAbsentNonPaye;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -144,7 +145,19 @@ class AbsenceController extends Controller
                 'motif' => $validated['motif'],
                 'justifiee' => $validated['justifiee'] ?? false,
                 'justification' => $validated['justification'],
+                'statut_justification' => ($validated['justifiee'] ?? false) ? 'validee' : 'en_attente',
             ]);
+
+            // Envoyer une notification si l'absence n'est pas justifiée
+            if (!($validated['justifiee'] ?? false)) {
+                try {
+                    $etudiant = User::findOrFail($validated['etudiant_id']);
+                    $etudiant->notify(new EleveAbsentNonPaye($absence));
+                } catch (\Exception $e) {
+                    // Log l'erreur mais ne pas empêcher la création de l'absence
+                    \Log::error('Erreur lors de l\'envoi de la notification d\'absence non justifiée: ' . $e->getMessage());
+                }
+            }
 
             DB::commit();
 

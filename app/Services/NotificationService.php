@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\NewNotificationEvent;
 use App\Models\User;
 use App\Models\Paiement;
 use App\Models\Notification as NotificationModel;
@@ -37,7 +38,10 @@ class NotificationService
             }
             
             // Créer la notification
-            NotificationModel::createPaiementRetardNotification($eleve, $joursRetard, $montantDu, $matieres);
+            $notification = NotificationModel::createPaiementRetardNotification($eleve, $joursRetard, $montantDu, $matieres);
+            
+            // Diffuser l'événement de nouvelle notification
+            broadcast(new NewNotificationEvent($notification))->toOthers();
             
             Log::info("Notification de retard de paiement envoyée pour l'élève ID: {$eleve->id}");
             return true;
@@ -69,49 +73,9 @@ class NotificationService
         }
     }
     
-    /**
-     * Marquer une notification comme lue
-     *
-     * @param  int  $notificationId
-     * @param  int  $userId
-     * @return bool
-     */
-    public function markAsRead($notificationId, $userId)
-    {
-        try {
-            $notification = NotificationModel::where('id', $notificationId)
-                ->where('user_id', $userId)
-                ->first();
-                
-            if ($notification) {
-                $notification->markAsRead();
-                return true;
-            }
-            
-            return false;
-            
-        } catch (\Exception $e) {
-            Log::error("Erreur lors du marquage de la notification comme lue: " . $e->getMessage());
-            return false;
-        }
-    }
+    // La méthode markAsRead a été déplacée plus bas dans le fichier avec une signature améliorée
     
-    /**
-     * Récupère les notifications non lues d'un utilisateur
-     *
-     * @param  int  $userId
-     * @param  int  $limit
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function getUnreadNotifications($userId, $limit = 10)
-    {
-        return NotificationModel::with('eleve')
-            ->where('user_id', $userId)
-            ->where('status', NotificationModel::STATUS_NON_LU)
-            ->orderBy('created_at', 'desc')
-            ->limit($limit)
-            ->get();
-    }
+    // La méthode getUnreadNotifications a été déplacée plus bas dans le fichier avec une signature améliorée
     
     /**
      * Compte le nombre de notifications non lues pour un utilisateur

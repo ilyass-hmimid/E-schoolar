@@ -13,8 +13,15 @@ class PasswordController extends Controller
     /**
      * Update the user's password.
      */
+    /**
+     * Update the user's password.
+     *
+     * @throws \Illuminate\Auth\Access\AuthorizationException
+     */
     public function update(Request $request): RedirectResponse
     {
+        $this->authorize('updatePassword', $request->user());
+
         $validated = $request->validateWithBag('updatePassword', [
             'current_password' => ['required', 'current_password'],
             'password' => ['required', Password::defaults(), 'confirmed'],
@@ -22,8 +29,9 @@ class PasswordController extends Controller
 
         $request->user()->update([
             'password' => Hash::make($validated['password']),
+            'password_changed_at' => now(),
         ]);
 
-        return back()->with('status', 'password-updated');
+        return back()->with('status', 'Votre mot de passe a été mis à jour avec succès.');
     }
 }

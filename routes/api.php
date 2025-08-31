@@ -270,11 +270,35 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::prefix('enseignements')->group(function () {
         Route::post('/', [ProfesseurController::class, 'createEnseignement']);
     });
+
+    // ============================================================================
+    // ROUTES API GESTION DES PAIEMENTS
+    // ============================================================================
+    
+    Route::prefix('paiements')->group(function () {
+        // Récupérer les informations d'un pack
+        Route::get('/packs/{id}', [\App\Http\Controllers\Api\PaiementApiController::class, 'getPackInfo']);
+        
+        // Récupérer les tarifs avec filtres
+        Route::get('/tarifs', [\App\Http\Controllers\Api\PaiementApiController::class, 'getTarifs']);
+        
+        // Vérifier l'existence d'un paiement
+        Route::get('/check-existing', [\App\Http\Controllers\Api\PaiementApiController::class, 'checkExistingPaiement']);
+        
+        // Récupérer l'historique des paiements d'un étudiant
+        Route::get('/etudiant/{etudiantId}', [\App\Http\Controllers\Api\PaiementApiController::class, 'getStudentPayments']);
+        
+        // Exporter les paiements
+        Route::get('/export', [\App\Http\Controllers\Api\PaiementApiController::class, 'export']);
+        
+        // Statistiques des paiements
+        Route::get('/stats', [\App\Http\Controllers\Api\PaiementApiController::class, 'getStats']);
+    });
 });
 
 // Route par défaut pour les requêtes API non trouvées
 Route::fallback(function () {
-    return response()->json([
+        return response()->json([
         'message' => 'Route API non trouvée.',
         'status' => 404
     ], 404);

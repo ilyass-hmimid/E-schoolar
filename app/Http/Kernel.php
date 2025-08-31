@@ -36,10 +36,9 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            \App\Http\Middleware\HandleInertiaRequests::class,
-            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
             \App\Http\Middleware\PreventBackAfterLogout::class,
             \App\Http\Middleware\EnsureUserIsActive::class,
+            \App\Http\Middleware\ValidateRequestData::class,
 
         ],
 
@@ -47,6 +46,7 @@ class Kernel extends HttpKernel
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\ValidateRequestData::class,
             \App\Http\Middleware\PreventBackAfterLogout::class,
         ],
     ];
@@ -71,8 +71,9 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'permission' => \App\Http\Middleware\CheckPermission::class,
-        'role' => \App\Http\Middleware\CheckRole::class,
+        'role' => \App\Http\Middleware\RoleMiddleware::class,
         'active' => \App\Http\Middleware\EnsureUserIsActive::class,
         'handle.welcome' => \App\Http\Middleware\HandleWelcomePage::class,
+        'validate' => \App\Http\Middleware\ValidateRequestData::class,
     ];
 }

@@ -7,7 +7,7 @@ use App\Enums\RoleType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
-use Inertia\Inertia;
+// use Inertia\Inertia;
 
 class UserController extends Controller
 {
@@ -27,31 +27,9 @@ class UserController extends Controller
     {
         $users = User::with(['niveau:id,nom', 'filiere:id,nom'])
             ->orderBy('created_at', 'desc')
-            ->paginate(10)
-            ->through(function($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'address' => $user->address,
-                    'role' => $user->role->value,
-                    'role_label' => $user->role->label(),
-                    'is_active' => $user->is_active,
-                    'niveau' => $user->niveau ? $user->niveau->nom : null,
-                    'niveau_id' => $user->niveau_id,
-                    'filiere' => $user->filiere ? $user->filiere->nom : null,
-                    'filiere_id' => $user->filiere_id,
-                    'somme_a_payer' => $user->somme_a_payer,
-                    'date_debut' => $user->date_debut ? $user->date_debut->format('Y-m-d') : null,
-                    'created_at' => $user->created_at->format('d/m/Y'),
-                    'avatar' => $user->avatar,
-                ];
-            });
+            ->paginate(10);
 
-        return Inertia::render('Admin/Users/Index', [
-            'users' => $users
-        ]);
+        return view('admin.users.index', compact('users'));
     }
 
     /**
@@ -59,55 +37,82 @@ class UserController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Admin/Users/Create', [
+        return view('admin.users.create', [
             'roles' => RoleType::forSelect(),
             'niveaux' => \App\Models\Niveau::actifs()->get(['id', 'nom']),
-            'filieres' => \App\Models\Filiere::actifs()->get(['id', 'nom']),
+            'filieres' => \App\Models\Filiere::actifs()->get(['id', 'nom'])
         ]);
     }
 
     /**
      * Enregistre un nouvel utilisateur
      */
-    public function store(Request $request)
+    public function store(StoreUserRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'role' => ['required', Rule::in(RoleType::cases())],
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string|max:500',
-            'niveau_id' => 'nullable|exists:niveaux,id',
-            'filiere_id' => 'nullable|exists:filieres,id',
-            'somme_a_payer' => 'nullable|numeric|min:0',
-            'date_debut' => 'nullable|date',
-            'is_active' => 'boolean',
-        ]);
+        try {
+            $validated = $request->validated();
+            
+            // Log the validated data for debugging
+            \Log::info('Creating user with data:', $validated);
 
-        // Création de l'utilisateur
-        $user = new User([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role' => $validated['role'],
-            'phone' => $validated['phone'],
-            'address' => $validated['address'],
-            'niveau_id' => $validated['niveau_id'],
-            'filiere_id' => $validated['filiere_id'],
-            'somme_a_payer' => $validated['somme_a_payer'] ?? 0,
-            'date_debut' => $validated['date_debut'],
-            'is_active' => $validated['is_active'] ?? true,
-        ]);
-        
-        $user->save();
-        
-        // Assigner le rôle à l'utilisateur
-        $roleName = RoleType::from($validated['role'])->name;
-        $user->assignRole($roleName);
+            // Start a database transaction
+            \DB::beginTransaction();
 
-        return redirect()->route('admin.users.index')
-            ->with('success', 'Utilisateur créé avec succès.');
+            // Création de l'utilisateur
+            $user = new User([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'role' => $validated['role'],
+                'phone' => $validated['phone'] ?? null,
+                'address' => $validated['address'] ?? null,
+                'niveau_id' => $validated['niveau_id'] ?? null,
+                'filiere_id' => $validated['filiere_id'] ?? null,
+                'somme_a_payer' => $validated['somme_a_payer'] ?? 0,
+                'date_debut' => $validated['date_debut'] ?? null,
+                'is_active' => $validated['is_active'] ?? true,
+                'email_verified_at' => now(),
+            ]);
+            
+            // Save the user
+            if (!$user->save()) {
+                throw new \Exception('Failed to save user');
+            }
+            
+            // Assigner le rôle à l'utilisateur
+            $roleName = RoleType::from((int)$validated['role'])->name;
+            
+            // Ensure the role exists
+            $role = \Spatie\Permission\Models\Role::firstOrCreate(
+                ['name' => $roleName],
+                ['guard_name' => 'web']
+            );
+            
+            $user->assignRole($role);
+            
+            // Commit the transaction
+            \DB::commit();
+            
+            return redirect()->route('admin.users.index')
+                ->with('success', 'Utilisateur créé avec succès.');
+                
+        } catch (\Exception $e) {
+            // Rollback the transaction on error
+            if (isset(\DB::getPdo()->inTransaction) && \DB::getPdo()->inTransaction) {
+                \DB::rollBack();
+            }
+            
+            // Log the error
+            \Log::error('Error creating user: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Return with error message
+            return back()
+                ->withInput()
+                ->with('error', 'Une erreur est survenue lors de la création de l\'utilisateur: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -117,25 +122,8 @@ class UserController extends Controller
     {
         $user->load(['niveau:id,nom', 'filiere:id,nom']);
         
-        return Inertia::render('Admin/Users/Show', [
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'phone' => $user->phone,
-                'address' => $user->address,
-                'role' => $user->role->value,
-                'role_label' => $user->role->label(),
-                'is_active' => $user->is_active,
-                'niveau' => $user->niveau ? $user->niveau->nom : null,
-                'niveau_id' => $user->niveau_id,
-                'filiere' => $user->filiere ? $user->filiere->nom : null,
-                'filiere_id' => $user->filiere_id,
-                'somme_a_payer' => $user->somme_a_payer,
-                'date_debut' => $user->date_debut ? $user->date_debut->format('Y-m-d') : null,
-                'created_at' => $user->created_at->format('d/m/Y H:i'),
-                'avatar' => $user->avatar,
-            ]
+        return view('admin.users.show', [
+            'user' => $user
         ]);
     }
 
@@ -144,55 +132,31 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
-        return Inertia::render('Admin/Users/Edit', [
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'phone' => $user->phone,
-                'address' => $user->address,
-                'role' => $user->role->value,
-                'is_active' => $user->is_active,
-                'niveau_id' => $user->niveau_id,
-                'filiere_id' => $user->filiere_id,
-                'somme_a_payer' => $user->somme_a_payer,
-                'date_debut' => $user->date_debut ? $user->date_debut->format('Y-m-d') : null,
-            ],
+        return view('admin.users.edit', [
+            'user' => $user,
             'roles' => RoleType::forSelect(),
             'niveaux' => \App\Models\Niveau::actifs()->get(['id', 'nom']),
-            'filieres' => \App\Models\Filiere::actifs()->get(['id', 'nom']),
+            'filieres' => \App\Models\Filiere::actifs()->get(['id', 'nom'])
         ]);
     }
 
     /**
      * Met à jour un utilisateur
      */
-    public function update(Request $request, User $user)
+    public function update(UpdateUserRequest $request, User $user)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'password' => 'nullable|string|min:8|confirmed',
-            'role' => ['required', Rule::in(RoleType::cases())],
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string|max:500',
-            'niveau_id' => 'nullable|exists:niveaux,id',
-            'filiere_id' => 'nullable|exists:filieres,id',
-            'somme_a_payer' => 'nullable|numeric|min:0',
-            'date_debut' => 'nullable|date',
-            'is_active' => 'boolean',
-        ]);
+        $validated = $request->validated();
 
         $updateData = [
             'name' => $validated['name'],
             'email' => $validated['email'],
             'role' => $validated['role'],
-            'phone' => $validated['phone'],
-            'address' => $validated['address'],
-            'niveau_id' => $validated['niveau_id'],
-            'filiere_id' => $validated['filiere_id'],
+            'phone' => $validated['phone'] ?? null,
+            'address' => $validated['address'] ?? null,
+            'niveau_id' => $validated['niveau_id'] ?? null,
+            'filiere_id' => $validated['filiere_id'] ?? null,
             'somme_a_payer' => $validated['somme_a_payer'] ?? 0,
-            'date_debut' => $validated['date_debut'],
+            'date_debut' => $validated['date_debut'] ?? null,
             'is_active' => $validated['is_active'] ?? true,
         ];
 

@@ -97,6 +97,22 @@ class Pack extends Model
     /**
      * Relation avec les inscriptions (étudiants qui ont souscrit à ce pack).
      */
+    /**
+     * Relation avec les tarifs du pack.
+     */
+    public function tarifs()
+    {
+        return $this->hasMany(Tarif::class);
+    }
+
+    /**
+     * Relation avec les tarifs actifs du pack.
+     */
+    public function tarifsActifs()
+    {
+        return $this->tarifs()->actif();
+    }
+
     public function inscriptions()
     {
         return $this->hasMany(Inscription::class, 'pack_id');
