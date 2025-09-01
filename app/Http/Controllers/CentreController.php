@@ -13,6 +13,7 @@ use App\Models\Niveau;
 use App\Models\Paiment;
 use App\Models\Professeur;
 use App\Models\Salaires;
+use App\Models\User;
 use App\Models\Valeurs_Paiments;
 use App\Models\Valeurs_Salaires;
 use Carbon\Carbon;
@@ -28,125 +29,176 @@ class CentreController extends Controller
 {
 
 
+    /**
+     * Récupère le salaire d'un professeur
+     */
     public function getSlaireForProf(Request $request)
     {
-//   dd($request->input('id'));
-        $prof = Professeur::find($request->input('id'));
-//   dd($prof->SommeApaye);
-        return $prof->SommeApaye;
+        $professeur = User::find($request->input('id'));
+        
+        if (!$professeur || $professeur->role !== 'professeur') {
+            return response()->json(['error' => 'Professeur non trouvé'], 404);
+        }
+        
+        return response()->json([
+            'salaire' => $professeur->salaire,
+            'nom' => $professeur->name,
+            'prenom' => $professeur->prenom
+        ]);
     }
 
+    /**
+     * Calcule le montant à payer en fonction du niveau et du nombre de matières
+     */
+    private function calculerMontantAPayer($niveauId, $nombreMatieres)
+    {
+        // Logique de calcul du montant à payer
+        // À adapter selon votre logique métier
+        $tarifParMatiere = 1000; // Exemple : 1000 DH par matière
+        return $nombreMatieres * $tarifParMatiere;
+    }
+    
+    /**
+     * Met à jour le salaire d'un professeur en fonction de ses cours
+     */
+    private function mettreAJourSalaireProfesseur($professeurId)
+    {
+        $professeur = User::find($professeurId);
+        if (!$professeur) {
+            return;
+        }
+        
+        // Calculer le nouveau salaire en fonction des enseignements
+        $nouveauSalaire = Enseignement::where('professeur_id', $professeurId)
+            ->get()
+            ->sum(function ($enseignement) {
+                return $enseignement->nombre_etudiants * $enseignement->salaire_par_etudiant;
+            });
+            
+        // Mettre à jour le salaire du professeur
+        $professeur->update([
+            'salaire' => $nouveauSalaire
+        ]);
+    }
+    
     public function index()
     {
-        $users = Etudiant::latest()->get()->map(function ($user) {
-            $niveau = Niveau::find($user->IdNiv);
-            $filiere = Filiere::find($user->IdFil);
-            $matieres = $user->matieres()->pluck('Libelle')->toArray();
-
-            return [
-                'id' => $user->id,
-                'Nom' => $user->Nom,
-                'Prenom' => $user->Prenom,
-                'Tele' => $user->Tele,
-                'Tele2' => $user->Tele2,
-                'Adresse' => $user->Adresse,
-                'SommeApaye' => $user->SommeApaye,
-                'IdNiv' => $niveau ? $niveau->Nom : null,
-                'IdFil' => $filiere ? $filiere->Intitule : null,
-                'Matieres' => $matieres,
-                'Date_debut' => $user->Date_debut ? $user->Date_debut : '',
-                'created_at' => $user->created_at ? $user->created_at->format(config('app.date_format')) : null,
-            ];
-        });
+        $users = User::where('role', 'eleve')
+            ->with(['niveau', 'filiere', 'matieres'])
+            ->latest()
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'nom' => $user->name,
+                    'prenom' => $user->prenom,
+                    'telephone' => $user->phone,
+                    'telephone2' => $user->phone2,
+                    'adresse' => $user->address,
+                    'somme_a_payer' => $user->somme_a_payer,
+                    'niveau' => $user->niveau->nom ?? null,
+                    'filiere' => $user->filiere->intitule ?? null,
+                    'matieres' => $user->matieres->pluck('nom')->toArray(),
+                    'date_inscription' => $user->created_at ? $user->created_at->format('Y-m-d') : null,
+                    'created_at' => $user->created_at ? $user->created_at->format(config('app.date_format')) : null,
+                ];
+            });
 
         return response()->json($users, 200, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function getMatiereParEtudiant($idEtudiant)
     {
-        if (Inscription::where('IdEtu', $idEtudiant)->count() < Matiere::count()) {
+        // Vérifier si l'étudiant a des inscriptions
+        if (Inscription::where('etudiant_id', $idEtudiant)->count() < Matiere::count()) {
+            // Récupérer les matières déjà inscrites
+            $inscriptions = Inscription::where('etudiant_id', $idEtudiant)->pluck('matiere_id');
 
-            $inscriptions = Inscription::where('IdEtu', $idEtudiant)->pluck('IdMat');
+            // Récupérer les matières non encore inscrites
+            $matieresSansInscriptions = $inscriptions->isEmpty() 
+                ? Matiere::all() 
+                : Matiere::whereNotIn('id', $inscriptions)->get();
 
-            $matieresSansInscriptions = $inscriptions->isEmpty() ? Matiere::all() : Matiere::whereNotIn('id', $inscriptions)->get();
-
+            // Créer des inscriptions pour les matières manquantes
             foreach ($matieresSansInscriptions as $matiere) {
                 $inscription = new Inscription();
-                $inscription->IdEtu = $idEtudiant;
-                $inscription->IdMat = $matiere->id;
-
-                $ensignemet = Enseignement::join('Etudiants', function ($join) {
-                    $join->on('Enseignement.IdFil', '=', 'Etudiants.IdFil')
-                        ->on('Enseignement.IdNiv', '=', 'Etudiants.IdNiv');
-                })
-                    ->where('Enseignement.IdMat', '=', $matiere->id)
-                    ->select('Enseignement.*')
-                    ->first();
-
-                if ($ensignemet) $inscription->IdFil = $ensignemet->IdFil;
-                if ($ensignemet) $inscription->IdProf = $ensignemet->IdProf;
-                if ($ensignemet) $inscription->IdNiv = $ensignemet->IdNiv;
-
+                $inscription->etudiant_id = $idEtudiant;
+                $inscription->matiere_id = $matiere->id;
                 $inscription->inscrit = false;
-
                 $inscription->save();
             }
         }
-        $inscriptions = Inscription::leftJoin('Niveau', 'Inscription.IdNiv', '=', 'Niveau.id')
-            ->leftJoin('Filiere', 'Inscription.IdFil', '=', 'Filiere.id')
-            ->leftJoin('Professeurs', 'Inscription.IdProf', '=', 'Professeurs.id') // LEFT JOIN pour gérer les valeurs nulles
-            ->join('Matiere', 'Inscription.IdMat', '=', 'Matiere.id')
-            ->where('Inscription.IdEtu', $idEtudiant)
-            ->select(
-                'Niveau.Nom as niveau_nom',
-                'Filiere.Intitule as filiere_nom',
-                'Professeurs.Nom as professeur_nom',
-                'Professeurs.Prenom as professeur_prenom',
-                'Matiere.Libelle as matiere_nom',
-                'Inscription.dateInscription as dateInscription',
-                'Inscription.inscrit as inscrit',
-                'Inscription.IdEtu as id_etudiant',
-                'Inscription.IdMat as id_matiere'
-            )
-            ->get();
+
+        // Récupérer toutes les inscriptions avec les relations
+        $inscriptions = Inscription::with(['matiere', 'niveau', 'filiere', 'professeur'])
+            ->where('etudiant_id', $idEtudiant)
+            ->get()
+            ->map(function($inscription) {
+                return [
+                    'niveau_nom' => $inscription->niveau->nom ?? null,
+                    'filiere_nom' => $inscription->filiere->intitule ?? null,
+                    'professeur_nom' => $inscription->professeur->nom ?? null,
+                    'professeur_prenom' => $inscription->professeur->prenom ?? null,
+                    'matiere_nom' => $inscription->matiere->nom ?? null,
+                    'date_inscription' => $inscription->date_inscription,
+                    'inscrit' => $inscription->inscrit,
+                    'id_etudiant' => $inscription->etudiant_id,
+                    'id_matiere' => $inscription->matiere_id
+                ];
+            });
 
         return response()->json($inscriptions, 200, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function setInscription($idEtudiant, $idMatiere, bool $type)
     {
-        $inscription = Inscription::where('IdEtu', '=', $idEtudiant)
-            ->where('IdMat', '=', $idMatiere)
+        // Trouver l'inscription existante
+        $inscription = Inscription::where('etudiant_id', $idEtudiant)
+            ->where('matiere_id', $idMatiere)
             ->first();
-        if ($type) $inscription->inscrit = true;
-        else $inscription->inscrit = false;
-        $inscription->dateInscription = $type ? Carbon::now() : null;
+            
+        if (!$inscription) {
+            return response()->json(['error' => 'Inscription non trouvée'], 404);
+        }
+        
+        // Mettre à jour le statut d'inscription
+        $inscription->inscrit = $type;
+        $inscription->date_inscription = $type ? Carbon::now() : null;
         $inscription->save();
 
-        $NbrMat = Inscription::where('IdEtu', '=', $idEtudiant)->where('inscrit', '=', true)->count();
-        $etudiant = Etudiant::where('id', '=', $idEtudiant)->first();
-
-        $valeur_paiment = Valeurs_Paiments::where('IdNiv', $etudiant->IdNiv)->where('NbrMat', $NbrMat)->first();
-
-        $etudiant->update([
-            'SommeApaye' => $valeur_paiment ? $valeur_paiment->Valeur : 0
-        ]);
-
-        $ensignemet = Enseignement::where('IdProf', '=', $inscription->IdProf)
-            ->where('IdMat', '=', $idMatiere)
-            ->where('IdNiv', '=', $inscription->IdNiv)
-            ->first();
-
-        $ensignemet->update([
-            'NbrEtu' => $type ? $ensignemet->NbrEtu + 1 : $ensignemet->NbrEtu - 1
-        ]);
-
-        $prof = Professeur::find($inscription->IdProf);
-
-        $newSalary = Enseignement::where('IdProf', $inscription->IdProf)->get()
-            ->sum(function ($ensignemet) {
-                return $ensignemet->NbrEtu * $ensignemet->SalaireParEtu;
-            });
+        // Compter le nombre de matières inscrites
+        $nombreMatieresInscrites = Inscription::where('etudiant_id', $idEtudiant)
+            ->where('inscrit', true)
+            ->count();
+            
+        // Mettre à jour le montant à payer pour l'étudiant
+        $etudiant = User::find($idEtudiant);
+        if ($etudiant) {
+            $etudiant->update([
+                'somme_a_payer' => $this->calculerMontantAPayer($etudiant->niveau_id, $nombreMatieresInscrites)
+            ]);
+        }
+        
+        // Mettre à jour le nombre d'étudiants pour l'enseignement
+        if ($inscription->professeur_id && $inscription->niveau_id) {
+            $enseignement = Enseignement::where('professeur_id', $inscription->professeur_id)
+                ->where('matiere_id', $idMatiere)
+                ->where('niveau_id', $inscription->niveau_id)
+                ->first();
+                
+            if ($enseignement) {
+                $enseignement->update([
+                    'nombre_etudiants' => $type 
+                        ? $enseignement->nombre_etudiants + 1 
+                        : max(0, $enseignement->nombre_etudiants - 1)
+                ]);
+                
+                // Mettre à jour le salaire du professeur
+                $this->mettreAJourSalaireProfesseur($inscription->professeur_id);
+            }
+        }
+        
+        return response()->json(['success' => true]);
 
         //dd($newSalary);
 

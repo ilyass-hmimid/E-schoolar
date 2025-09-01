@@ -4,10 +4,6 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\User;
-use App\Models\Niveau;
-use App\Models\Filiere;
-use App\Models\Matiere;
-use App\Models\Pack;
 use App\Enums\RoleType;
 use Illuminate\Support\Facades\Hash;
 
@@ -18,12 +14,25 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Exécuter les seeders des rôles, permissions et configurations
+        // Désactiver les contraintes de clé étrangère
+        \DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+
+        // Vider les tables si nécessaire (en développement uniquement)
+        if (app()->environment('local', 'testing')) {
+            $this->truncateTables([
+                'users', 'etudiants', 'professeurs', 'classes', 'cours',
+                'paiements', 'absences', 'notifications', 'niveaux',
+                'filieres', 'matieres', 'model_has_roles', 'roles', 'permissions',
+                'model_has_permissions', 'role_has_permissions'
+            ]);
+        }
+
+        // Exécuter les seeders des données de base
         $this->call([
             RolePermissionSeeder::class,
             PermissionSeeder::class,
             ConfigurationSalaireSeeder::class,
-            UserSeeder::class,  // Ajout du UserSeeder
+            InitialDataSeeder::class, // Niveaux, filières et matières
         ]);
 
         // Créer l'administrateur principal
@@ -35,78 +44,57 @@ class DatabaseSeeder extends Seeder
                 'role' => RoleType::ADMIN,
                 'phone' => '0612345678',
                 'is_active' => true,
+                'email_verified_at' => now(),
             ]
         );
 
         // Attribuer le rôle admin à l'utilisateur admin
         $admin->assignRole('admin');
 
-        // Seed des configurations de salaire
-        $this->call([
-            ConfigurationSalaireSeeder::class,
-        ]);
-
-        // Créer les niveaux
-        $niveaux = [
-            ['nom' => '3ème Année Collège', 'code' => '3AC', 'ordre' => 1],
-            ['nom' => '2ème Année Collège', 'code' => '2AC', 'ordre' => 2],
-            ['nom' => '1ère Année Collège', 'code' => '1AC', 'ordre' => 3],
-            ['nom' => 'Tronc Commun', 'code' => 'TC', 'ordre' => 4],
-            ['nom' => '1ère Année Bac', 'code' => '1BAC', 'ordre' => 5],
-            ['nom' => '2ème Année Bac - Sciences Mathématiques', 'code' => '2BAC-MATH', 'ordre' => 6],
-            ['nom' => '2ème Année Bac - Sciences Physiques', 'code' => '2BAC-PC', 'ordre' => 7],
-            ['nom' => '2ème Année Bac - Sciences de la Vie et de la Terre', 'code' => '2BAC-SVT', 'ordre' => 8],
-            ['nom' => '2ème Année Bac - Sciences Économiques', 'code' => '2BAC-ECO', 'ordre' => 9],
-            ['nom' => '2ème Année Bac - Lettres', 'code' => '2BAC-LET', 'ordre' => 10],
-        ];
-
-        foreach ($niveaux as $niveau) {
-            Niveau::firstOrCreate(['code' => $niveau['code']], $niveau);
+        // Créer des données de test pour le développement
+        if (app()->environment('local', 'testing')) {
+            $this->call([
+                UserSeeder::class,
+                ProfesseurSeeder::class,
+                ClasseSeeder::class,
+                EtudiantSeeder::class,
+                CoursSeeder::class,
+                PaiementSeeder::class,
+                AbsenceSeeder::class,
+                NotificationSeeder::class,
+            ]);
+        } else {
+            // En production, créer uniquement les comptes de base
+            $this->createTestUsers();
         }
 
-        // Créer les filières
-        $filieres = [
-            ['nom' => 'Sciences Mathématiques', 'code' => 'SM', 'duree_annees' => 2, 'frais_inscription' => 500, 'frais_mensuel' => 300],
-            ['nom' => 'Sciences Physiques', 'code' => 'SP', 'duree_annees' => 2, 'frais_inscription' => 500, 'frais_mensuel' => 300],
-            ['nom' => 'Sciences de la Vie et de la Terre', 'code' => 'SVT', 'duree_annees' => 2, 'frais_inscription' => 500, 'frais_mensuel' => 300],
-            ['nom' => 'Sciences Économiques', 'code' => 'SE', 'duree_annees' => 2, 'frais_inscription' => 400, 'frais_mensuel' => 250],
-            ['nom' => 'Lettres', 'code' => 'LET', 'duree_annees' => 2, 'frais_inscription' => 400, 'frais_mensuel' => 250],
-        ];
+        // Réactiver les contraintes de clé étrangère
+        \DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
-        foreach ($filieres as $filiere) {
-            Filiere::firstOrCreate(['code' => $filiere['code']], $filiere);
+        $this->command->info('Données de base créées avec succès !');
+        $this->command->info('Compte admin: admin@allotawjih.com / password');
+    }
+
+    /**
+     * Vider les tables spécifiées.
+     *
+     * @param array $tables
+     * @return void
+     */
+    private function truncateTables(array $tables): void
+    {
+        foreach ($tables as $table) {
+            \DB::table($table)->truncate();
         }
+    }
 
-        // Créer les matières
-        $matieres = [
-            ['nom' => 'Mathématiques', 'code' => 'MATH', 'coefficient' => 4, 'nombre_heures' => 6, 'prix_mensuel' => 250, 'commission_prof' => 30],
-            ['nom' => 'Physique-Chimie', 'code' => 'PC', 'coefficient' => 3, 'nombre_heures' => 4, 'prix_mensuel' => 200, 'commission_prof' => 30],
-            ['nom' => 'Sciences de la Vie et de la Terre', 'code' => 'SVT', 'coefficient' => 2, 'nombre_heures' => 3, 'prix_mensuel' => 180, 'commission_prof' => 30],
-            ['nom' => 'Français', 'code' => 'FR', 'coefficient' => 2, 'nombre_heures' => 3, 'prix_mensuel' => 150, 'commission_prof' => 25],
-            ['nom' => 'Anglais', 'code' => 'EN', 'coefficient' => 1, 'nombre_heures' => 2, 'prix_mensuel' => 120, 'commission_prof' => 25],
-            ['nom' => 'Histoire-Géographie', 'code' => 'HG', 'coefficient' => 2, 'nombre_heures' => 3, 'prix_mensuel' => 150, 'commission_prof' => 25],
-            ['nom' => 'Philosophie', 'code' => 'PHILO', 'coefficient' => 2, 'nombre_heures' => 3, 'prix_mensuel' => 150, 'commission_prof' => 25],
-            ['nom' => 'Économie', 'code' => 'ECO', 'coefficient' => 3, 'nombre_heures' => 4, 'prix_mensuel' => 200, 'commission_prof' => 30],
-        ];
-
-        foreach ($matieres as $matiere) {
-            Matiere::firstOrCreate(['code' => $matiere['code']], $matiere);
-        }
-
-        // Créer les packs
-        $packs = [
-            ['nom' => 'Pack Mathématiques', 'description' => 'Cours de mathématiques intensifs', 'prix' => 500, 'duree_jours' => 30],
-            ['nom' => 'Pack Sciences', 'description' => 'Mathématiques + Physique-Chimie', 'prix' => 700, 'duree_jours' => 60],
-            ['nom' => 'Pack Complet', 'description' => 'Toutes les matières principales', 'prix' => 1200, 'duree_jours' => 90],
-            ['nom' => 'Pack Soutien', 'description' => 'Soutien scolaire personnalisé', 'prix' => 400, 'duree_jours' => 30],
-        ];
-
-        foreach ($packs as $pack) {
-            Pack::firstOrCreate(['nom' => $pack['nom']], $pack);
-        }
-
-        // Créer quelques utilisateurs de test
-        User::firstOrCreate(
+    /**
+     * Créer des utilisateurs de test pour le développement
+     */
+    private function createTestUsers(): void
+    {
+        // Créer un professeur de test
+        $professeur = User::firstOrCreate(
             ['email' => 'prof.math@allotawjih.com'],
             [
                 'name' => 'Professeur Mathématiques',
@@ -114,10 +102,13 @@ class DatabaseSeeder extends Seeder
                 'role' => RoleType::PROFESSEUR,
                 'phone' => '0612345679',
                 'is_active' => true,
+                'email_verified_at' => now(),
             ]
         );
+        $professeur->assignRole('professeur');
 
-        User::firstOrCreate(
+        // Créer un assistant de test
+        $assistant = User::firstOrCreate(
             ['email' => 'assistant@allotawjih.com'],
             [
                 'name' => 'Assistant Réception',
@@ -125,28 +116,27 @@ class DatabaseSeeder extends Seeder
                 'role' => RoleType::ASSISTANT,
                 'phone' => '0612345680',
                 'is_active' => true,
+                'email_verified_at' => now(),
             ]
         );
+        $assistant->assignRole('assistant');
 
-        User::firstOrCreate(
+        // Créer un élève de test
+        $eleve = User::firstOrCreate(
             ['email' => 'eleve@allotawjih.com'],
             [
                 'name' => 'Élève Test',
                 'password' => Hash::make('password'),
                 'role' => RoleType::ELEVE,
                 'phone' => '0612345681',
-                'niveau_id' => 6, // 2ème BAC Math
-                'filiere_id' => 1, // Sciences Mathématiques
+                'niveau_id' => 1, // Premier niveau disponible
+                'filiere_id' => 1, // Première filière disponible
                 'somme_a_payer' => 500,
                 'date_debut' => now(),
                 'is_active' => true,
+                'email_verified_at' => now(),
             ]
         );
-
-        $this->command->info('Données de base créées avec succès !');
-        $this->command->info('Compte admin: admin@allotawjih.com / password');
-        $this->command->info('Compte prof: prof.math@allotawjih.com / password');
-        $this->command->info('Compte assistant: assistant@allotawjih.com / password');
-        $this->command->info('Compte élève: eleve@allotawjih.com / password');
+        $eleve->assignRole('eleve');
     }
 }

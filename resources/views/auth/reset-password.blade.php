@@ -3,7 +3,7 @@
         <div class="w-full sm:max-w-md px-6 py-8 bg-white shadow-lg overflow-hidden sm:rounded-xl">
             <!-- Logo -->
             <div class="flex justify-center mb-8">
-                <a href="{{ route('dashboard') }}" class="flex items-center space-x-2">
+                <a href="{{ getDashboardUrl() }}" class="flex items-center space-x-2">
                     <x-application-logo class="h-12 w-auto text-primary-600" />
                     <span class="text-2xl font-bold text-gray-900">{{ config('app.name', 'Allo Tawjih') }}</span>
                 </a>

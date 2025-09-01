@@ -67,15 +67,10 @@ enum RoleType: int
                 'manage_presences',
             ],
             self::ELEVE => [
-                'view_own_notes',
-                'view_own_absences',
-                'view_own_schedule',
-            ],
-            self::PARENT => [
-                'view_child_notes',
-                'view_child_absences',
-                'view_child_schedule',
-                'make_paiements',
+                'view_notes',
+                'view_absences',
+                'view_emploi_du_temps',
+                'view_profil',
             ],
         };
     }

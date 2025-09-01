@@ -20,7 +20,7 @@ class HandleWelcomePage
         if (Auth::check()) {
             $user = Auth::user();
             if ($user && $user->is_active) {
-                return redirect()->route('dashboard');
+                return redirect(getDashboardUrl());
             } else {
                 // Si l'utilisateur n'est pas actif, le déconnecter
                 Auth::logout();

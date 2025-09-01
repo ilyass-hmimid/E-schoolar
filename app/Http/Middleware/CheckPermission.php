@@ -34,7 +34,7 @@ class CheckPermission
                 ], 403);
             }
             
-            return redirect()->route('dashboard')
+            return redirect(getDashboardUrl())
                 ->with('error', 'Vous n\'avez pas la permission d\'accéder à cette page.');
         }
 

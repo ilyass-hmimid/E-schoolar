@@ -19,16 +19,16 @@ class Inscription extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'IdEtudiant',
-        'IdFil',
-        'DateInsc',
-        'Montant',
-        'ModePaiement',
-        'Statut',
-        'Commentaires',
+        'etudiant_id',
+        'filiere_id',
         'pack_id',
+        'matiere_id',
+        'niveau_id',
         'heures_restantes',
-        'date_expiration'
+        'date_expiration',
+        'annee_scolaire',
+        'date_inscription',
+        'mode_paiement'
     ];
 
     /**
@@ -37,10 +37,12 @@ class Inscription extends Authenticatable
      * @var array<string, string>
      */
     protected $casts = [
+        'date_inscription' => 'date',
         'date_expiration' => 'date',
-        'DateInsc' => 'date',
         'heures_restantes' => 'integer',
-        'Montant' => 'decimal:2'
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime'
     ];
 
     /**
@@ -48,7 +50,7 @@ class Inscription extends Authenticatable
      */
     public function matiere()
     {
-        return $this->belongsTo(Matiere::class, 'IdMat');
+        return $this->belongsTo(Matiere::class);
     }
 
     /**
@@ -56,7 +58,7 @@ class Inscription extends Authenticatable
      */
     public function etudiant()
     {
-        return $this->belongsTo(Etudiant::class, 'IdEtu');
+        return $this->belongsTo(User::class, 'etudiant_id');
     }
 
     /**
@@ -64,7 +66,7 @@ class Inscription extends Authenticatable
      */
     public function professeur()
     {
-        return $this->belongsTo(Professeur::class, 'IdProf');
+        return $this->belongsTo(User::class, 'professeur_id');
     }
 
     /**
@@ -72,7 +74,7 @@ class Inscription extends Authenticatable
      */
     public function niveau()
     {
-        return $this->belongsTo(Niveau::class, 'IdNiv');
+        return $this->belongsTo(Niveau::class);
     }
 
     /**
@@ -80,7 +82,7 @@ class Inscription extends Authenticatable
      */
     public function filiere()
     {
-        return $this->belongsTo(Filiere::class, 'IdFil');
+        return $this->belongsTo(Filiere::class);
     }
 
     /**

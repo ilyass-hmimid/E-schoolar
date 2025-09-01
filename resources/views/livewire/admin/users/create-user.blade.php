@@ -59,6 +59,59 @@
                     </div>
                 </div>
 
+                <!-- Section Scolarité -->
+                <div class="mb-8">
+                    <h2 class="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Informations scolaires</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Niveau -->
+                        <div class="form-group">
+                            <label for="niveau_id" class="form-label">Niveau</label>
+                            <select id="niveau_id" wire:model="niveau_id" class="form-select">
+                                <option value="">Sélectionner un niveau</option>
+                                @foreach($niveaux as $niveau)
+                                    <option value="{{ $niveau->id }}">{{ $niveau->nom }}</option>
+                                @endforeach
+                            </select>
+                            @error('niveau_id') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- Filière -->
+                        <div class="form-group">
+                            <label for="filiere_id" class="form-label">Filière</label>
+                            <select id="filiere_id" wire:model="filiere_id" class="form-select">
+                                <option value="">Sélectionner une filière</option>
+                                @foreach($filieres as $filiere)
+                                    <option value="{{ $filiere->id }}">{{ $filiere->nom }}</option>
+                                @endforeach
+                            </select>
+                            @error('filiere_id') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- Matières (visible seulement pour les élèves) -->
+                        @if($role === 'eleve')
+                        <div class="form-group md:col-span-2">
+                            <label class="form-label">Matières suivies <span class="text-red-500">*</span></label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                @forelse($matieres as $matiere)
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="matiere_{{ $matiere->id }}" 
+                                               wire:model="matieres_selectionnees" 
+                                               value="{{ $matiere->id }}" 
+                                               class="h-4 w-4 text-blue-600 rounded">
+                                        <label for="matiere_{{ $matiere->id }}" class="ml-2 text-gray-700">
+                                            {{ $matiere->nom }}
+                                        </label>
+                                    </div>
+                                @empty
+                                    <p class="text-gray-500">Aucune matière disponible pour cette filière</p>
+                                @endforelse
+                            </div>
+                            @error('matieres_selectionnees') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        </div>
+                        @endif
+                    </div>
+                </div>
+
                 <!-- Section Informations de contact -->
                 <div class="mb-8">
                     <h2 class="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Informations de contact</h2>

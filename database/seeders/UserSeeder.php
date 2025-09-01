@@ -3,6 +3,9 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Models\Niveau;
+use App\Models\Filiere;
+use App\Enums\RoleType;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -14,50 +17,161 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Création de l'administrateur
-        $admin = User::create([
-            'name' => 'Admin User',
-            'email' => 'admin@example.com',
+        // Récupérer les niveaux et filières existants
+        $niveaux = Niveau::pluck('id')->toArray();
+        $filieres = Filiere::pluck('id')->toArray();
+
+        // Fonction pour générer un numéro de téléphone aléatoire
+        $generatePhone = function() {
+            return '06' . str_pad(rand(0, 99999999), 8, '0', STR_PAD_LEFT);
+        };
+
+        // Création des administrateurs (2)
+        $admin1 = User::create([
+            'name' => 'Admin Principal',
+            'nom' => 'Admin',
+            'prenom' => 'Principal',
+            'email' => 'admin1@example.com',
             'email_verified_at' => now(),
             'password' => Hash::make('password'),
             'remember_token' => Str::random(10),
+            'role' => RoleType::ADMIN->value,
+            'phone' => $generatePhone(),
+            'address' => '123 Rue Admin, Casablanca 20000, Maroc',
+            'is_active' => true,
         ]);
-        $admin->assignRole('admin');
+        $admin1->assignRole('admin');
 
-        // Création d'un professeur
-        $professeur = User::create([
-            'name' => 'Professeur Test',
-            'email' => 'professeur@example.com',
+        $admin2 = User::create([
+            'name' => 'Admin Secondaire',
+            'nom' => 'Admin',
+            'prenom' => 'Secondaire',
+            'email' => 'admin2@example.com',
             'email_verified_at' => now(),
             'password' => Hash::make('password'),
             'remember_token' => Str::random(10),
+            'role' => RoleType::ADMIN->value,
+            'phone' => $generatePhone(),
+            'address' => '456 Avenue Admin, Rabat 10000, Maroc',
+            'is_active' => true,
         ]);
-        $professeur->assignRole('professeur');
+        $admin2->assignRole('admin');
 
-        // Création d'un assistant
-        $assistant = User::create([
-            'name' => 'Assistant Test',
-            'email' => 'assistant@example.com',
+        // Création des professeurs (2)
+        $professeur1 = User::create([
+            'name' => 'Ahmed Alami',
+            'nom' => 'Alami',
+            'prenom' => 'Ahmed',
+            'email' => 'prof1@example.com',
             'email_verified_at' => now(),
             'password' => Hash::make('password'),
             'remember_token' => Str::random(10),
+            'role' => RoleType::PROFESSEUR->value,
+            'phone' => $generatePhone(),
+            'address' => '789 Rue des Professeurs, Casablanca 20000',
+            'is_active' => true,
+            'niveau_id' => !empty($niveaux) ? $niveaux[array_rand($niveaux)] : null,
+            'filiere_id' => !empty($filieres) ? $filieres[array_rand($filieres)] : null,
         ]);
-        $assistant->assignRole('assistant');
+        $professeur1->assignRole('professeur');
 
-        // Création d'un élève
-        $eleve = User::create([
-            'name' => 'Élève Test',
-            'email' => 'eleve@example.com',
+        $professeur2 = User::create([
+            'name' => 'Fatima Zahra',
+            'nom' => 'Zahra',
+            'prenom' => 'Fatima',
+            'email' => 'prof2@example.com',
             'email_verified_at' => now(),
             'password' => Hash::make('password'),
             'remember_token' => Str::random(10),
+            'role' => RoleType::PROFESSEUR->value,
+            'phone' => $generatePhone(),
+            'address' => '101 Avenue des Enseignants, Rabat 10000',
+            'is_active' => true,
+            'niveau_id' => !empty($niveaux) ? $niveaux[array_rand($niveaux)] : null,
+            'filiere_id' => !empty($filieres) ? $filieres[array_rand($filieres)] : null,
         ]);
-        $eleve->assignRole('eleve');
+        $professeur2->assignRole('professeur');
 
-        // Création de quelques utilisateurs supplémentaires pour les tests
-        User::factory(5)->create()->each(function ($user) {
-            $roles = ['eleve', 'professeur', 'assistant'];
-            $user->assignRole($roles[array_rand($roles)]);
-        });
+        // Création des étudiants (2)
+        $etudiant1 = User::create([
+            'name' => 'Youssef Benali',
+            'nom' => 'Benali',
+            'prenom' => 'Youssef',
+            'email' => 'etudiant1@example.com',
+            'email_verified_at' => now(),
+            'password' => Hash::make('password'),
+            'remember_token' => Str::random(10),
+            'role' => RoleType::ELEVE->value,
+            'phone' => $generatePhone(),
+            'address' => '123 Rue des Étudiants, Casablanca 20000',
+            'date_naissance' => now()->subYears(rand(18, 25))->format('Y-m-d'),
+            'niveau_id' => !empty($niveaux) ? $niveaux[array_rand($niveaux)] : null,
+            'filiere_id' => !empty($filieres) ? $filieres[array_rand($filieres)] : null,
+            'parent_name' => 'Parent de Youssef',
+            'parent_phone' => $generatePhone(),
+            'is_active' => true,
+        ]);
+        $etudiant1->assignRole('eleve');
+
+        $etudiant2 = User::create([
+            'name' => 'Leila El Mansouri',
+            'nom' => 'El Mansouri',
+            'prenom' => 'Leila',
+            'email' => 'etudiant2@example.com',
+            'email_verified_at' => now(),
+            'password' => Hash::make('password'),
+            'remember_token' => Str::random(10),
+            'role' => RoleType::ELEVE->value,
+            'phone' => $generatePhone(),
+            'address' => '456 Avenue des Étudiantes, Rabat 10000',
+            'date_naissance' => now()->subYears(rand(18, 22))->format('Y-m-d'),
+            'niveau_id' => !empty($niveaux) ? $niveaux[array_rand($niveaux)] : null,
+            'filiere_id' => !empty($filieres) ? $filieres[array_rand($filieres)] : null,
+            'parent_name' => 'Parent de Leila',
+            'parent_phone' => $generatePhone(),
+            'is_active' => true,
+        ]);
+        $etudiant2->assignRole('eleve');
+
+        // Création des assistants (2)
+        $assistant1 = User::create([
+            'name' => 'Karim Bennis',
+            'nom' => 'Bennis',
+            'prenom' => 'Karim',
+            'email' => 'assistant1@example.com',
+            'email_verified_at' => now(),
+            'password' => Hash::make('password'),
+            'remember_token' => Str::random(10),
+            'role' => RoleType::ASSISTANT->value,
+            'phone' => $generatePhone(),
+            'address' => '789 Rue des Assistants, Casablanca 20000',
+            'is_active' => true,
+        ]);
+        $assistant1->assignRole('assistant');
+
+        $assistant2 = User::create([
+            'name' => 'Salma El Amrani',
+            'nom' => 'El Amrani',
+            'prenom' => 'Salma',
+            'email' => 'assistant2@example.com',
+            'email_verified_at' => now(),
+            'password' => Hash::make('password'),
+            'remember_token' => Str::random(10),
+            'role' => RoleType::ASSISTANT->value,
+            'phone' => $generatePhone(),
+            'address' => '101 Avenue des Assistantes, Rabat 10000',
+            'is_active' => true,
+        ]);
+        $assistant2->assignRole('assistant');
+
+        // Désactivation de la création d'utilisateurs supplémentaires pour le moment
+        // User::factory(8)->create()->each(function ($user) {
+        //     $roles = [
+        //         RoleType::ELEVE->value, 
+        //         RoleType::PROFESSEUR->value, 
+        //         RoleType::ASSISTANT->value
+        //     ];
+        //     $user->assignRole($roles[array_rand($roles)]);
+        // });
     }
 }

@@ -37,6 +37,9 @@ class AuthServiceProvider extends ServiceProvider
         
         // Modèle Note
         Note::class => NotePolicy::class,
+        
+        // Modèle Classe
+        \App\Models\Classe::class => \App\Policies\ClassePolicy::class,
     ];
 
     /**

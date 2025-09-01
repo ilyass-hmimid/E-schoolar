@@ -25,7 +25,10 @@ class CoursController extends Controller
      */
     public function create()
     {
-        return view('admin.cours.create');
+        $niveaux = \App\Models\Niveau::orderBy('nom')->get();
+        $matieres = \App\Models\Matiere::orderBy('nom')->get();
+        
+        return view('admin.cours.create', compact('niveaux', 'matieres'));
     }
 
     /**

@@ -7,13 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\User;
-use App\Models\Niveau;
-use App\Models\Filiere;
-use App\Models\Classe;
-use App\Models\Note;
-use App\Models\Absence;
-use App\Models\Enseignement;
 
 class Matiere extends Model
 {
@@ -57,19 +50,14 @@ class Matiere extends Model
      */
     public function professeurs(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'matiere_professeur', 'matiere_id', 'user_id')
+        return $this->belongsToMany(\App\Models\Enseignant::class, 'matiere_professeur', 'matiere_id', 'user_id')
             ->withTimestamps()
             ->withPivot([
                 'created_at',
                 'updated_at',
                 'est_coordinateur' // Si un professeur est coordinateur de la matière
             ])
-            ->wherePivot('est_actif', true) // Pour ne récupérer que les affectations actives
-            ->where('role', 'professeur')
-            ->withDefault([
-                'name' => 'Non affecté',
-                'email' => 'non.affecte@exemple.com'
-            ]);
+            ->wherePivot('est_actif', true); // Pour ne récupérer que les affectations actives
     }
     
     /**
@@ -77,7 +65,7 @@ class Matiere extends Model
      */
     public function niveaux(): BelongsToMany
     {
-        return $this->belongsToMany(Niveau::class, 'matiere_niveau')
+        return $this->belongsToMany(\App\Models\Niveau::class, 'matiere_niveau')
             ->withTimestamps()
             ->withPivot([
                 'coefficient',
@@ -91,7 +79,7 @@ class Matiere extends Model
      */
     public function filieres(): BelongsToMany
     {
-        return $this->belongsToMany(Filiere::class, 'filiere_matiere')
+        return $this->belongsToMany(\App\Models\Filiere::class, 'filiere_matiere')
             ->withTimestamps()
             ->withPivot([
                 'coefficient',
@@ -105,7 +93,7 @@ class Matiere extends Model
      */
     public function classes(): BelongsToMany
     {
-        return $this->belongsToMany(Classe::class, 'enseignements', 'matiere_id', 'classe_id')
+        return $this->belongsToMany(\App\Models\Classe::class, 'enseignements', 'matiere_id', 'classe_id')
             ->withPivot([
                 'professeur_id',
                 'niveau_id',
@@ -127,8 +115,7 @@ class Matiere extends Model
      */
     public function enseignements(): HasMany
     {
-        return $this->hasMany(Enseignement::class, 'matiere_id')
-            ->where('est_actif', true);
+        return $this->hasMany(\App\Models\Enseignement::class, 'matiere_id');
     }
     
     /**
@@ -136,8 +123,7 @@ class Matiere extends Model
      */
     public function notes(): HasMany
     {
-        return $this->hasMany(Note::class, 'matiere_id')
-            ->orderBy('date_evaluation', 'desc');
+        return $this->hasMany(\App\Models\Note::class, 'matiere_id');
     }
     
     /**
@@ -145,8 +131,7 @@ class Matiere extends Model
      */
     public function absences(): HasMany
     {
-        return $this->hasMany(Absence::class, 'matiere_id')
-            ->orderBy('date_absence', 'desc');
+        return $this->hasMany(\App\Models\Absence::class, 'matiere_id');
     }
     
     /**
@@ -154,16 +139,14 @@ class Matiere extends Model
      */
     public function etudiants(): BelongsToMany
     {
-        return $this->belongsToMany(Etudiant::class, 'inscriptions', 'matiere_id', 'etudiant_id')
+        return $this->belongsToMany(\App\Models\User::class, 'inscriptions', 'matiere_id', 'etudiant_id')
             ->withPivot([
                 'annee_scolaire',
+                'niveau_id',
+                'filiere_id',
                 'date_inscription',
-                'est_actif',
-                'montant_inscription',
-                'statut_paiement'
-            ])
-            ->withTimestamps()
-            ->wherePivot('est_actif', true);
+                'mode_paiement'
+            ]);
     }
     
     /**
@@ -175,7 +158,8 @@ class Matiere extends Model
      */
     public function estEnseigneePar(int $professeurId): bool
     {
-        return $this->professeurs()->where('user_id', $professeurId)->exists();
+        return $this->professeurs()->where('user_id', $professeurId)->exists() ||
+               $this->enseignements()->where('professeur_id', $professeurId)->exists();
     }
     
     /**
@@ -228,8 +212,7 @@ class Matiere extends Model
      */
     public function paiements(): HasMany
     {
-        return $this->hasMany(Paiement::class)
-            ->orderBy('date_paiement', 'desc');
+        return $this->hasMany(\App\Models\Paiement::class, 'matiere_id');
     }
     
     /**
@@ -237,9 +220,7 @@ class Matiere extends Model
      */
     public function tarifs(): HasMany
     {
-        return $this->hasMany(Tarif::class)
-            ->where('est_actif', true)
-            ->orderBy('montant');
+        return $this->hasMany(\App\Models\Tarif::class, 'matiere_id');
     }
 
     /**
@@ -247,10 +228,8 @@ class Matiere extends Model
      */
     public function packs(): BelongsToMany
     {
-        return $this->belongsToMany(Pack::class, 'matiere_pack')
-            ->withPivot('nombre_heures_par_matiere')
-            ->withTimestamps()
-            ->wherePivot('est_actif', true);
+        return $this->belongsToMany(\App\Models\Pack::class, 'matiere_pack')
+            ->withPivot('nombre_heures_par_matiere');
     }
     
     /**
@@ -258,9 +237,7 @@ class Matiere extends Model
      */
     public function salaires(): HasMany
     {
-        return $this->hasMany(Salaire::class, 'matiere_id')
-            ->where('est_actif', true)
-            ->orderBy('date_debut', 'desc');
+        return $this->hasMany(\App\Models\Salaire::class, 'matiere_id');
     }
 
     /**
@@ -298,10 +275,8 @@ class Matiere extends Model
 
     public function getNombreElevesAttribute(): int
     {
-        return $this->enseignements()
-            ->whereHas('professeur', function ($query) {
-                $query->where('role', 2); // PROFESSEUR
-            })
+        return $this->etudiants()
+            ->wherePivot('est_actif', true)
             ->count();
     }
 }

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Models\Enseignant;
+use App\Models\Enseignement;
 
 class Classe extends Model
 {
@@ -28,6 +30,13 @@ class Classe extends Model
         'description',
         'est_actif',
     ];
+    
+    /**
+     * Les accesseurs à ajouter à la sortie JSON.
+     *
+     * @var array
+     */
+    protected $appends = ['nom_complet'];
 
     /**
      * Les attributs qui doivent être castés.
@@ -94,11 +103,46 @@ class Classe extends Model
     }
 
     /**
+     * Relation avec les enseignants de la classe
+     */
+    
+    /**
+     * Accesseur pour le nom complet de la classe
+     *
+     * @return string
+     */
+    public function getNomCompletAttribute()
+    {
+        $nomComplet = "{$this->nom} - {$this->niveau}";
+        
+        if ($this->filiere) {
+            $nomComplet .= " ({$this->filiere->nom})";
+        }
+        
+        if ($this->annee_scolaire) {
+            $nomComplet .= " - {$this->annee_scolaire}";
+        }
+        
+        return $nomComplet;
+    }
+    public function enseignants(): BelongsToMany
+    {
+        return $this->belongsToMany(Enseignant::class, 'enseignant_classe', 'classe_id', 'enseignant_id')
+            ->withPivot([
+                'matiere',
+                'est_principal',
+                'date_debut',
+                'date_fin',
+                'commentaires'
+            ]);
+    }
+
+    /**
      * Relation avec les enseignements de la classe
      */
     public function enseignements(): HasMany
     {
-        return $this->hasMany(Enseignement::class);
+        return $this->hasMany(Enseignement::class, 'classe_id');
     }
 
     /**

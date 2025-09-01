@@ -6,9 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Models\User;
-use App\Models\Matiere;
-use App\Models\Etudiant;
+// Les modèles sont déjà dans le même espace de noms, pas besoin de les importer
 
 class Note extends Model
 {

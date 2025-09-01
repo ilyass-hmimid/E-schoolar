@@ -291,9 +291,17 @@ class User extends Authenticatable implements ShouldBroadcast
     /**
      * Obtenir les notes de l'élève
      */
-    public function notes(): HasMany
+    public function notes()
     {
-        return $this->hasMany(Note::class, 'etudiant_id');
+        return $this->hasMany(Note::class, 'eleve_id');
+    }
+    
+    /**
+     * Relation avec le profil enseignant (si l'utilisateur est un enseignant)
+     */
+    public function enseignant()
+    {
+        return $this->hasOne(Enseignant::class);
     }
     
     /**
@@ -311,7 +319,7 @@ class User extends Authenticatable implements ShouldBroadcast
      */
     public function inscriptions(): HasMany
     {
-        return $this->hasMany(Inscription::class, 'IdEtudiant');
+        return $this->hasMany(Inscription::class, 'etudiant_id');
     }
 
     // Relations pour les assistants
@@ -350,7 +358,7 @@ class User extends Authenticatable implements ShouldBroadcast
         }
         
         if ($this->isEleve()) {
-            return $this->belongsToMany(Matiere::class, 'inscriptions', 'IdEtudiant', 'matiere_id')
+            return $this->belongsToMany(Matiere::class, 'inscriptions', 'etudiant_id', 'matiere_id')
                 ->withPivot(['niveau_id', 'filiere_id', 'annee_scolaire'])
                 ->withTimestamps();
         }

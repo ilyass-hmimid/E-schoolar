@@ -181,23 +181,18 @@ Nora Silvester
 
 <nav class="mt-2">
 <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-
-
-{{-- <li class="nav-item">
-<router-link to="/dashboard" active-class="active" class="nav-link">
-<i class="nav-icon fas fa-tachometer-alt"></i>
-<p>
-Dashboard
-</p>
-</a>
-</li> --}}
-<li class="nav-item">
-    <router-link to="/home" active-class="active" class="nav-link">
-    <i class="nav-icon fas fa-house-user"></i>
-    <p>
-        Accueil
-    </p>
-    </a>
+    <li class="nav-item">
+        <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-tachometer-alt"></i>
+            <p>Tableau de bord</p>
+        </a>
+    </li>
+    
+    <li class="nav-item">
+        <a href="{{ route('admin.home') }}" class="nav-link {{ request()->routeIs('admin.home') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-home"></i>
+            <p>Accueil</p>
+        </a>
     </li>
 
 {{-- <li class="nav-item">
@@ -212,166 +207,170 @@ Dashboard
 
     @if(Auth::check() && Auth::user()->role == 'admin')
     <li class="nav-item">
-        <router-link to="users" active-class="active" class="nav-link">
-        <i class="nav-icon fas fa-users"></i>
-        <p>
-        Utilisateurs
-        </p>
-        </router-link>
-        </li>
-        @endif
+        <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-users"></i>
+            <p>Utilisateurs</p>
+        </a>
+    </li>
+@endif
 
         @if(Auth::check() && Auth::user()->role == 'admin')
-        <li class="nav-item">
-            <router-link to="/professeurs" active-class="active" class="nav-link">
+    <li class="nav-item">
+        <a href="{{ route('admin.professeurs.index') }}" class="nav-link {{ request()->routeIs('admin.professeurs.*') ? 'active' : '' }}">
             <i class="nav-icon fas fa-user-tie"></i>
-            <p>
-                Professeurs
-            </p>
-            </router-link>
-            </li>
-            @endif
+            <p>Professeurs</p>
+        </a>
+    </li>
+@endif
 
 
             @if(Auth::check() && (Auth::user()->role == 'admin' || Auth::user()->role == 'admin_assistant'))
-            <li class="nav-item">
-                <router-link to="/students"
-                             :class="{ active: $route.path.startsWith('/students') }"
-                             class="nav-link">
-                <i class="nav-icon fas fa-user-graduate"></i>
-                <p>
-                   Etudiants
-                </p>
-                </router-link>
-                </li>
-                @endif
+    <li class="nav-item">
+        <a href="{{ route('admin.eleves.index') }}" class="nav-link {{ request()->routeIs('admin.eleves.*') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-user-graduate"></i>
+            <p>Élèves</p>
+        </a>
+    </li>
 
-                @if(Auth::check() && (Auth::user()->role == 'admin' || Auth::user()->role == 'admin_assistant'))
-                <li class="nav-item">
-                    <router-link to="/liste_absence" active-class="active" class="nav-link">
-                    <i class="nav-icon fas fa-users-slash"></i>
-                    <p>
-                       Absences
-                    </p>
-                    </router-link>
-                    </li>
-                    @endif
+    <li class="nav-item">
+        <a href="{{ route('admin.absences.index') }}" class="nav-link {{ request()->routeIs('admin.absences.*') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-users-slash"></i>
+            <p>Absences</p>
+        </a>
+    </li>
 
+    <li class="nav-item">
+        <a href="{{ route('admin.paiements.index') }}" class="nav-link {{ request()->routeIs('admin.paiements.*') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-money-bill-wave"></i>
+            <p>Paiements</p>
+        </a>
+    </li>
+@endif
 
+@if(Auth::check() && Auth::user()->role == 'admin')
+    <li class="nav-item">
+        <a href="{{ route('admin.tarifs.index') }}" class="nav-link {{ request()->routeIs('admin.tarifs.*') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-dollar-sign"></i>
+            <p>Tarifs</p>
+        </a>
+    </li>
 
-                @if(Auth::check() && (Auth::user()->role == 'admin' || Auth::user()->role == 'admin_assistant'))
-                <li class="nav-item">
-                    <router-link to="/paiments" active-class="active" class="nav-link">
-                    <i class="nav-icon fas fa-money-bill-wave"></i>
-                    <p>
-                        Paiements
-                    </p>
-                    </router-link>
-                    </li>
-                    @endif
+    <li class="nav-item">
+        <a href="{{ route('admin.salaires.index') }}" class="nav-link {{ request()->routeIs('admin.salaires.*') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-money-bill"></i>
+            <p>Salaires</p>
+        </a>
+    </li>
 
-                    @if(Auth::check() && (Auth::user()->role == 'admin' || Auth::user()->role == 'admin_assistant'))
-                    <li class="nav-item">
-                        <router-link to="/valeurs_paiments" active-class="active" class="nav-link">
-                        <i class="nav-icon fas fa-dollar-sign"></i>
-                        <p>
-                            Valeurs des paiements
-                        </p>
-                        </router-link>
-                        </li>
-                        @endif
+    <li class="nav-item">
+        <a href="{{ route('admin.configuration-salaires.index') }}" class="nav-link {{ request()->routeIs('admin.configuration-salaires.*') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-euro-sign"></i>
+            <p>Configuration des salaires</p>
+        </a>
+    </li>
 
+    <li class="nav-item">
+        <a href="{{ route('admin.enseignements.index') }}" class="nav-link {{ request()->routeIs('admin.enseignements.*') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-chalkboard"></i>
+            <p>Enseignements</p>
+        </a>
+    </li>
 
-                        @if(Auth::check() && Auth::user()->role == 'admin')
-                        <li class="nav-item">
-                            <router-link to="/salaires" active-class="active" class="nav-link">
-                            <i class="nav-icon fas fa-money-bill" style="fill : white !important;"></i>
-                            <p>
-                                Salaires
-                            </p>
-                            </router-link>
-                            </li>
-                            @endif
+    <li class="nav-item">
+        <a href="{{ route('admin.matieres.index') }}" class="nav-link {{ request()->routeIs('admin.matieres.*') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-book"></i>
+            <p>Matières</p>
+        </a>
+    </li>
 
+    <li class="nav-item">
+        <a href="{{ route('admin.niveaux.index') }}" class="nav-link {{ request()->routeIs('admin.niveaux.*') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-layer-group"></i>
+            <p>Niveaux</p>
+        </a>
+    </li>
 
-                            @if(Auth::check() && Auth::user()->role == 'admin')
-                            <li class="nav-item">
-                                <router-link to="/valeurs_salaires" active-class="active" class="nav-link">
-                                <i class="nav-icon fas fa-euro-sign"></i>
-                                <p>
-                                    Valeurs des salaires
-                                </p>
-                                </router-link>
-                                </li>
-                                @endif
+    <li class="nav-item">
+        <a href="{{ route('admin.filieres.index') }}" class="nav-link {{ request()->routeIs('admin.filieres.*') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-sitemap"></i>
+            <p>Filières</p>
+        </a>
+    </li>
 
+    <li class="nav-item">
+        <a href="{{ route('admin.classes.index') }}" class="nav-link {{ request()->routeIs('admin.classes.*') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-chalkboard"></i>
+            <p>Classes</p>
+        </a>
+    </li>
 
-                                @if(Auth::check() && Auth::user()->role == 'admin')
-                                <li class="nav-item">
-                                    <router-link to="/enseignements" active-class="active" class="nav-link">
-                                    <i class="nav-icon fas fa-chalkboard"></i>
-                                    <p>
-                                        Enseignements
-                                    </p>
-                                    </router-link>
-                                    </li>
-                                    @endif
+    <li class="nav-item">
+        <a href="{{ route('admin.annees-scolaires.index') }}" class="nav-link {{ request()->routeIs('admin.annees-scolaires.*') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-calendar-alt"></i>
+            <p>Années Scolaires</p>
+        </a>
+    </li>
 
+    <li class="nav-item">
+        <a href="{{ route('admin.parametres.index') }}" class="nav-link {{ request()->routeIs('admin.parametres.*') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-cog"></i>
+            <p>Paramètres</p>
+        </a>
+    </li>
+@endif
 
-                                    @if(Auth::check() && Auth::user()->role == 'professeur')
-                                    <li class="nav-item">
-                                        <router-link to="/EspaceProfesseur" active-class="active" class="nav-link">
-                                        <i class="nav-icon fas fa-money-bill"></i>
-                                        <p>
-                                            Mon salaire
-                                        </p>
-                                        </router-link>
-                                        </li>
-                                        @endif
+@if(Auth::check() && Auth::user()->role == 'professeur')
+    <li class="nav-item">
+        <a href="{{ route('professeur.salaire') }}" class="nav-link {{ request()->routeIs('professeur.salaire') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-money-bill"></i>
+            <p>Mon salaire</p>
+        </a>
+    </li>
 
-                                        @if(Auth::check() && Auth::user()->role == 'professeur')
-                                        <li class="nav-item">
-                                            <router-link to="/classes_professeur" active-class="active" class="nav-link">
-                                            <i class="nav-icon fas fa-users"></i>
-                                            <p>
-                                                Mes étudiants
-                                            </p>
-                                            </router-link>
-                                            </li>
-                                            @endif
+    <li class="nav-item">
+        <a href="{{ route('professeur.classes') }}" class="nav-link {{ request()->routeIs('professeur.classes') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-users"></i>
+            <p>Mes classes</p>
+        </a>
+    </li>
 
+    <li class="nav-item">
+        <a href="{{ route('professeur.emploi-du-temps') }}" class="nav-link {{ request()->routeIs('professeur.emploi-du-temps') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-calendar-alt"></i>
+            <p>Emploi du temps</p>
+        </a>
+    </li>
 
+    <li class="nav-item">
+        <a href="{{ route('professeur.notes') }}" class="nav-link {{ request()->routeIs('professeur.notes') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-edit"></i>
+            <p>Notes</p>
+        </a>
+    </li>
+@endif
 
-                                        @if(Auth::check() && Auth::user()->role != 'professeur')
-                                    <li class="nav-item">
-                                        <router-link to="/niveaux" active-class="active" class="nav-link">
-                                        <i class="nav-icon fas fa-layer-group"></i>
-                                        <p>
-                                            Niveaux
-                                        </p>
-                                        </router-link>
-                                        </li>
-                                        @endif
+@if(Auth::check() && in_array(Auth::user()->role, ['etudiant', 'eleve']))
+    <li class="nav-item">
+        <a href="{{ route('etudiant.emploi-du-temps') }}" class="nav-link {{ request()->routeIs('etudiant.emploi-du-temps') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-calendar-alt"></i>
+            <p>Emploi du temps</p>
+        </a>
+    </li>
 
-                                        @if(Auth::check() && Auth::user()->role != 'professeur')
-                                        <li class="nav-item">
-                                            <router-link to="/filieres" active-class="active" class="nav-link">
-                                            <i class="nav-icon fas fa-book"></i>
-                                            <p>
-                                                Filières
-                                            </p>
-                                            </router-link>
-                                            </li>
-                                            @endif
+    <li class="nav-item">
+        <a href="{{ route('etudiant.notes') }}" class="nav-link {{ request()->routeIs('etudiant.notes') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-book"></i>
+            <p>Mes notes</p>
+        </a>
+    </li>
 
-                                            @if(Auth::check() && Auth::user()->role != 'professeur')
-                                            <li class="nav-item">
-                                                <router-link to="/matieres" active-class="active" class="nav-link">
-                                                    <i class="nav-icon fas fa-file-signature"></i>
-                                                    <p>Matières</p>
-                                                </router-link>
-                                            </li>
-                                            @endif
+    <li class="nav-item">
+        <a href="{{ route('etudiant.absences') }}" class="nav-link {{ request()->routeIs('etudiant.absences') ? 'active' : '' }}">
+            <i class="nav-icon fas fa-user-slash"></i>
+            <p>Mes absences</p>
+        </a>
+    </li>
+@endif
 
 
 
@@ -400,61 +399,31 @@ Dashboard
                 </p>
                 </router-link>
                 </li> --}}
-{{--
-                <li class="nav-item">
-                    <form method="POST" action="{{ route('profile') }}">
-                        @csrf
-                        <a href="{{ route('profile') }}" onclick="event.preventDefault(); this.closest('form').submit();" class="nav-link nav-link-hover">
-                            <i class="nav-icon fas fa-user"></i>
-                            <p>
-                                Profile
-                            </p>
-                        </a>
-                    </form>
-                </li> --}}
-
-
-
-                {{-- <li class="nav-item">
-                    <router-link to="logout" href="route('logout')" active-class="active" class="nav-link">
-                    <i class="nav-icon fas fa-sign-out-alt"></i>
-                    <p>
-                    Déconnexion
-                    </p>
-                    </router-link>
-                    </li> --}}
-
-                    {{-- @auth --}}
-                    <li class="nav-item">
-                        <a href="#" onclick="confirmLogout(event)" class="nav-link nav-link-hover">
-                            <i class="nav-icon fas fa-sign-out-alt"></i>
-                            <p>
-                                Déconnexion
-                            </p>
-                        </a>
-                    </li>
-
-                    <script>
-                        function confirmLogout(event) {
-                            event.preventDefault();
-
-                            if (confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) {
-                                // Si l'utilisateur confirme, soumettez le formulaire de déconnexion
-                                document.querySelector('#logout-form').submit();
-                            }
-                        }
-                    </script>
-
-                    <form id="logout-form" method="POST" action="{{ route('logout') }}" style="display: none;">
-                        @csrf
-                    </form>
-
-                    {{-- @endauth --}}
-
-
-
 </ul>
 </nav>
+
+<!-- Bottom section for logout -->
+<div class="sidebar-bottom mt-auto">
+    <ul class="nav nav-pills nav-sidebar flex-column" role="menu">
+        <li class="nav-item">
+            <a href="#" onclick="confirmLogout(event)" class="nav-link text-danger">
+                <i class="nav-icon fas fa-sign-out-alt"></i>
+                <p>Déconnexion</p>
+            </a>
+            <form id="logout-form" method="POST" action="{{ route('logout') }}" style="display: none;">
+                @csrf
+            </form>
+            <script>
+                function confirmLogout(event) {
+                    event.preventDefault();
+                    if (confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) {
+                        document.querySelector('#logout-form').submit();
+                    }
+                }
+            </script>
+        </li>
+    </ul>
+</div>
 
 </div>
 

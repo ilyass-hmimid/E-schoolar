@@ -42,7 +42,7 @@ class WelcomeNotification extends BaseNotification implements ShouldQueue
         $this->icon = 'user-plus';
         $this->title = 'Bienvenue sur ' . config('app.name');
         $this->actionText = 'Accéder à mon compte';
-        $this->actionUrl = route('dashboard');
+        $this->actionUrl = getDashboardUrl();
         
         $this->setWelcomeMessage();
     }

@@ -187,7 +187,7 @@
             <div class="auth-container">
                 <div class="auth-card">
                     <div class="auth-logo">
-                        <a href="{{ route('dashboard') }}">
+                        <a href="{{ route('welcome') }}">
                             <x-application-logo style="height: 3.5rem; width: auto;" />
                         </a>
                     </div>

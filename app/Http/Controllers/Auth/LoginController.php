@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
 {
@@ -26,6 +28,49 @@ class LoginController extends Controller
      * @var string
      */
     protected $redirectTo = '/home';
+    
+    /**
+     * Get the post register / login redirect path.
+     *
+     * @return string
+     */
+    public function redirectTo()
+    {
+        $user = Auth::user();
+        
+        if ($user->hasRole('admin')) {
+            return route('admin.dashboard');
+        } elseif ($user->hasRole('professeur')) {
+            return route('professeur.dashboard');
+        } elseif ($user->hasRole('assistant')) {
+            return route('assistant.dashboard');
+        } elseif ($user->hasRole('eleve')) {
+            return route('eleve.dashboard');
+        }
+        
+        return $this->redirectTo;
+    }
+    
+    /**
+     * Redirect user based on their role
+     *
+     * @param  \App\Models\User  $user
+     * @return \Illuminate\Http\Response
+     */
+    public function redirectBasedOnRole($user)
+    {
+        if ($user->hasRole('admin')) {
+            return redirect()->route('admin.dashboard');
+        } elseif ($user->hasRole('professeur')) {
+            return redirect()->route('professeur.dashboard');
+        } elseif ($user->hasRole('assistant')) {
+            return redirect()->route('assistant.dashboard');
+        } elseif ($user->hasRole('eleve')) {
+            return redirect()->route('eleve.dashboard');
+        }
+        
+        return redirect()->route('home');
+    }
 
     /**
      * Create a new controller instance.

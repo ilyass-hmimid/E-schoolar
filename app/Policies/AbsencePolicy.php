@@ -15,23 +15,9 @@ class AbsencePolicy
      */
     public function viewAny(User $user): bool
     {
-        // Les administrateurs peuvent tout voir
-        if ($user->hasRole('admin')) {
-            return true;
-        }
-        
-        // Les professeurs peuvent voir les absences de leurs élèves
-        if ($user->hasRole('professeur')) {
-            return true;
-        }
-        
-        // Les parents peuvent voir les absences de leurs enfants
-        if ($user->hasRole('parent')) {
-            return true;
-        }
-        
-        // Vérifier la permission spécifique
-        return $user->can('view_any_absence');
+        // Les administrateurs, assistants et professeurs peuvent voir toutes les absences
+        return $user->hasAnyRole(['admin', 'assistant', 'professeur']) || 
+               $user->can('view_any_absence');
     }
 
     /**
@@ -39,22 +25,31 @@ class AbsencePolicy
      */
     public function view(User $user, Absence $absence): bool
     {
-        // L'utilisateur peut voir sa propre absence
-        if ($user->id === $absence->etudiant->id) {
+        // L'administrateur peut tout voir
+        if ($user->hasRole('admin')) {
             return true;
         }
         
-        // Le parent peut voir les absences de son enfant
-        if ($user->role === 'parent' && $user->id === $absence->etudiant->parent_id) {
-            return true;
+        // L'assistant peut voir les absences de son établissement
+        if ($user->hasRole('assistant')) {
+            return $user->etablissement_id === $absence->eleve->classe->etablissement_id;
         }
         
         // Le professeur peut voir les absences de ses élèves
-        if ($user->role === 'professeur' && $absence->seance->IdProf === $user->id) {
-            return true;
+        if ($user->hasRole('professeur')) {
+            return $user->professeur->cours->pluck('id')->contains($absence->cours_id);
         }
         
-        // L'administrateur peut tout voir
+        // Le parent peut voir les absences de ses enfants
+        if ($user->hasRole('parent')) {
+            return $user->eleves->contains($absence->eleve_id);
+        }
+        
+        // L'élève peut voir ses propres absences
+        if ($user->hasRole('eleve')) {
+            return $user->id === $absence->eleve_id;
+        }
+        
         return $user->can('view_absence');
     }
 
@@ -63,13 +58,9 @@ class AbsencePolicy
      */
     public function create(User $user): bool
     {
-        // Les administrateurs et les professeurs peuvent créer des absences
-        if ($user->hasAnyRole(['admin', 'professeur'])) {
-            return true;
-        }
-        
-        // Vérifier la permission spécifique
-        return $user->can('create_absence');
+        // Les administrateurs, assistants et professeurs peuvent créer des absences
+        return $user->hasAnyRole(['admin', 'assistant', 'professeur']) || 
+               $user->can('create_absence');
     }
 
     /**
@@ -78,16 +69,21 @@ class AbsencePolicy
     public function update(User $user, Absence $absence): bool
     {
         // L'administrateur peut tout modifier
-        if ($user->can('update_absence')) {
+        if ($user->hasRole('admin')) {
             return true;
+        }
+        
+        // L'assistant peut modifier les absences de son établissement
+        if ($user->hasRole('assistant')) {
+            return $user->etablissement_id === $absence->eleve->classe->etablissement_id;
         }
         
         // Le professeur peut modifier les absences de ses élèves
-        if ($user->role === 'professeur' && $absence->seance->IdProf === $user->id) {
-            return true;
+        if ($user->hasRole('professeur')) {
+            return $user->professeur->cours->pluck('id')->contains($absence->cours_id);
         }
         
-        return false;
+        return $user->can('update_absence');
     }
 
     /**
@@ -95,8 +91,55 @@ class AbsencePolicy
      */
     public function delete(User $user, Absence $absence): bool
     {
-        // Seul l'administrateur peut supprimer une absence
-        return $user->can('delete_absence');
+        // Seul l'administrateur peut supprimer définitivement une absence
+        return $user->hasRole('admin') || $user->can('delete_absence');
+    }
+    
+    /**
+     * Détermine si l'utilisateur peut justifier une absence.
+     */
+    public function justify(User $user, Absence $absence): bool
+    {
+        // Les administrateurs et assistants peuvent justifier n'importe quelle absence
+        if ($user->hasAnyRole(['admin', 'assistant'])) {
+            return true;
+        }
+        
+        // Le professeur peut justifier les absences de ses élèves
+        if ($user->hasRole('professeur')) {
+            return $user->professeur->cours->pluck('id')->contains($absence->cours_id);
+        }
+        
+        // L'étudiant peut justifier sa propre absence
+        if ($user->id === $absence->eleve_id) {
+            return true;
+        }
+        
+        // Le parent peut justifier l'absence de son enfant
+        if ($user->hasRole('parent') && $user->eleves->contains($absence->eleve_id)) {
+            return true;
+        }
+        
+        // Vérifier la permission spécifique
+        return $user->can('justify_absence');
+    }
+    
+    /**
+     * Détermine si l'utilisateur peut exporter les absences.
+     */
+    public function export(User $user): bool
+    {
+        // Les administrateurs, assistants, professeurs et secrétaires peuvent exporter les absences
+        return $user->hasAnyRole(['admin', 'assistant', 'professeur', 'secretaire']) || 
+               $user->can('export_absences');
+    }
+    
+    /**
+     * Détermine si l'utilisateur peut accéder aux statistiques des absences.
+     */
+    public function viewStatistics(User $user): bool
+    {
+        return $user->hasAnyRole(['admin', 'professeur', 'direction']) || $user->can('view_absence_statistics');
     }
 
     /**
@@ -129,46 +172,8 @@ class AbsencePolicy
     public function notify(User $user): bool
     {
         // Seuls les administrateurs et les professeurs peuvent envoyer des notifications
-        if ($user->hasAnyRole(['admin', 'professeur'])) {
-            return true;
-        }
-        
-        return $user->can('notify_absence');
-    }
-    
-    /**
-     * Détermine si l'utilisateur peut justifier une absence.
-     */
-    public function justify(User $user, Absence $absence): bool
-    {
-        // L'étudiant peut justifier sa propre absence
-        if ($user->id === $absence->etudiant->id) {
-            return true;
-        }
-        
-        // Le parent peut justifier l'absence de son enfant
-        if ($user->role === 'parent' && $user->id === $absence->etudiant->parent_id) {
-            return true;
-        }
-        
-        // Les administrateurs et les professeurs peuvent justifier n'importe quelle absence
-        return $user->hasAnyRole(['admin', 'professeur']);
-    }
-    
-    /**
-     * Détermine si l'utilisateur peut exporter la liste des absences.
-     */
-    public function export(User $user): bool
-    {
-        return $user->hasAnyRole(['admin', 'professeur', 'secretaire']) || $user->can('export_absences');
-    }
-    
-    /**
-     * Détermine si l'utilisateur peut voir les statistiques des absences.
-     */
-    public function viewStatistics(User $user): bool
-    {
-        return $user->hasAnyRole(['admin', 'professeur', 'direction']) || $user->can('view_absence_statistics');
+        return $user->hasAnyRole(['admin', 'professeur']) || 
+               $user->can('notify_absence');
     }
     
     /**

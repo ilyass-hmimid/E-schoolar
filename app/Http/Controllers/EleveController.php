@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Niveau;
 use App\Models\Filiere;
+use App\Models\Inscription;
+use App\Models\Matiere;
 use App\Enums\RoleType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -54,6 +56,7 @@ class EleveController extends Controller
         return Inertia::render('Admin/Eleves/Create', [
             'niveaux' => Niveau::select('id', 'nom')->orderBy('nom')->get(),
             'filieres' => Filiere::select('id', 'nom')->orderBy('nom')->get(),
+            'matieres' => Matiere::select('id', 'nom')->orderBy('nom')->get(),
         ]);
     }
 
@@ -68,28 +71,48 @@ class EleveController extends Controller
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string|max:20',
             'niveau_id' => 'required|exists:niveaux,id',
-            'filiere_id' => 'nullable|exists:filieres,id',
+            'filiere_id' => 'required|exists:filieres,id',
+            'matieres' => 'required|array|min:1',
+            'matieres.*' => 'exists:matieres,id',
             'somme_a_payer' => 'nullable|numeric|min:0',
         ]);
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'phone' => $validated['phone'] ?? null,
-            'niveau_id' => $validated['niveau_id'],
-            'filiere_id' => $validated['filiere_id'] ?? null,
-            'somme_a_payer' => $validated['somme_a_payer'] ?? 0,
-            'date_debut' => now(),
-            'role' => RoleType::ELEVE->value,
-            'is_active' => true,
-        ]);
-        
-        // Assigner le rôle à l'utilisateur
-        $user->assignRole(RoleType::ELEVE->name);
+        // Démarrer une transaction pour s'assurer que tout se passe bien
+        return \DB::transaction(function () use ($validated) {
+            // Créer l'utilisateur
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'phone' => $validated['phone'] ?? null,
+                'niveau_id' => $validated['niveau_id'],
+                'filiere_id' => $validated['filiere_id'],
+                'somme_a_payer' => $validated['somme_a_payer'] ?? 0,
+                'date_debut' => now(),
+                'role' => RoleType::ELEVE->value,
+                'is_active' => true,
+            ]);
+            
+            // Assigner le rôle à l'utilisateur
+            $user->assignRole(RoleType::ELEVE->name);
 
-        return redirect()->route('admin.eleves.index')
-            ->with('success', 'Élève créé avec succès');
+            // Créer les inscriptions pour chaque matière
+            foreach ($validated['matieres'] as $matiereId) {
+                Inscription::create([
+                    'etudiant_id' => $user->id,
+                    'matiere_id' => $matiereId,
+                    'niveau_id' => $validated['niveau_id'],
+                    'filiere_id' => $validated['filiere_id'],
+                    'date_inscription' => now(),
+                    'annee_scolaire' => now()->format('Y') . '/' . (now()->year + 1),
+                    'statut' => 'actif',
+                    'montant' => $validated['somme_a_payer'] ?? 0,
+                ]);
+            }
+
+            return redirect()->route('admin.eleves.index')
+                ->with('success', 'Élève créé avec succès');
+        });
     }
 
     /**

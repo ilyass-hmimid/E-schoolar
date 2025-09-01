@@ -6,7 +6,7 @@
                 <!-- En-tête avec dégradé -->
                 <div class="bg-gradient-to-r from-primary-600 to-primary-800 p-6 text-center">
                     <div class="flex justify-center mb-4">
-                        <a href="{{ route('dashboard') }}" class="flex items-center space-x-3">
+                        <a href="{{ getDashboardUrl() }}" class="flex items-center space-x-3">
                             <x-application-logo class="h-10 w-auto text-white" />
                             <span class="text-2xl font-bold text-white">S'inscrire </span>
                         </a>

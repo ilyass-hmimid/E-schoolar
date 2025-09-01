@@ -65,6 +65,11 @@ class Enseignement extends Model
         return $this->belongsTo(Filiere::class);
     }
 
+    public function classe(): BelongsTo
+    {
+        return $this->belongsTo(Classe::class, 'classe_id');
+    }
+
     /**
      * Scopes
      */

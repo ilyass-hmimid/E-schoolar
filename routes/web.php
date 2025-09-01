@@ -62,6 +62,23 @@ Route::get('/', function () {
 // Authentification
 Auth::routes(['verify' => true]);
 
+// Home route for authenticated users
+Route::get('/home', function () {
+    $user = auth()->user();
+    
+    if ($user->hasRole('admin')) {
+        return redirect()->route('admin.dashboard');
+    } elseif ($user->hasRole('professeur')) {
+        return redirect()->route('professeur.dashboard');
+    } elseif ($user->hasRole('assistant')) {
+        return redirect()->route('assistant.dashboard');
+    } elseif ($user->hasRole('eleve')) {
+        return redirect()->route('eleve.dashboard');
+    }
+    
+    return redirect()->route('welcome');
+})->middleware(['auth', 'verified', 'active'])->name('home');
+
 // Routes accessibles aux invités
 Route::middleware('guest')->group(function () {
     Route::get('/forgot-password', [LoginController::class, 'showForgotPasswordForm'])->name('password.request');

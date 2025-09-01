@@ -17,7 +17,7 @@ class PasswordResetLinkController extends Controller
     {
         // Vérifier que l'utilisateur n'est pas déjà connecté
         if (auth()->check()) {
-            return redirect()->route('dashboard');
+            return redirect(getDashboardUrl());
         }
         
         return view('auth.forgot-password');
@@ -32,7 +32,7 @@ class PasswordResetLinkController extends Controller
     {
         // Vérifier que l'utilisateur n'est pas déjà connecté
         if (auth()->check()) {
-            return redirect()->route('dashboard');
+            return redirect(getDashboardUrl());
         }
 
         $request->validate([
