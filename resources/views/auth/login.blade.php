@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #00FF88;
@@ -269,12 +270,16 @@
         }
     </style>
 </head>
-<body>
+<body class="bg-black font-['Poppins'] text-gray-100">
     <div class="min-h-screen flex">
         <!-- Left Side - Hero -->
-        <div class="hidden lg:flex flex-col justify-center items-center w-1/2 bg-gradient-to-br from-green-600 to-green-800 p-12">
+        <div class="hidden lg:flex flex-col justify-center items-center w-1/2 bg-black p-12 border-r border-gray-800">
             <div class="max-w-md text-center">
-                <h1 class="text-4xl font-bold mb-4">Bienvenue sur Allo Tawjih</h1>
+                <div class="mb-8">
+                    <i class="fas fa-graduation-cap text-6xl bg-gradient-to-r from-[#00C2FF] to-[#00FF94] bg-clip-text text-transparent"></i>
+                </div>
+                <h1 class="text-5xl font-bold mb-6 bg-gradient-to-r from-[#00C2FF] to-[#00FF94] bg-clip-text text-transparent">Allo Tawjih</h1>
+                <p class="text-xl text-gray-300 mb-8">Votre plateforme d'orientation professionnelle</p>
                 <p>Connectez-vous pour accéder à votre espace personnel et profiter de tous nos services d'orientation scolaire et professionnelle.</p>
                 <div class="features">
                     <div class="feature">
@@ -294,14 +299,10 @@
         </div>
 
         <!-- Right Side - Login Form -->
-        <div class="flex-1 flex items-center justify-center p-8">
-            <div class="w-full max-w-md">
-                <div class="flex justify-center mb-8">
-                    <img src="{{ asset('images/logo.png') }}" alt="Allo Tawjih" class="h-16" onerror="this.style.display='none'">
-                </div>
-                
-                <div class="text-center mb-8">
-                    <h2 class="text-2xl font-bold text-gray-100 mb-2">Connexion</h2>
+        <div class="flex-1 flex items-center justify-center p-8 bg-black">
+            <div class="w-full max-w-md p-10 rounded-2xl bg-gray-900/90 backdrop-blur-sm border border-gray-800/50">
+                <div class="text-center mb-10">
+                    <h2 class="text-3xl font-bold text-white mb-2">Connexion</h2>
                     <p class="text-gray-400">Entrez vos identifiants pour accéder à votre compte</p>
                 </div>
 
@@ -318,15 +319,22 @@
                 @endif
 
                 @if ($errors->any())
-                    <div class="bg-red-900/20 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg mb-6 text-sm">
-                        <ul class="list-disc pl-5 space-y-1">
-                            @foreach ($errors->all() as $error)
-                                <li class="flex items-start">
-                                    <i class="fas fa-exclamation-circle mt-1 mr-2 flex-shrink-0"></i>
-                                    <span>{{ $error }}</span>
-                                </li>
-                            @endforeach
-                        </ul>
+                    <div class="mb-6 p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-exclamation-circle text-red-400"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-red-400">Erreur de connexion</h3>
+                                <div class="mt-2 text-sm text-red-400">
+                                    <ul class="list-disc pl-5 space-y-1">
+                                        @foreach ($errors->all() as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 @endif
 
@@ -334,15 +342,15 @@
                     @csrf
 
                     <!-- Email -->
-                    <div>
+                    <div class="space-y-2">
                         <label for="email" class="block text-sm font-medium text-gray-300 mb-1">Adresse email</label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i class="fas fa-envelope text-gray-400"></i>
+                                <i class="fas fa-envelope text-gray-500"></i>
                             </div>
-                            <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username" 
-                                   class="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full pl-10 p-2.5" 
-                                   placeholder="votre@email.com">
+                            <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username"
+                                class="block w-full pl-10 pr-3 py-3 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-[#00C2FF] focus:border-transparent transition duration-200 text-white placeholder-gray-400"
+                                placeholder="votre@email.com">
                         </div>
                         @error('email')
                             <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
@@ -350,24 +358,17 @@
                     </div>
 
                     <!-- Password -->
-                    <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <label for="password" class="block text-sm font-medium text-gray-300">Mot de passe</label>
-                            @if (Route::has('password.request'))
-                                <a href="{{ route('password.request') }}" class="text-sm text-green-400 hover:text-green-300 transition-colors">
-                                    Mot de passe oublié ?
-                                </a>
-                            @endif
-                        </div>
+                    <div class="space-y-2">
+                        <label for="password" class="block text-sm font-medium text-gray-300">Mot de passe</label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i class="fas fa-lock text-gray-400"></i>
+                                <i class="fas fa-lock text-gray-500"></i>
                             </div>
-                            <input id="password" type="password" name="password" required autocomplete="current-password" 
-                                   class="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full pl-10 p-2.5 pr-10" 
-                                   placeholder="••••••••">
-                            <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-300 focus:outline-none" data-target="password">
-                                <i class="far fa-eye"></i>
+                            <input id="password" type="password" name="password" required autocomplete="current-password"
+                                class="block w-full pl-10 pr-10 py-3 bg-gray-700/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-[#00C2FF] focus:border-transparent transition duration-200 text-white placeholder-gray-400"
+                                placeholder="••••••••">
+                            <button type="button" data-target="password" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                <i class="far fa-eye text-gray-500 hover:text-gray-300 cursor-pointer"></i>
                             </button>
                         </div>
                         @error('password')
@@ -375,25 +376,30 @@
                         @enderror
                     </div>
 
-                    <!-- Remember Me -->
-                    <div class="flex items-center">
+                    <div class="flex items-center justify-between">
                         <div class="flex items-center">
-                            <input id="remember_me" name="remember" type="checkbox" 
-                                   class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-600 rounded bg-gray-700">
+                            <input id="remember_me" type="checkbox" name="remember" class="h-4 w-4 text-[#00C2FF] focus:ring-[#00C2FF] border-gray-600 rounded bg-gray-700/50">
                             <label for="remember_me" class="ml-2 block text-sm text-gray-300">
                                 Se souvenir de moi
                             </label>
                         </div>
+
+                        @if (Route::has('password.request'))
+                            <a class="text-sm text-[#00C2FF] hover:text-[#00a3d4] font-medium transition-colors" href="{{ route('password.request') }}">
+                                Mot de passe oublié ?
+                            </a>
+                        @endif
                     </div>
 
-                    <button type="submit" class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                    <button type="submit" class="w-full py-3 px-4 bg-gradient-to-r from-[#00C2FF] to-[#00FF94] text-gray-900 font-medium rounded-lg hover:opacity-90 transition duration-200 shadow-lg hover:shadow-xl hover:shadow-[#00C2FF]/20">
                         Se connecter
                     </button>
 
                     @if (Route::has('register'))
-                        <div class="text-center text-sm text-gray-400 mt-6">
-                            <p>Vous n'avez pas de compte ? 
-                                <a href="{{ route('register') }}" class="text-green-400 hover:text-green-300 font-medium transition-colors">
+                        <div class="mt-8 text-center">
+                            <p class="text-sm text-gray-400">
+                                Vous n'avez pas de compte ?
+                                <a href="{{ route('register') }}" class="text-[#00C2FF] hover:text-[#00a3d4] font-medium ml-1 transition-colors">
                                     Créer un compte
                                 </a>
                             </p>
@@ -401,8 +407,23 @@
                     @endif
                 </form>
 
-                <script>
-                    // Toggle password visibility
+                    <script>
+                        // Toggle password visibility
+                        document.querySelectorAll('[data-target="password"]').forEach(button => {
+                            button.addEventListener('click', function() {
+                                const input = document.getElementById('password');
+                                const icon = this.querySelector('i');
+                                
+                                if (input.type === 'password') {
+                                    input.type = 'text';
+                                    icon.classList.remove('fa-eye');
+                                    icon.classList.add('fa-eye-slash');
+                                } else {
+                                    input.type = 'password';
+                                    icon.classList.remove('fa-eye-slash');
+                                    icon.classList.add('fa-eye');
+                                }
+                            });
                     document.querySelectorAll('[data-target="password"]').forEach(button => {
                         button.addEventListener('click', function() {
                             const input = document.getElementById('password');
@@ -420,7 +441,6 @@
                         });
                     });
                 </script>
-                @endif
             </div>
         </div>
     </div>

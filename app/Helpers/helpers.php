@@ -11,7 +11,7 @@ if (!function_exists('getDashboardUrl')) {
     function getDashboardUrl()
     {
         if (!Auth::check()) {
-            return route('welcome');
+            return url('/');
         }
 
         $user = Auth::user();
@@ -26,6 +26,6 @@ if (!function_exists('getDashboardUrl')) {
             return route('eleve.dashboard');
         }
         
-        return route('welcome');
+        return url('/');
     }
 }

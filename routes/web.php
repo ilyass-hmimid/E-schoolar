@@ -9,6 +9,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\RedirectController;
+use App\Http\Controllers\HomeController;
 
 // Contrôleurs Admin
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -36,6 +37,11 @@ use App\Http\Controllers\Eleve\PaiementController as ElevePaiementController;
 | Routes Publiques
 |--------------------------------------------------------------------------
 */
+
+// Page d'accueil
+Route::get('/', function () {
+    return view('auth.login');
+})->name('home');
 
 // Authentification
 Auth::routes([

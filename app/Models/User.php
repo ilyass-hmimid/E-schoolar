@@ -24,6 +24,61 @@ class User extends Authenticatable implements ShouldBroadcast
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles;
     
     /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'name',
+        'email',
+        'avatar',
+        'password',
+        'role',
+        'phone',
+        'address',
+        'niveau_id',
+        'filiere_id',
+        'somme_a_payer',
+        'date_debut',
+        'is_active',
+        'date_naissance'
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'role_label'
+    ];
+    
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'notification_preferences' => 'array',
+        'somme_a_payer' => 'decimal:2',
+        'date_debut' => 'date',
+        'is_active' => 'boolean',
+        'date_naissance' => 'date',
+    ];
+    
+    /**
      * Find the user instance for the given username.
      *
      * @param  string  $username
@@ -163,35 +218,6 @@ class User extends Authenticatable implements ShouldBroadcast
         return [];
     }
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
-    protected $fillable = [
-        'name',
-        'email',
-        'avatar',
-        'password',
-        'role',
-        'phone',
-        'address',
-        'niveau_id',
-        'filiere_id',
-        'somme_a_payer',
-        'date_debut',
-        'is_active',
-        'date_naissance'
-    ];
-    
-    /**
-     * The accessors to append to the model's array form.
-     *
-     * @var array<int, string>
-     */
-    protected $appends = [
-        'role_label'
-    ];
     
     /**
      * Get the human-readable role label.
@@ -207,20 +233,6 @@ class User extends Authenticatable implements ShouldBroadcast
         };
     }
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
-        'notification_preferences' => 'array',
-        'somme_a_payer' => 'decimal:2',
-        'date_debut' => 'date',
-        'is_active' => 'boolean',
-        'date_naissance' => 'date',
-    ];
     
     /**
      * Obtenir le rôle de l'utilisateur sous forme d'énum RoleType
