@@ -158,55 +158,6 @@
                             </div>
                         </div>
                         
-                        <!-- Informations des parents (pour les élèves) -->
-                        @if($user->role === 'eleve' && ($user->parent_name || $user->parent_phone || $user->parent_email))
-                            <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-                                <div class="px-6 py-4 bg-gray-50 border-b border-gray-100">
-                                    <h3 class="text-lg font-medium text-gray-900">
-                                        <i class="fas fa-users mr-2 text-blue-600"></i>
-                                        Informations des parents
-                                    </h3>
-                                </div>
-                                <div class="p-6">
-                                    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        @if($user->parent_name)
-                                            <div class="py-2">
-                                                <dt class="text-sm font-medium text-gray-500">Nom du parent</dt>
-                                                <dd class="mt-1 text-sm text-gray-900">{{ $user->parent_name }}</dd>
-                                            </div>
-                                        @endif
-                                        
-                                        @if($user->parent_phone)
-                                            <div class="py-2">
-                                                <dt class="text-sm font-medium text-gray-500">Téléphone du parent</dt>
-                                                <dd class="mt-1 text-sm text-gray-900">
-                                                    {{ $user->parent_phone }}
-                                                    <a href="tel:{{ $user->parent_phone }}" class="ml-2 text-blue-600 hover:underline">
-                                                        <i class="fas fa-phone"></i>
-                                                    </a>
-                                                </dd>
-                                            </div>
-                                        @endif
-                                        
-                                        @if($user->parent_email)
-                                            <div class="py-2">
-                                                <dt class="text-sm font-medium text-gray-500">Email du parent</dt>
-                                                <dd class="mt-1 text-sm text-gray-900">
-                                                    <a href="mailto:{{ $user->parent_email }}" class="text-blue-600 hover:underline">
-                                                        {{ $user->parent_email }}
-                                                    </a>
-                                                </dd>
-                                            </div>
-                                        @endif
-                                        
-                                        @if($user->parent_profession)
-                                            <div class="py-2">
-                                                <dt class="text-sm font-medium text-gray-500">Profession du parent</dt>
-                                                <dd class="mt-1 text-sm text-gray-900">{{ $user->parent_profession }}</dd>
-                                            </div>
-                                        @endif
-                                    </dl>
-                                </div>
                             </div>
                         @endif
                         
@@ -260,7 +211,13 @@
                                         @if($user->niveau)
                                             <div class="py-2">
                                                 <dt class="text-sm font-medium text-gray-500">Niveau</dt>
-                                                <dd class="mt-1 text-sm text-gray-900">{{ $user->niveau->nom ?? $user->niveau }}</dd>
+                                                <dd class="mt-1 text-sm text-gray-900">
+                                                    @if(is_object($user->niveau) && isset($user->niveau->nom))
+                                                        {{ $user->niveau->nom }}
+                                                    @else
+                                                        {{ $user->niveau }}
+                                                    @endif
+                                                </dd>
                                             </div>
                                         @endif
                                         

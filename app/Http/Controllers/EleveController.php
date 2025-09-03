@@ -130,7 +130,7 @@ class EleveController extends Controller
                 return [
                     'id' => $note->id,
                     'matiere' => $note->matiere->nom,
-                    'valeur' => $note->valeur,
+                    'valeur' => $note->note,
                     'type' => $note->type,
                     'date' => $note->created_at->format('d/m/Y'),
                 ];

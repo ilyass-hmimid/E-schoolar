@@ -62,7 +62,7 @@ class NoteController extends Controller
                     'notes.etudiant_id',
                     'notes.matiere_id',
                     'notes.type_note',
-                    'notes.valeur',
+                    'notes.note as valeur',
                     'notes.coefficient',
                     'notes.date_evaluation',
                     'notes.commentaire',
@@ -83,7 +83,7 @@ class NoteController extends Controller
                 ->where('notes.professeur_id', Auth::id())
                 ->withCasts([
                     'date_evaluation' => 'date:Y-m-d',
-                    'valeur' => 'float',
+                    'note' => 'float',
                     'coefficient' => 'float',
                     'created_at' => 'datetime:d/m/Y H:i',
                     'updated_at' => 'datetime:d/m/Y H:i'
@@ -143,7 +143,7 @@ class NoteController extends Controller
                                     'code' => $note->matiere_code
                                 ],
                                 'type_note' => $note->type_note,
-                                'valeur' => (float) $note->valeur,
+                                'valeur' => (float) $note->note,
                                 'coefficient' => (float) $note->coefficient,
                                 'date_evaluation' => $note->date_evaluation,
                                 'commentaire' => $note->commentaire,
@@ -201,7 +201,7 @@ class NoteController extends Controller
             'etudiant_id' => 'required|exists:etudiants,id',
             'matiere_id' => 'required|exists:matieres,id',
             'type_note' => 'required|in:devoir,composition,examen,participation',
-            'valeur' => 'required|numeric|min:0|max:20',
+            'note' => 'required|numeric|min:0|max:20',
             'coefficient' => 'required|numeric|min:0.1|max:5',
             'date_evaluation' => 'required|date',
             'commentaire' => 'nullable|string|max:500',
@@ -282,7 +282,7 @@ class NoteController extends Controller
             'etudiant_id' => 'required|exists:etudiants,id',
             'matiere_id' => 'required|exists:matieres,id',
             'type_note' => 'required|in:devoir,composition,examen,participation',
-            'valeur' => 'required|numeric|min:0|max:20',
+            'note' => 'required|numeric|min:0|max:20',
             'coefficient' => 'required|numeric|min:0.1|max:5',
             'date_evaluation' => 'required|date',
             'commentaire' => 'nullable|string|max:500',
@@ -389,7 +389,7 @@ class NoteController extends Controller
         $totalCoefficients = 0;
         
         foreach ($notes as $note) {
-            $totalPondere += $note->valeur * $note->coefficient;
+            $totalPondere += $note->note * $note->coefficient;
             $totalCoefficients += $note->coefficient;
         }
         
@@ -408,7 +408,7 @@ class NoteController extends Controller
                     return [
                         'id' => $note->id,
                         'type' => $note->type_note,
-                        'valeur' => $note->valeur,
+                        'valeur' => $note->note,
                         'coefficient' => $note->coefficient,
                         'date' => $note->date_evaluation->format('d/m/Y'),
                         'commentaire' => $note->commentaire

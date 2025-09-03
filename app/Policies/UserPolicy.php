@@ -48,12 +48,7 @@ class UserPolicy
             return true;
         }
         
-        // Un parent peut voir le profil de son enfant
-        if ($user->hasRole('parent') && $model->parent_id === $user->id) {
-            return true;
-        }
-        
-        // Un professeur peut voir les profils de ses élèves
+        // Un professeur peut voir le profil de ses étudiants
         if ($user->hasRole('professeur') && $model->hasRole('etudiant')) {
             $professeurClasses = $user->classesEnseignees->pluck('id');
             $etudiantClasse = $model->classe_id;
@@ -89,9 +84,9 @@ class UserPolicy
             return in_array($role, ['professeur', 'etudiant']);
         }
         
-        // Un secrétaire peut créer des étudiants et des parents
+        // Un secrétaire peut créer des étudiants
         if ($user->hasRole('secretaire')) {
-            return in_array($role, ['etudiant', 'parent']);
+            return in_array($role, ['etudiant']);
         }
         
         // Par défaut, pas de permission
@@ -110,11 +105,6 @@ class UserPolicy
         
         // Un admin peut mettre à jour n'importe quel utilisateur
         if ($user->hasRole('admin')) {
-            return true;
-        }
-        
-        // Un parent peut mettre à jour le profil de son enfant
-        if ($user->hasRole('parent') && $model->parent_id === $user->id) {
             return true;
         }
         
@@ -204,11 +194,6 @@ class UserPolicy
             return true;
         }
         
-        // Un parent peut réinitialiser le mot de passe de son enfant
-        if ($user->hasRole('parent') && $model->parent_id === $user->id) {
-            return true;
-        }
-        
         // Un chef de département peut réinitialiser les mots de passe des utilisateurs de son département
         if ($user->hasRole('chef_departement') && $model->departement_id === $user->departement_id) {
             return true;
@@ -232,12 +217,7 @@ class UserPolicy
             return true;
         }
         
-        // Un parent peut voir les activités de son enfant
-        if ($user->hasRole('parent') && $model->parent_id === $user->id) {
-            return true;
-        }
-        
-        // Un professeur peut voir les activités de ses élèves
+        // Un professeur peut voir les activités de ses étudiants
         if ($user->hasRole('professeur') && $model->hasRole('etudiant')) {
             $professeurClasses = $user->classesEnseignees->pluck('id');
             $etudiantClasse = $model->classe_id;

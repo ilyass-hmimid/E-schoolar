@@ -33,8 +33,8 @@ class DashboardController extends Controller
             ->get();
             
         // Calculer la moyenne générale
-        $moyenne = Note::where('eleve_id', $user->id)
-            ->select(DB::raw('AVG(valeur) as moyenne'))
+        $moyenne = Note::where('etudiant_id', $user->id)
+            ->select(DB::raw('AVG(note) as moyenne'))
             ->first()
             ->moyenne;
             
@@ -58,28 +58,28 @@ class DashboardController extends Controller
             ->take(5);
             
         // Dernières notes
-        $dernieresNotes = Note::where('eleve_id', $user->id)
+        $dernieresNotes = Note::where('etudiant_id', $user->id)
             ->with(['enseignement.matiere', 'enseignement.professeur'])
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
             
         // Dernières absences
-        $dernieresAbsences = Absence::where('eleve_id', $user->id)
+        $dernieresAbsences = Absence::where('etudiant_id', $user->id)
             ->with(['enseignement.matiere', 'enseignement.professeur'])
             ->orderBy('date_absence', 'desc')
             ->take(5)
             ->get();
             
         // Absences non justifiées
-        $absencesNonJustifiees = Absence::where('eleve_id', $user->id)
+        $absencesNonJustifiees = Absence::where('etudiant_id', $user->id)
             ->where('est_justifiee', false)
             ->with(['enseignement.matiere'])
             ->orderBy('date_absence', 'desc')
             ->get();
             
         // Derniers paiements
-        $derniersPaiements = Paiement::where('eleve_id', $user->id)
+        $derniersPaiements = Paiement::where('etudiant_id', $user->id)
             ->orderBy('date_paiement', 'desc')
             ->take(5)
             ->get();

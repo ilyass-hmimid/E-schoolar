@@ -89,7 +89,6 @@ class PermissionSeeder extends Seeder
         'dashboard.admin' => 'Tableau de bord administrateur',
         'dashboard.teacher' => 'Tableau de bord professeur',
         'dashboard.student' => 'Tableau de bord élève',
-        'dashboard.parent' => 'Tableau de bord parent',
     ];
 
     /**
@@ -108,7 +107,7 @@ class PermissionSeeder extends Seeder
             'absences.view', 'absences.create', 'absences.edit', 'absences.delete', 'absences.justify', 'absences.export',
             'paiements.view', 'paiements.create', 'paiements.edit', 'paiements.delete', 'paiements.export',
             'settings.view', 'settings.edit',
-            'dashboard.view', 'dashboard.admin', 'dashboard.teacher', 'dashboard.student', 'dashboard.parent',
+            'dashboard.view', 'dashboard.admin', 'dashboard.teacher', 'dashboard.student',
         ],
         RoleType::PROFESSEUR->value => [
             'dashboard.view', 'dashboard.teacher',

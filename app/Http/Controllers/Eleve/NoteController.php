@@ -18,24 +18,24 @@ class NoteController extends Controller
     {
         $user = auth()->user();
         
-        $notes = Note::where('eleve_id', $user->id)
+        $notes = Note::where('etudiant_id', $user->id)
             ->with(['enseignement.matiere', 'enseignement.professeur'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
             
         // Calculer la moyenne générale
-        $moyenne = Note::where('eleve_id', $user->id)
-            ->select(DB::raw('AVG(valeur) as moyenne'))
+        $moyenne = Note::where('etudiant_id', $user->id)
+            ->select(DB::raw('AVG(note) as moyenne'))
             ->first()
             ->moyenne;
             
         $moyenne = $moyenne ? number_format($moyenne, 2, ',', ' ') : 'N/A';
         
         // Calculer les moyennes par matière
-        $moyennesParMatiere = Note::where('eleve_id', $user->id)
+        $moyennesParMatiere = Note::where('etudiant_id', $user->id)
             ->join('enseignements', 'notes.enseignement_id', '=', 'enseignements.id')
             ->join('matieres', 'enseignements.matiere_id', '=', 'matieres.id')
-            ->select('matieres.nom', DB::raw('AVG(notes.valeur) as moyenne'))
+            ->select('matieres.nom', DB::raw('AVG(notes.note) as moyenne'))
             ->groupBy('matieres.id', 'matieres.nom')
             ->get();
             
@@ -69,7 +69,7 @@ class NoteController extends Controller
         // Récupérer la moyenne de la classe pour cette évaluation
         $moyenneClasse = Note::where('enseignement_id', $note->enseignement_id)
             ->where('type', $note->type)
-            ->select(DB::raw('AVG(valeur) as moyenne'))
+            ->select(DB::raw('AVG(note) as moyenne'))
             ->first()
             ->moyenne;
             
@@ -78,7 +78,7 @@ class NoteController extends Controller
         // Récupérer la position dans la classe
         $position = Note::where('enseignement_id', $note->enseignement_id)
             ->where('type', $note->type)
-            ->where('valeur', '>', $note->valeur)
+            ->where('note', '>', $note->note)
             ->count() + 1;
             
         $totalEleves = Note::where('enseignement_id', $note->enseignement_id)

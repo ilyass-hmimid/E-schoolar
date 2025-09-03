@@ -62,21 +62,17 @@ class CoursSeeder extends Seeder
                     
                     // Créer le cours
                     Cours::create([
-                        'classe_id' => $classe->id,
+                        'niveau_id' => $classe->niveau_id,
                         'matiere_id' => $matiere->id,
-                        'user_id' => $professeur->id,
-                        'jour' => $jour,
-                        'heure_debut' => sprintf('%02d:00:00', $heureDebut),
-                        'heure_fin' => sprintf('%02d:00:00', $heureFin),
-                        'salle' => 'Salle ' . rand(1, 15),
-                        'description' => 'Cours de ' . $matiere->libelle . ' pour la classe ' . $classe->libelle,
-                        'couleur' => $this->getRandomColor(),
-                        'est_actif' => true,
-                        'date_debut' => now()->startOfMonth(),
-                        'date_fin' => now()->addMonths(3),
+                        'professeur_id' => $professeur->id,
+                        'titre' => $matiere->libelle . ' - ' . $classe->nom,
+                        'description' => 'Cours de ' . $matiere->libelle . ' pour la classe ' . $classe->nom,
+                        'duree' => 60, // Durée en minutes
+                        'prix' => rand(50, 200), // Prix aléatoire entre 50 et 200
+                        'est_actif' => true
                     ]);
                     
-                    $this->command->info("Création d'un cours de {$matiere->libelle} le $jour de $heureDebut h à $heureFin h pour la classe {$classe->libelle} avec le professeur {$professeur->name}");
+                    $this->command->info("Création d'un cours de {$matiere->libelle} pour la classe {$classe->nom} avec le professeur {$professeur->name}");
                 }
             }
         }

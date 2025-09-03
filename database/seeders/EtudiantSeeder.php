@@ -53,19 +53,16 @@ class EtudiantSeeder extends Seeder
                 $telephone = '06' . str_pad(rand(10000000, 99999999), 8, '0', STR_PAD_LEFT);
                 $ville = $villes[array_rand($villes)];
                 
-                // Créer l'utilisateur étudiant
+                // Créer l'utilisateur
                 $user = User::firstOrCreate(
                     ['email' => $email],
                     [
-                        'name' => $prenom . ' ' . $nom,
-                        'nom' => $nom,
-                        'prenom' => $prenom,
+                        'name' => "$prenom $nom",
+                        'email' => $email,
                         'password' => Hash::make('password'),
-                        'role' => RoleType::ELEVE,
-                        'phone' => $telephone,
                         'address' => rand(1, 200) . ' Rue ' . $nom . ', ' . $ville,
-                        'niveau_id' => $classe->niveau_id,
-                        'filiere_id' => $classe->filiere_id,
+                        'phone' => $telephone,
+                        'role' => RoleType::ELEVE,
                         'is_active' => true,
                         'email_verified_at' => now(),
                     ]
@@ -77,41 +74,35 @@ class EtudiantSeeder extends Seeder
                 }
                 
                 // Créer le profil étudiant
+                $codeEtudiant = 'ETU' . $user->id . '_' . time() . rand(10, 99);
                 Etudiant::firstOrCreate(
                     ['user_id' => $user->id],
                     [
+                        'user_id' => $user->id,
                         'classe_id' => $classe->id,
-                        'date_naissance' => now()->subYears(rand(15, 20))->subMonths(rand(0, 11))->subDays(rand(0, 30)),
-                        'lieu_naissance' => $ville,
-                        'adresse' => $user->address,
+                        'niveau_id' => $classe->niveau_id,
+                        'filiere_id' => $classe->filiere_id,
+                        'code_etudiant' => $codeEtudiant,
+                        // Extraire le prénom et le nom du champ name
+                        'nom' => $nom,
+                        'prenom' => $prenom,
+                        'email' => $user->email,
                         'telephone' => $telephone,
-                        'nom_pere' => 'M. ' . $noms[array_rand($noms)],
-                        'telephone_pere' => '06' . str_pad(rand(10000000, 99999999), 8, '0', STR_PAD_LEFT),
-                        'nom_mere' => 'Mme. ' . $noms[array_rand($noms)],
-                        'telephone_mere' => '06' . str_pad(rand(10000000, 99999999), 8, '0', STR_PAD_LEFT),
-                        'date_inscription' => now()->subMonths(rand(0, 6)),
-                        'derniere_annee_etudes' => $classe->niveau->libelle,
-                        'dernier_etablissement' => 'Lycée ' . $noms[array_rand($noms)],
-                        'numero_securite_sociale' => 'J' . str_pad(rand(10000000, 99999999), 8, '0', STR_PAD_LEFT),
-                        'numero_carte_nationale' => 'AB' . str_pad(rand(100000, 999999), 6, '0', STR_PAD_LEFT),
-                        'est_boursier' => rand(0, 1) == 1,
-                        'est_handicape' => rand(0, 10) > 8, // 20% de chance d'être en situation de handicap
-                        'informations_handicap' => function() {
-                            return rand(0, 1) == 1 ? 'Besoins éducatifs particuliers' : null;
-                        },
-                        'regime_special' => function() {
-                            return rand(0, 1) == 1 ? 'Régime sans gluten' : null;
-                        },
-                        'est_redoublant' => rand(0, 10) > 7, // 30% de chance d'être redoublant
+                        'adresse' => $user->address,
+                        'ville' => $ville,
+                        'pays' => 'Maroc',
+                        'date_naissance' => now()->subYears(rand(15, 20))->subMonths(rand(0, 11))->subDays(rand(0, 30))->format('Y-m-d'),
+                        'lieu_naissance' => $ville,
+                        'cin' => 'AB' . str_pad(rand(100000, 999999), 6, '0', STR_PAD_LEFT),
+                        'cne' => 'G' . str_pad(rand(100000, 999999), 7, '0', STR_PAD_LEFT),
+                        'sexe' => ['M', 'F'][rand(0, 1)],
+                        'photo' => null,
+                        'notes' => null, // 30% de chance d'être redoublant
                     ]
                 );
                 
                 $etudiantsCrees++;
-                $this->command->info("Étudiant créé : $prenom $nom ($email) dans la classe " . $classe->libelle);
-                
-                // Mettre à jour l'utilisateur avec l'ID de l'étudiant
-                $user->etudiant_id = $user->etudiant->id;
-                $user->save();
+                $this->command->info("Étudiant créé : $prenom $nom ($email) dans la classe " . $classe->nom);
             }
         }
         

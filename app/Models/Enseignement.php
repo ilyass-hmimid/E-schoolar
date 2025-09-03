@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Etudiant;
 
 class Enseignement extends Model
 {
@@ -68,6 +69,21 @@ class Enseignement extends Model
     public function classe(): BelongsTo
     {
         return $this->belongsTo(Classe::class, 'classe_id');
+    }
+
+    /**
+     * Relation avec les élèves de la classe via la table etudiants
+     */
+    public function eleves()
+    {
+        return $this->hasManyThrough(
+            User::class,
+            Etudiant::class,
+            'classe_id', // Clé étrangère dans la table etudiants
+            'id',        // Clé primaire dans la table users
+            'classe_id', // Clé étrangère dans la table enseignements
+            'user_id'    // Clé étrangère dans la table etudiants qui fait référence à users
+        )->where('role', 'eleve');
     }
 
     /**

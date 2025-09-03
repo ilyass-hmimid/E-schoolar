@@ -417,14 +417,12 @@ class NoteController extends Controller
     
     /**
      * Convertit une note en note sur 20
+     * Note: Dans la nouvelle structure, les notes sont déjà stockées sur 20
      */
-    private function convertirEnNoteSur20($note, $typeEvaluation)
+    private function convertirEnNoteSur20($note, $typeEvaluation = null)
     {
-        if (!$typeEvaluation || $typeEvaluation->NoteMaximale == 20) {
-            return $note;
-        }
-        
-        return round(($note / $typeEvaluation->NoteMaximale) * 20, 2);
+        // Dans la nouvelle structure, les notes sont déjà sur 20
+        return $note;
     }
     
     /**
@@ -456,9 +454,8 @@ class NoteController extends Controller
      */
     public function moyenneEtudiantMatiere($etudiantId, $matiereId)
     {
-        $notes = Note::where('IdEtu', $etudiantId)
-            ->where('IdMat', $matiereId)
-            ->with('typeEvaluation:id,Libelle,Coefficient,NoteMaximale')
+        $notes = Note::where('etudiant_id', $etudiantId)
+            ->where('matiere_id', $matiereId)
             ->get();
             
         if ($notes->isEmpty()) {
@@ -473,18 +470,18 @@ class NoteController extends Controller
         $notesDetaillees = [];
         
         foreach ($notes as $note) {
-            $noteSur20 = $this->convertirEnNoteSur20($note->Note, $note->typeEvaluation);
-            $coefficient = $note->typeEvaluation ? $note->typeEvaluation->Coefficient : 1;
+            $noteSur20 = $note->note; // La note est déjà sur 20 dans la nouvelle structure
+            $coefficient = $note->coefficient ?? 1;
             
             $totalPondere += $noteSur20 * $coefficient;
             $totalCoefficients += $coefficient;
             
             $notesDetaillees[] = [
-                'type_evaluation' => $note->typeEvaluation ? $note->typeEvaluation->Libelle : 'Inconnu',
-                'note' => $note->Note,
+                'type_evaluation' => $note->type ?? 'Contrôle',
+                'note' => $note->note,
                 'note_sur_20' => $noteSur20,
                 'coefficient' => $coefficient,
-                'date' => $note->Date_Eval->format('d/m/Y'),
+                'date' => $note->date_evaluation->format('d/m/Y'),
             ];
         }
         

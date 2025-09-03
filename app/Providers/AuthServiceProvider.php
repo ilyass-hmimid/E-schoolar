@@ -29,8 +29,11 @@ class AuthServiceProvider extends ServiceProvider
         // Modèle User
         User::class => UserPolicy::class,
         
-        // Modèle Paiement
+        // Modèle Paiement (Élèves)
         Paiement::class => PaiementPolicy::class,
+        
+        // Modèle PaiementProfesseur
+        \App\Models\PaiementProfesseur::class => PaiementPolicy::class,
         
         // Modèle Absence
         Absence::class => AbsencePolicy::class,

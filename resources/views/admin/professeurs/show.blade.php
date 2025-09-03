@@ -1,45 +1,61 @@
-@extends('admin.layouts.app')
+@extends('layouts.admin')
+
+@section('title', 'Détails du professeur')
+
+@section('content_header')
+    <div class="row mb-2">
+        <div class="col-sm-6">
+            <h1>Détails du professeur : {{ $professeur->name }}</h1>
+        </div>
+        <div class="col-sm-6 text-right">
+            <a href="{{ route('admin.professeurs.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour à la liste
+            </a>
+            <a href="{{ route('admin.professeurs.edit', $professeur) }}" class="btn btn-primary">
+                <i class="fas fa-edit"></i> Modifier
+            </a>
+        </div>
+    </div>
+@stop
 
 @section('content')
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-4">
-            <!-- Profile Image -->
+            <!-- Carte de profil -->
             <div class="card card-primary card-outline">
                 <div class="card-body box-profile">
                     <div class="text-center">
-                        <img class="profile-user-img img-fluid img-circle"
+                        <img class="profile-user-img img-fluid rounded-circle"
                              src="{{ $professeur->avatar ? asset('storage/' . $professeur->avatar) : asset('img/default-avatar.png') }}"
                              alt="Photo de profil" style="width: 100px; height: 100px; object-fit: cover;">
                     </div>
 
-                    <h3 class="profile-username text-center">{{ $professeur->name }}</h3>
+                    <h3 class="profile-username text-center mt-3">{{ $professeur->name }}</h3>
 
                     <p class="text-muted text-center">
                         <span class="badge bg-primary">
-                            {{ ucfirst($professeur->statut) }}
+                            {{ $professeur->matieres->pluck('nom')->implode(', ') }}
                         </span>
                     </p>
 
                     <ul class="list-group list-group-unbordered mb-3">
                         <li class="list-group-item">
-                            <b><i class="fas fa-envelope mr-1"></i> Email</b>
+                            <b><i class="fas fa-envelope mr-2"></i>Email</b>
                             <a href="mailto:{{ $professeur->email }}" class="float-right">{{ $professeur->email }}</a>
                         </li>
                         <li class="list-group-item">
-                            <b><i class="fas fa-phone mr-1"></i> Téléphone</b>
-                            <a href="tel:{{ $professeur->telephone }}" class="float-right">{{ $professeur->telephone ?? 'Non défini' }}</a>
+                            <b><i class="fas fa-phone mr-2"></i>Téléphone</b>
+                            <span class="float-right">{{ $professeur->telephone ?? 'Non renseigné' }}</span>
                         </li>
                         <li class="list-group-item">
-                            <b><i class="fas fa-graduation-cap mr-1"></i> Spécialité</b>
-                            <span class="float-right">{{ $professeur->specialite ?? 'Non définie' }}</span>
+                            <b><i class="fas fa-calendar-day mr-2"></i>Date de naissance</b>
+                            <span class="float-right">
+                                {{ $professeur->date_naissance ? $professeur->date_naissance->format('d/m/Y') : 'Non renseignée' }}
+                            </span>
                         </li>
                         <li class="list-group-item">
-                            <b><i class="fas fa-calendar-alt mr-1"></i> Date d'embauche</b>
-                            <span class="float-right">{{ $professeur->date_embauche->format('d/m/Y') }}</span>
-                        </li>
-                        <li class="list-group-item">
-                            <b><i class="fas fa-info-circle mr-1"></i> Statut</b>
+                            <b><i class="fas fa-info-circle mr-2"></i>Statut</b>
                             <span class="float-right">
                                 @if($professeur->is_active)
                                     <span class="badge bg-success">Actif</span>
@@ -48,8 +64,14 @@
                                 @endif
                             </span>
                         </li>
+                        <li class="list-group-item">
+                            <b><i class="fas fa-calendar-alt mr-2"></i>Créé le</b>
+                            <span class="float-right">{{ $professeur->created_at->format('d/m/Y') }}</span>
+                        </li>
                     </ul>
-
+                </div>
+                <!-- /.card-body -->
+                <div class="card-footer">
                     <div class="d-flex justify-content-between">
                         <a href="{{ route('admin.professeurs.edit', $professeur) }}" class="btn btn-primary">
                             <i class="fas fa-edit"></i> Modifier
@@ -64,51 +86,37 @@
                         </form>
                     </div>
                 </div>
-                <!-- /.card-body -->
             </div>
             <!-- /.card -->
 
-            <!-- About Box -->
-            <div class="card card-primary">
+            <!-- À propos -->
+            <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">À propos</h3>
+                    <h3 class="card-title">Informations complémentaires</h3>
                 </div>
-                <!-- /.card-header -->
                 <div class="card-body">
-                    <strong><i class="fas fa-book mr-1"></i> Diplôme</strong>
-                    <p class="text-muted">
-                        {{ $professeur->diplome ?? 'Non spécifié' }}
-                    </p>
-                    <hr>
-
-                    <strong><i class="fas fa-map-marker-alt mr-1"></i> Adresse</strong>
+                    <strong><i class="fas fa-map-marker-alt mr-2"></i>Adresse</strong>
                     <p class="text-muted">
                         @if($professeur->adresse)
-                            {{ $professeur->adresse }}<br>
-                            {{ $professeur->ville ?? '' }} {{ $professeur->pays ? ', ' . $professeur->pays : '' }}
-                        @else
-                            Non spécifiée
-                        @endif
-                    </p>
-                    <hr>
-
-                    <strong><i class="far fa-calendar-alt mr-1"></i> Date de naissance</strong>
-                    <p class="text-muted">
-                        @if($professeur->date_naissance)
-                            {{ $professeur->date_naissance->format('d/m/Y') }}
-                            @if($professeur->lieu_naissance)
-                                à {{ $professeur->lieu_naissance }}
+                            {{ $professeur->adresse }}
+                            @if($professeur->pays)
+                                <br>{{ $professeur->pays }}
                             @endif
                         @else
-                            Non spécifiée
+                            Non renseignée
                         @endif
                     </p>
                     <hr>
 
-                    <strong><i class="fas fa-info-circle mr-1"></i> Dernière mise à jour</strong>
-                    <p class="text-muted">{{ $professeur->updated_at->format('d/m/Y H:i') }}</p>
+                    <strong><i class="fas fa-book mr-2"></i>Matières enseignées</strong>
+                    <p class="mt-2">
+                        @forelse($professeur->matieres as $matiere)
+                            <span class="badge bg-primary mb-1">{{ $matiere->nom }}</span>
+                        @empty
+                            <span class="text-muted">Aucune matière assignée</span>
+                        @endforelse
+                    </p>
                 </div>
-                <!-- /.card-body -->
             </div>
             <!-- /.card -->
         </div>
@@ -118,166 +126,105 @@
                 <div class="card-header p-2">
                     <ul class="nav nav-pills">
                         <li class="nav-item">
-                            <a class="nav-link active" href="#activity" data-toggle="tab">Activité</a>
+                            <a class="nav-link active" href="#activity" data-toggle="tab">
+                                <i class="fas fa-chart-line mr-1"></i>Activité
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#classes" data-toggle="tab">Classes</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#cours" data-toggle="tab">Cours</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#evaluations" data-toggle="tab">Évaluations</a>
+                            <a class="nav-link" href="#cours" data-toggle="tab">
+                                <i class="fas fa-calendar-alt mr-1"></i>Emploi du temps
+                            </a>
                         </li>
                     </ul>
                 </div>
                 <div class="card-body">
                     <div class="tab-content">
                         <div class="active tab-pane" id="activity">
-                            <div class="post">
-                                <div class="user-block">
-                                    <img class="img-circle img-bordered-sm" 
-                                         src="{{ $professeur->avatar ? asset('storage/' . $professeur->avatar) : asset('img/default-avatar.png') }}" 
-                                         alt="Photo de profil">
-                                    <span class="username">
-                                        <a href="#">{{ $professeur->name }}</a>
-                                    </span>
-                                    <span class="description">
-                                        Membre depuis {{ $professeur->created_at->format('d/m/Y') }}
-                                    </span>
+                            <div class="row">
+                                <div class="col-md-4 col-sm-6 col-12">
+                                    <div class="info-box">
+                                        <span class="info-box-icon bg-info">
+                                            <i class="fas fa-chalkboard-teacher"></i>
+                                        </span>
+                                        <div class="info-box-content">
+                                            <span class="info-box-text">Cours ce mois</span>
+                                            <span class="info-box-number">24</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <!-- /.user-block -->
-                                <div class="row mb-3">
-                                    <div class="col-sm-4 border-right">
-                                        <div class="description-block">
-                                            <h5 class="description-header">{{ $professeur->classes_count ?? 0 }}</h5>
-                                            <span class="description-text">CLASSES</span>
+                                <div class="col-md-4 col-sm-6 col-12">
+                                    <div class="info-box">
+                                        <span class="info-box-icon bg-success">
+                                            <i class="fas fa-tasks"></i>
+                                        </span>
+                                        <div class="info-box-content">
+                                            <span class="info-box-text">Évaluations</span>
+                                            <span class="info-box-number">8</span>
                                         </div>
                                     </div>
-                                    <div class="col-sm-4 border-right">
-                                        <div class="description-block">
-                                            <h5 class="description-header">{{ $professeur->cours_count ?? 0 }}</h5>
-                                            <span class="description-text">COURS</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <div class="description-block">
-                                            <h5 class="description-header">{{ $professeur->evaluations_count ?? 0 }}</h5>
-                                            <span class="description-text">ÉVALUATIONS</span>
+                                </div>
+                                <div class="col-md-4 col-sm-6 col-12">
+                                    <div class="info-box">
+                                        <span class="info-box-icon bg-warning">
+                                            <i class="fas fa-users"></i>
+                                        </span>
+                                        <div class="info-box-content">
+                                            <span class="info-box-text">Élèves</span>
+                                            <span class="info-box-number">156</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <!-- /.post -->
-                        </div>
-                        <!-- /.tab-pane -->
-                        
-                        <div class="tab-pane" id="classes">
-                            <div class="table-responsive">
-                                <table class="table table-bordered">
-                                    <thead>
-                                        <tr>
-                                            <th>Nom de la classe</th>
-                                            <th>Niveau</th>
-                                            <th>Effectif</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @forelse($professeur->classes as $classe)
-                                        <tr>
-                                            <td>{{ $classe->nom }}</td>
-                                            <td>{{ $classe->niveau }}</td>
-                                            <td>{{ $classe->eleves_count }} élèves</td>
-                                            <td>
-                                                <a href="#" class="btn btn-sm btn-info" title="Voir">
-                                                    <i class="fas fa-eye"></i>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">Dernières activités</h3>
+                                </div>
+                                <div class="card-body p-0">
+                                    <ul class="products-list product-list-in-card pl-2 pr-2">
+                                        <li class="item">
+                                            <div class="product-info">
+                                                <a href="javascript:void(0)" class="product-title">
+                                                    Cours de Mathématiques
+                                                    <span class="badge badge-info float-right">Aujourd'hui</span>
                                                 </a>
-                                            </td>
-                                        </tr>
-                                        @empty
-                                        <tr>
-                                            <td colspan="4" class="text-center">Aucune classe trouvée</td>
-                                        </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
+                                                <span class="product-description">
+                                                    14:00 - 16:00 | Salle B12
+                                                </span>
+                                            </div>
+                                        </li>
+                                        <li class="item">
+                                            <div class="product-info">
+                                                <a href="javascript:void(0)" class="product-title">
+                                                    Correction des devoirs
+                                                    <span class="badge badge-warning float-right">En retard</span>
+                                                </a>
+                                                <span class="product-description">
+                                                    Devoir de Physique - Terminale S1
+                                                </span>
+                                            </div>
+                                        </li>
+                                        <li class="item">
+                                            <div class="product-info">
+                                                <a href="javascript:void(0)" class="product-title">
+                                                    Réunion pédagogique
+                                                    <span class="badge badge-success float-right">Terminé</span>
+                                                </a>
+                                                <span class="product-description">
+                                                    Hier | 16:00 - 17:30
+                                                </span>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                         <!-- /.tab-pane -->
 
                         <div class="tab-pane" id="cours">
-                            <div class="table-responsive">
-                                <table class="table table-bordered">
-                                    <thead>
-                                        <tr>
-                                            <th>Matière</th>
-                                            <th>Classe</th>
-                                            <th>Jour</th>
-                                            <th>Heure de début</th>
-                                            <th>Heure de fin</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @forelse($professeur->cours as $cours)
-                                        <tr>
-                                            <td>{{ $cours->matiere->nom ?? 'Non spécifiée' }}</td>
-                                            <td>{{ $cours->classe->nom ?? 'Non spécifiée' }}</td>
-                                            <td>{{ $cours->jour_semaine }}</td>
-                                            <td>{{ $cours->heure_debut }}</td>
-                                            <td>{{ $cours->heure_fin }}</td>
-                                            <td>
-                                                <a href="#" class="btn btn-sm btn-info" title="Voir">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                            </td>
-                                        </tr>
-                                        @empty
-                                        <tr>
-                                            <td colspan="6" class="text-center">Aucun cours trouvé</td>
-                                        </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <!-- /.tab-pane -->
-
-                        <div class="tab-pane" id="evaluations">
-                            <div class="table-responsive">
-                                <table class="table table-bordered">
-                                    <thead>
-                                        <tr>
-                                            <th>Type</th>
-                                            <th>Matière</th>
-                                            <th>Classe</th>
-                                            <th>Date</th>
-                                            <th>Note maximale</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @forelse($professeur->evaluations as $evaluation)
-                                        <tr>
-                                            <td>{{ $evaluation->type }}</td>
-                                            <td>{{ $evaluation->matiere->nom ?? 'Non spécifiée' }}</td>
-                                            <td>{{ $evaluation->classe->nom ?? 'Non spécifiée' }}</td>
-                                            <td>{{ $evaluation->date->format('d/m/Y') }}</td>
-                                            <td>{{ $evaluation->note_maximale }}</td>
-                                            <td>
-                                                <a href="#" class="btn btn-sm btn-info" title="Voir">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                            </td>
-                                        </tr>
-                                        @empty
-                                        <tr>
-                                            <td colspan="6" class="text-center">Aucune évaluation trouvée</td>
-                                        </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
+                            <div class="alert alert-info">
+                                <i class="icon fas fa-info"></i>
+                                L'emploi du temps sera affiché ici une fois configuré.
                             </div>
                         </div>
                         <!-- /.tab-pane -->
@@ -292,44 +239,93 @@
     </div>
     <!-- /.row -->
 </div>
-@endsection
+@stop
 
 @push('styles')
 <style>
     .profile-user-img {
+        border: 3px solid #e9ecef;
+        margin: 0 auto;
         width: 100px;
         height: 100px;
         object-fit: cover;
     }
-    .list-group-item {
+    
+    .profile-username {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .list-group-unbordered > .list-group-item {
         border-left: 0;
         border-right: 0;
+        padding: 0.75rem 1.25rem;
+        border-color: rgba(0,0,0,.125);
     }
-    .list-group-item:first-child {
+    
+    .list-group-unbordered > .list-group-item:first-child {
         border-top: 0;
     }
-    .list-group-item:last-child {
+    
+    .list-group-unbordered > .list-group-item:last-child {
         border-bottom: 0;
     }
-    .description-block {
-        display: block;
-        margin: 10px 0;
-        text-align: center;
-    }
-    .description-block > .description-header {
-        margin: 0;
-        padding: 0;
-        font-weight: 600;
-        font-size: 16px;
-    }
-    .description-block > .description-text {
-        text-transform: uppercase;
+    
+    .nav-pills .nav-link {
+        border-radius: 0.25rem;
         font-weight: 500;
-        font-size: 12px;
         color: #6c757d;
     }
-    .table th, .table td {
-        vertical-align: middle;
+    
+    .nav-pills .nav-link.active {
+        background-color: #007bff;
+    }
+    
+    .info-box {
+        margin-bottom: 1.5rem;
+    }
+    
+    .products-list .product-info {
+        margin-left: 0;
+    }
+    
+    .product-title {
+        display: block;
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .product-description {
+        display: block;
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    .badge {
+        font-weight: 500;
+        padding: 0.35em 0.65em;
     }
 </style>
+@endpush
+
+@push('scripts')
+<script>
+$(document).ready(function() {
+    // Initialisation des tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+    
+    // Gestion des onglets avec stockage de l'état
+    $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+        localStorage.setItem('professeurTab', $(e.target).attr('href'));
+    });
+    
+    // Restauration de l'onglet actif
+    var activeTab = localStorage.getItem('professeurTab');
+    if (activeTab) {
+        $('.nav-pills a[href="' + activeTab + '"]').tab('show');
+    }
+});
+</script>
 @endpush

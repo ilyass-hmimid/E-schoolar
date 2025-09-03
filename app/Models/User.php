@@ -11,10 +11,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use App\Models\Presence;
+use App\Models\Enseignant;
+use App\Models\PaiementProfesseur;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use App\Events\NewNotificationEvent;
+use Carbon\Carbon;
 
 class User extends Authenticatable implements ShouldBroadcast
 {
@@ -41,6 +44,113 @@ class User extends Authenticatable implements ShouldBroadcast
     public function getAuthPassword()
     {
         return $this->password;
+    }
+    
+    /**
+     * Get the payments made by this user (for admin users who record payments)
+     */
+    public function paiementsEnregistres()
+    {
+        return $this->hasMany(PaiementProfesseur::class, 'enregistre_par');
+    }
+    
+    /**
+     * Get the payments for this user
+     * - For teachers: payments received
+     * - For students: payments made
+     */
+    public function paiements()
+    {
+        if ($this->hasRole('professeur')) {
+            return $this->hasMany(PaiementProfesseur::class, 'professeur_id')
+                ->orderBy('mois', 'desc');
+        }
+        
+        if ($this->hasRole('eleve')) {
+            // Vérifier si le modèle Paiement existe, sinon utiliser Paiment
+            if (class_exists(Paiement::class)) {
+                return $this->hasMany(Paiement::class, 'etudiant_id')
+                    ->orderBy('date_paiement', 'desc');
+            }
+            
+            return $this->hasMany(Paiment::class, 'etudiant_id')
+                ->orderBy('date_paiement', 'desc');
+        }
+        
+        // Par défaut, retourner une relation vide
+        return $this->hasMany(Paiement::class, 'id', 'id')->whereRaw('1=0');
+    }
+    
+    /**
+     * Get the active payments for this teacher
+     */
+    public function paiementsActifs()
+    {
+        return $this->paiements()->where('statut', 'paye');
+    }
+    
+    /**
+     * Get the pending payments for this teacher
+     */
+    public function paiementsEnAttente()
+    {
+        return $this->paiements()->whereIn('statut', ['en_retard', 'impaye']);
+    }
+    
+    /**
+     * Get the full name of the user
+     */
+    public function getNomCompletAttribute()
+    {
+        return trim("{$this->prenom} {$this->nom}");
+    }
+    
+    /**
+     * Scope a query to only include active users
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+    
+    
+    /**
+     * Get the monthly salary for a specific month
+     */
+    public function getSalaireMensuel($month)
+    {
+        return $this->paiements()
+            ->where('mois', $month)
+            ->first();
+    }
+    
+    /**
+     * Check if the teacher has been paid for a specific month
+     */
+    public function estPayePourMois($month)
+    {
+        return $this->paiements()
+            ->where('mois', $month)
+            ->where('statut', 'paye')
+            ->exists();
+    }
+    
+    /**
+     * Get the total amount paid to the teacher in a date range
+     */
+    public function getTotalPaiements($startDate = null, $endDate = null)
+    {
+        $query = $this->paiementsActifs();
+        
+        if ($startDate) {
+            $query->whereDate('date_paiement', '>=', Carbon::parse($startDate));
+        }
+        
+        if ($endDate) {
+            $query->whereDate('date_paiement', '<=', Carbon::parse($endDate));
+        }
+        
+        return $query->sum('montant');
     }
     
     /**
@@ -71,8 +181,6 @@ class User extends Authenticatable implements ShouldBroadcast
         'somme_a_payer',
         'date_debut',
         'is_active',
-        'parent_name',
-        'parent_phone',
         'date_naissance'
     ];
     
@@ -174,7 +282,7 @@ class User extends Authenticatable implements ShouldBroadcast
      */
     public function scopeProfesseurs($query)
     {
-        return $query->where('role', RoleType::PROFESSEUR->value);
+        return $query->role('professeur');
     }
 
     /**
@@ -270,30 +378,73 @@ class User extends Authenticatable implements ShouldBroadcast
     public function absences(): HasMany
     {
         return $this->hasMany(Absence::class, 'etudiant_id')
-            ->orderBy('date_absence', 'desc');
+            ->orderBy('date_debut', 'desc');
+    }
+    
+    /**
+     * Obtenir les absences justifiées de l'élève
+     */
+    public function absencesJustifiees(): HasMany
+    {
+        return $this->absences()->where('est_justifiee', true);
+    }
+    
+    /**
+     * Obtenir les absences non justifiées de l'élève
+     */
+    public function absencesNonJustifiees(): HasMany
+    {
+        return $this->absences()->where('est_justifiee', false);
+    }
+    
+    /**
+     * Obtenir les absences par statut
+     */
+    public function absencesParStatut(string $statut): HasMany
+    {
+        return $this->absences()->where('statut', $statut);
+    }
+    
+    /**
+     * Obtenir le nombre d'absences par statut
+     */
+    public function getNombreAbsencesParStatutAttribute(): array
+    {
+        return [
+            'total' => $this->absences()->count(),
+            'justifiees' => $this->absencesJustifiees()->count(),
+            'non_justifiees' => $this->absencesNonJustifiees()->count(),
+            'en_attente' => $this->absencesParStatut('en_attente')->count(),
+            'validees' => $this->absencesParStatut('validee')->count(),
+            'rejetees' => $this->absencesParStatut('rejetee')->count(),
+        ];
     }
 
-    /**
-     * Obtenir les paiements effectués par l'utilisateur (pour les élèves ou les parents)
-     */
-    public function paiements(): HasMany
-    {
-        // Vérifier si le modèle Paiement existe, sinon utiliser Paiment
-        if (class_exists(Paiement::class)) {
-            return $this->hasMany(Paiement::class, 'etudiant_id')
-                ->orderBy('date_paiement', 'desc');
-        }
-        
-        return $this->hasMany(Paiment::class, 'etudiant_id')
-            ->orderBy('date_paiement', 'desc');
-    }
 
     /**
      * Obtenir les notes de l'élève
      */
     public function notes()
     {
-        return $this->hasMany(Note::class, 'eleve_id');
+        return $this->hasMany(Note::class, 'etudiant_id');
+    }
+    
+    /**
+     * Obtenir les devoirs créés par le professeur
+     */
+    public function devoirsCrees()
+    {
+        return $this->hasMany(Devoir::class, 'professeur_id');
+    }
+    
+    /**
+     * Obtenir les devoirs assignés à l'élève
+     */
+    public function devoirsAssignes()
+    {
+        return $this->belongsToMany(Devoir::class, 'devoir_eleve', 'eleve_id', 'devoir_id')
+            ->withPivot(['note', 'fichier_soumis', 'date_soumission', 'statut', 'commentaire'])
+            ->withTimestamps();
     }
     
     /**
@@ -301,7 +452,15 @@ class User extends Authenticatable implements ShouldBroadcast
      */
     public function enseignant()
     {
-        return $this->hasOne(Enseignant::class);
+        return $this->hasOne(Enseignant::class, 'user_id');
+    }
+    
+    /**
+     * Relation avec le profil étudiant (si l'utilisateur est un étudiant)
+     */
+    public function etudiant()
+    {
+        return $this->hasOne(Etudiant::class, 'user_id');
     }
     
     /**
@@ -309,9 +468,7 @@ class User extends Authenticatable implements ShouldBroadcast
      */
     public function presences()
     {
-        return $this->hasMany(Presence::class, 'etudiant_id')
-            ->orderBy('date_seance', 'desc')
-            ->orderBy('heure_debut', 'desc');
+        return $this->hasMany(Presence::class, 'etudiant_id');
     }
 
     /**
@@ -329,7 +486,28 @@ class User extends Authenticatable implements ShouldBroadcast
      */
     public function absencesEnregistrees(): HasMany
     {
-        return $this->hasMany(Absence::class, 'assistant_id');
+        return $this->hasMany(Absence::class, 'enregistre_par')
+            ->orderBy('date_debut', 'desc');
+    }
+    
+    /**
+     * Obtenir les absences validées par l'utilisateur
+     */
+    public function absencesValidees(): HasMany
+    {
+        return $this->hasMany(Absence::class, 'valide_par')
+            ->where('statut', 'validee')
+            ->orderBy('valide_le', 'desc');
+    }
+    
+    /**
+     * Obtenir les absences rejetées par l'utilisateur
+     */
+    public function absencesRejetees(): HasMany
+    {
+        return $this->hasMany(Absence::class, 'valide_par')
+            ->where('statut', 'rejetee')
+            ->orderBy('valide_le', 'desc');
     }
 
     /**
@@ -457,9 +635,23 @@ class User extends Authenticatable implements ShouldBroadcast
     {
         if ($value instanceof RoleType) {
             $this->attributes['role'] = $value->value;
-        } else {
-            $this->attributes['role'] = RoleType::from($value)->value;
+            return;
         }
+        
+        // Si c'est une chaîne, essayer de la convertir en valeur numérique
+        if (is_string($value)) {
+            $value = strtolower(trim($value));
+            $value = match($value) {
+                'admin', 'administrateur', '1' => 1,
+                'professeur', 'prof', 'teacher', '2' => 2,
+                'assistant', 'assist', '3' => 3,
+                'eleve', 'etudiant', 'student', '4' => 4,
+                default => 4, // Par défaut, on considère que c'est un élève
+            };
+        }
+        
+        // S'assurer que c'est un entier avant d'utiliser RoleType::from()
+        $this->attributes['role'] = is_numeric($value) ? (int)$value : 4; // 4 = ELEVE par défaut
     }
 
     /**

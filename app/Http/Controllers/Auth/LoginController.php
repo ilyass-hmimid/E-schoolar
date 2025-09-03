@@ -3,23 +3,13 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Auth\RedirectController;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Login Controller
-    |--------------------------------------------------------------------------
-    |
-    | This controller handles authenticating users for the application and
-    | redirecting them to your home screen. The controller uses a trait
-    | to conveniently provide its functionality to your applications.
-    |
-    */
-
     use AuthenticatesUsers;
 
     /**
@@ -27,49 +17,19 @@ class LoginController extends Controller
      *
      * @var string
      */
-    protected $redirectTo = '/home';
+    protected $redirectTo = '/dashboard';
     
     /**
-     * Get the post register / login redirect path.
+     * The user has been authenticated.
      *
-     * @return string
+     * @param  \Illuminate\Http\Request  $request
+     * @param  mixed  $user
+     * @return \Illuminate\Http\RedirectResponse
      */
-    public function redirectTo()
+    protected function authenticated(Request $request, $user)
     {
-        $user = Auth::user();
-        
-        if ($user->hasRole('admin')) {
-            return route('admin.dashboard');
-        } elseif ($user->hasRole('professeur')) {
-            return route('professeur.dashboard');
-        } elseif ($user->hasRole('assistant')) {
-            return route('assistant.dashboard');
-        } elseif ($user->hasRole('eleve')) {
-            return route('eleve.dashboard');
-        }
-        
-        return $this->redirectTo;
-    }
-    
-    /**
-     * Redirect user based on their role
-     *
-     * @param  \App\Models\User  $user
-     * @return \Illuminate\Http\Response
-     */
-    public function redirectBasedOnRole($user)
-    {
-        if ($user->hasRole('admin')) {
-            return redirect()->route('admin.dashboard');
-        } elseif ($user->hasRole('professeur')) {
-            return redirect()->route('professeur.dashboard');
-        } elseif ($user->hasRole('assistant')) {
-            return redirect()->route('assistant.dashboard');
-        } elseif ($user->hasRole('eleve')) {
-            return redirect()->route('eleve.dashboard');
-        }
-        
-        return redirect()->route('home');
+        // Use the RedirectController for consistent redirection logic
+        return app(RedirectController::class)->redirectToDashboard();
     }
 
     /**

@@ -54,7 +54,6 @@ return [
         'no_file_chosen' => 'Aucun fichier choisi',
         'justify' => 'Justifier',
         'unjustify' => 'Déjustifier',
-        'notify_parents' => 'Prévenir les parents',
         'view_statistics' => 'Voir les statistiques'
     ],
     'confirm' => [
@@ -71,7 +70,6 @@ return [
         'deleted' => 'L\'absence a été supprimée avec succès.',
         'justified' => 'L\'absence a été marquée comme justifiée.',
         'unjustified' => 'L\'absence a été marquée comme non justifiée.',
-        'notified' => 'Les parents ont été notifiés avec succès.',
         'justificatif_uploaded' => 'Le justificatif a été téléversé avec succès.',
         'justificatif_removed' => 'Le justificatif a été supprimé avec succès.'
     ],

@@ -2,52 +2,43 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Models\Enseignant;
 
-class Professeur extends Authenticatable
+class Professeur extends Enseignant
 {
-    use HasApiTokens, HasFactory, Notifiable;
-    protected $table = 'Professeurs';
+    // Utilise la table 'enseignants' du modèle parent
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
+     * Relation avec les matières enseignées par le professeur
      */
-    protected $fillable = [
-        'Nom',
-        'Prenom',
-        'Tele',
-        'Adresse',
-        'Date_debut',
-        'SommeApaye',
-
-    ];
-
-
-    public function matieres()
+    public function matieres(): BelongsToMany
     {
-        return $this->belongsToMany(Matiere::class, 'Enseignement', 'IdProf', 'IdMat');
+        return $this->belongsToMany(Matiere::class, 'enseignements', 'professeur_id', 'matiere_id');
     }
 
-    public function filieres()
+    /**
+     * Relation avec les filières enseignées par le professeur
+     */
+    public function filieres(): BelongsToMany
     {
-        return $this->belongsToMany(Filiere::class, 'Enseignement', 'IdProf', 'IdFil');
+        return $this->belongsToMany(Filiere::class, 'enseignements', 'professeur_id', 'filiere_id');
     }
 
-    public function niveaux()
+    /**
+     * Relation avec les niveaux enseignés par le professeur
+     */
+    public function niveaux(): BelongsToMany
     {
-        return $this->belongsToMany(Niveau::class, 'Enseignement', 'IdProf', 'IdNiv');
+        return $this->belongsToMany(Niveau::class, 'enseignements', 'professeur_id', 'niveau_id');
     }
 
-
-    public function etudiants()
+    /**
+     * Relation avec les étudiants du professeur
+     */
+    public function etudiants(): BelongsToMany
     {
-        return $this->belongsToMany(Etudiant::class, 'Inscription', 'IdProf', 'IdEtu');
+        return $this->belongsToMany(Etudiant::class, 'inscriptions', 'professeur_id', 'etudiant_id');
     }
 
     /**

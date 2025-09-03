@@ -20,10 +20,10 @@ class DatabaseSeeder extends Seeder
         // Vider les tables si nécessaire (en développement uniquement)
         if (app()->environment('local', 'testing')) {
             $this->truncateTables([
-                'users', 'etudiants', 'professeurs', 'classes', 'cours',
+                'users', 'etudiants', 'enseignants', 'classes', 'cours',
                 'paiements', 'absences', 'notifications', 'niveaux',
                 'filieres', 'matieres', 'model_has_roles', 'roles', 'permissions',
-                'model_has_permissions', 'role_has_permissions'
+                'model_has_permissions', 'role_has_permissions', 'enseignements', 'inscriptions'
             ]);
         }
 
@@ -33,6 +33,7 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             ConfigurationSalaireSeeder::class,
             InitialDataSeeder::class, // Niveaux, filières et matières
+            TestDataSeeder::class, // Données de test réalistes
         ]);
 
         // Créer l'administrateur principal
@@ -55,7 +56,6 @@ class DatabaseSeeder extends Seeder
         if (app()->environment('local', 'testing')) {
             $this->call([
                 UserSeeder::class,
-                ProfesseurSeeder::class,
                 ClasseSeeder::class,
                 EtudiantSeeder::class,
                 CoursSeeder::class,

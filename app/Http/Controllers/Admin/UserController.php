@@ -48,8 +48,6 @@ class UserController extends Controller
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
             'is_active' => 'boolean',
-            'parent_name' => 'nullable|required_if:role,' . RoleType::ELEVE->value . '|string|max:255',
-            'parent_phone' => 'nullable|required_if:role,' . RoleType::ELEVE->value . '|string|max:20',
             'date_naissance' => 'nullable|required_if:role,' . RoleType::ELEVE->value . '|date',
             'niveau_id' => 'nullable|exists:niveaux,id',
         ]);
@@ -64,8 +62,6 @@ class UserController extends Controller
                 'phone' => $validated['phone'] ?? null,
                 'address' => $validated['address'] ?? null,
                 'is_active' => $validated['is_active'] ?? true,
-                'parent_name' => $validated['parent_name'] ?? null,
-                'parent_phone' => $validated['parent_phone'] ?? null,
                 'date_naissance' => $validated['date_naissance'] ?? null,
                 'niveau_id' => $validated['niveau_id'] ?? null,
             ]);
@@ -95,7 +91,11 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
-        $user->load(['classes', 'matieres']);
+        $user->load([
+            'classes', 
+            'matieres',
+            'niveau' // Charger la relation niveau
+        ]);
         
         return view('admin.users.show', compact('user'));
     }
@@ -127,8 +127,6 @@ class UserController extends Controller
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
             'is_active' => 'boolean',
-            'parent_name' => 'nullable|required_if:role,' . RoleType::ELEVE->value . '|string|max:255',
-            'parent_phone' => 'nullable|required_if:role,' . RoleType::ELEVE->value . '|string|max:20',
             'date_naissance' => 'nullable|required_if:role,' . RoleType::ELEVE->value . '|date',
             'niveau_id' => 'nullable|exists:niveaux,id',
         ]);
@@ -142,8 +140,6 @@ class UserController extends Controller
                 'phone' => $validated['phone'] ?? null,
                 'address' => $validated['address'] ?? null,
                 'is_active' => $validated['is_active'] ?? $user->is_active,
-                'parent_name' => $validated['parent_name'] ?? null,
-                'parent_phone' => $validated['parent_phone'] ?? null,
                 'date_naissance' => $validated['date_naissance'] ?? null,
                 'niveau_id' => $validated['niveau_id'] ?? null,
             ];

@@ -10,6 +10,7 @@ use App\Enums\MethodePaiement;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class PaiementSeeder extends Seeder
 {
@@ -86,38 +87,54 @@ class PaiementSeeder extends Seeder
                     }
                     
                     if ($doitPayer) {
-                        // Déterminer si le paiement est payé, en retard ou impayé
-                        $statut = StatutPaiement::PAYE;
+                        // Déterminer le statut du paiement selon les valeurs de la base de données
+                        // Valeurs possibles : 'en_attente', 'valide', 'annule'
+                        $statut = 'valide'; // Par défaut, le paiement est valide
                         $datePaiement = (clone $dateDebut)->addDays(rand(0, 15));
                         
-                        // 20% de chance d'être en retard
+                        // 20% de chance d'être en attente
                         if (rand(1, 100) <= 20) {
-                            $statut = StatutPaiement::EN_RETARD;
-                            $datePaiement = (clone $dateDebut)->addDays(rand(16, 60));
+                            $statut = 'en_attente';
+                            // Utiliser la date actuelle pour les paiements en attente
+                            $datePaiement = now();
                             
-                            // 50% de chance d'être impayé si en retard
+                            // 50% de chance d'être annulé si en attente
                             if (rand(1, 100) <= 50) {
-                                $statut = StatutPaiement::IMPAYE;
-                                $datePaiement = null;
+                                $statut = 'annule';
+                                // Utiliser la date actuelle pour les paiements annulés
+                                $datePaiement = now();
+                            }
+                        }
+                        
+                        // Sélectionner une matière aléatoire pour l'étudiant
+                        $matiereId = 1; // Default matiere_id
+                        
+                        // Vérifier si la classe a des matières associées
+                        if ($etudiant->classe && $etudiant->classe->matieres && $etudiant->classe->matieres->isNotEmpty()) {
+                            $matiereId = $etudiant->classe->matieres->random()->id;
+                        } else {
+                            // Si pas de matières, essayer d'en trouver une dans la base de données
+                            $matiere = DB::table('matieres')->inRandomOrder()->first();
+                            if ($matiere) {
+                                $matiereId = $matiere->id;
                             }
                         }
                         
                         // Créer le paiement
                         Paiement::create([
                             'etudiant_id' => $etudiant->id,
-                            'classe_id' => $etudiant->classe_id,
-                            'libelle' => $libelle,
+                            'matiere_id' => $matiereId,
+                            'pack_id' => null, // Peut être défini plus tard si nécessaire
+                            'assistant_id' => null, // Peut être défini plus tard si nécessaire
                             'montant' => $montant,
-                            'montant_paye' => $statut === StatutPaiement::PAYE ? $montant : ($statut === StatutPaiement::EN_RETARD ? $montant * 0.8 : 0),
+                            'mode_paiement' => $this->getRandomMethodePaiement(),
+                            'reference_paiement' => 'PAY-' . strtoupper(Str::random(10)),
                             'date_paiement' => $datePaiement,
-                            'date_echeance' => (clone $dateDebut)->endOfMonth(),
-                            'methode_paiement' => $datePaiement ? $this->getRandomMethodePaiement() : null,
                             'statut' => $statut,
-                            'reference' => 'PAY-' . strtoupper(uniqid()),
-                            'notes' => $statut === StatutPaiement::EN_RETARD ? 'Relance nécessaire' : null,
-                            'annee_scolaire' => $anneeScolaire,
-                            'created_at' => $datePaiement ?? $dateDebut,
-                            'updated_at' => $datePaiement ?? $dateDebut,
+                            'commentaires' => 'Paiement généré automatiquement',
+                            'mois_periode' => $dateDebut->format('Y-m'),
+                            'created_at' => $dateDebut,
+                            'updated_at' => $dateDebut,
                         ]);
                         
                         $paiementsCrees++;
@@ -137,14 +154,8 @@ class PaiementSeeder extends Seeder
      */
     private function getRandomMethodePaiement(): string
     {
-        $methodes = [
-            MethodePaiement::ESPECES,
-            MethodePaiement::CHEQUE,
-            MethodePaiement::VIREMENT,
-            MethodePaiement::CARTE_BANCAIRE,
-            MethodePaiement::PAIEMENT_EN_LIGNE,
-        ];
-        
+        // Méthodes de paiement possibles selon le schéma de la base de données
+        $methodes = ['especes', 'cheque', 'virement', 'carte'];
         return $methodes[array_rand($methodes)];
     }
 }

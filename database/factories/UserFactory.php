@@ -24,7 +24,7 @@ class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => Hash::make('password'),
-            'role' => RoleType::ELEVE->value,
+            'role' => 4, // ELEVE = 4
             'phone' => fake()->phoneNumber(),
             'address' => fake()->address(),
             'is_active' => true,
@@ -44,11 +44,25 @@ class UserFactory extends Factory
 
     /**
      * Set the user's role.
+     * 
+     * @param int|string $role Peut être une valeur numérique (1-4) ou une chaîne ('admin', 'professeur', etc.)
      */
     public function withRole($role): static
     {
+        // Si c'est une chaîne, convertir en valeur numérique
+        if (is_string($role)) {
+            $role = strtolower(trim($role));
+            $role = match($role) {
+                'admin', 'administrateur', '1' => 1,
+                'professeur', 'prof', 'teacher', '2' => 2,
+                'assistant', 'assist', '3' => 3,
+                'eleve', 'etudiant', 'student', '4' => 4,
+                default => 4, // Par défaut, on considère que c'est un élève
+            };
+        }
+        
         return $this->state(fn (array $attributes) => [
-            'role' => $role,
+            'role' => (int)$role, // S'assurer que c'est un entier
         ]);
     }
 

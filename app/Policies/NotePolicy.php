@@ -25,11 +25,6 @@ class NotePolicy
             return true;
         }
         
-        // Les parents peuvent voir les notes de leurs enfants
-        if ($user->hasRole('parent')) {
-            return true;
-        }
-        
         // Les étudiants peuvent voir leurs propres notes
         if ($user->hasRole('etudiant')) {
             return true;
@@ -47,12 +42,6 @@ class NotePolicy
         // L'étudiant peut voir ses propres notes
         if ($user->id === $note->IdEtu) {
             return true;
-        }
-        
-        // Le parent peut voir les notes de son enfant
-        if ($user->role === 'parent') {
-            $etudiant = $note->etudiant;
-            return $etudiant && $user->id === $etudiant->parent_id;
         }
         
         // Le professeur peut voir les notes de ses élèves
@@ -171,11 +160,6 @@ class NotePolicy
         
         // Un étudiant peut voir son propre bulletin
         if ($user->id === $etudiant->id && $user->hasRole('etudiant')) {
-            return true;
-        }
-        
-        // Un parent peut voir le bulletin de son enfant
-        if ($user->hasRole('parent') && $user->id === $etudiant->parent_id) {
             return true;
         }
         

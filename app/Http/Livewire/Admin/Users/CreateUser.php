@@ -53,12 +53,6 @@ class CreateUser extends Component
     public $etablissement;
     public $bio;
     
-    // Informations parentales
-    public $parent_name;
-    public $parent_phone;
-    public $parent_email;
-    public $parent_profession;
-    
     // Photo de profil
     public $photo;
     
@@ -114,10 +108,6 @@ class CreateUser extends Component
             'filiere_id' => 'nullable|exists:filieres,id',
             'etablissement' => 'nullable|string|max:255',
             'bio' => 'nullable|string',
-            'parent_name' => 'nullable|string|max:255',
-            'parent_phone' => 'nullable|string|max:20',
-            'parent_email' => 'nullable|string|email|max:255',
-            'parent_profession' => 'nullable|string|max:100',
             'photo' => 'nullable|image|max:2048',
         ];
         
@@ -194,10 +184,6 @@ class CreateUser extends Component
                     'etablissement' => $this->etablissement,
                     'is_active' => $this->is_active,
                     'bio' => $this->bio,
-                    'parent_name' => $this->parent_name,
-                    'parent_phone' => $this->parent_phone,
-                    'parent_email' => $this->parent_email,
-                    'parent_profession' => $this->parent_profession,
                 ]);
                 
                 // Sauvegarder l'utilisateur

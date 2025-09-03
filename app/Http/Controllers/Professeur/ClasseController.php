@@ -99,7 +99,7 @@ class ClasseController extends Controller
             $moyenne = $eleve->notes()
                 ->where('matiere_id', $classe->matiere_id)
                 ->where('classe_id', $classe->id)
-                ->avg('valeur');
+                ->avg('note');
 
             return [
                 'id' => $eleve->id,
@@ -318,7 +318,7 @@ class ClasseController extends Controller
         $moyenne = $eleve->notes()
             ->where('matiere_id', $classe->matiere_id)
             ->where('classe_id', $classe->id)
-            ->avg('valeur');
+            ->avg('note');
 
         return response()->json([
             'message' => 'L\'élève a été ajouté à la classe avec succès.',

@@ -1,118 +1,104 @@
-@extends('admin.layouts.app')
+@extends('layouts.admin')
 
-@section('content')
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h3 class="card-title">Gestion des Professeurs</h3>
-                    <a href="{{ route('admin.professeurs.create') }}" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Ajouter un Professeur
-                    </a>
-                </div>
-                <!-- /.card-header -->
-                <div class="card-body">
-                    <!-- Filtres et recherche -->
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <form action="{{ route('admin.professeurs.index') }}" method="GET" class="form-inline">
-                                <div class="input-group">
-                                    <input type="text" name="search" class="form-control" 
-                                           placeholder="Rechercher un professeur..." value="{{ request('search') }}">
-                                    <div class="input-group-append">
-                                        <button class="btn btn-outline-secondary" type="submit">
-                                            <i class="fas fa-search"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                        <div class="col-md-6 text-right">
-                            <div class="btn-group">
-                                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#importModal">
-                                    <i class="fas fa-file-import"></i> Importer
-                                </button>
-                                <a href="{{ route('admin.professeurs.export') }}" class="btn btn-success">
-                                    <i class="fas fa-file-export"></i> Exporter
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+@section('title', 'Gestion des professeurs')
 
-                    <!-- Tableau des professeurs -->
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-striped table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Photo</th>
-                                    <th>Nom & Prénom</th>
-                                    <th>Email</th>
-                                    <th>Téléphone</th>
-                                    <th>Spécialité</th>
-                                    <th>Statut</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($professeurs as $professeur)
-                                <tr>
-                                    <td class="text-center">
-                                        <img src="{{ $professeur->avatar ? asset('storage/' . $professeur->avatar) : asset('img/default-avatar.png') }}" 
-                                             alt="Photo" class="img-circle" style="width: 40px; height: 40px; object-fit: cover;">
-                                    </td>
-                                    <td>{{ $professeur->name }}</td>
-                                    <td>{{ $professeur->email }}</td>
-                                    <td>{{ $professeur->telephone ?? 'Non défini' }}</td>
-                                    <td>{{ $professeur->specialite ?? 'Non définie' }}</td>
-                                    <td>
-                                        <span class="badge bg-{{ $professeur->is_active ? 'success' : 'secondary' }}">
-                                            {{ $professeur->is_active ? 'Actif' : 'Inactif' }}
-                                        </span>
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="btn-group">
-                                            <a href="{{ route('admin.professeurs.show', $professeur) }}" 
-                                               class="btn btn-sm btn-info" title="Voir">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <a href="{{ route('admin.professeurs.edit', $professeur) }}" 
-                                               class="btn btn-sm btn-primary" title="Modifier">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <form action="{{ route('admin.professeurs.destroy', $professeur) }}" 
-                                                  method="POST" class="d-inline" 
-                                                  onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce professeur ?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-danger" title="Supprimer">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="7" class="text-center">Aucun professeur trouvé</td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                    <!-- /.table-responsive -->
-
-                    <!-- Pagination -->
-                    <div class="d-flex justify-content-center mt-3">
-                        {{ $professeurs->links() }}
-                    </div>
-                </div>
-                <!-- /.card-body -->
-            </div>
-            <!-- /.card -->
+@section('content_header')
+    <div class="row mb-2">
+        <div class="col-sm-6">
+            <h1>Gestion des professeurs</h1>
+        </div>
+        <div class="col-sm-6 text-right">
+            <a href="{{ route('admin.professeurs.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Ajouter un professeur
+            </a>
         </div>
     </div>
-</div>
+@stop
+
+@section('content')
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        @if (session('success'))
+                            <div class="alert alert-success">
+                                {{ session('success') }}
+                            </div>
+                        @endif
+
+                        @if (session('error'))
+                            <div class="alert alert-danger">
+                                {{ session('error') }}
+                            </div>
+                        @endif
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped table-hover">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Nom</th>
+                                        <th>Email</th>
+                                        <th>Téléphone</th>
+                                        <th>Matières</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($professeurs as $professeur)
+                                        <tr>
+                                            <td>{{ $loop->iteration }}</td>
+                                            <td>{{ $professeur->name }}</td>
+                                            <td>{{ $professeur->email }}</td>
+                                            <td>{{ $professeur->telephone ?? 'Non renseigné' }}</td>
+                                            <td>
+                                                @forelse($professeur->matieres as $matiere)
+                                                    <span class="badge bg-primary">{{ $matiere->nom }}</span>
+                                                @empty
+                                                    <span class="text-muted">Aucune matière</span>
+                                                @endforelse
+                                            </td>
+                                            <td class="text-nowrap">
+                                                <a href="{{ route('admin.professeurs.show', $professeur) }}" class="btn btn-sm btn-info" title="Voir">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="{{ route('admin.professeurs.edit', $professeur) }}" class="btn btn-sm btn-primary" title="Modifier">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <form action="{{ route('admin.professeurs.destroy', $professeur) }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce professeur ?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-danger" title="Supprimer">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="6" class="text-center">Aucun professeur trouvé</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div class="mt-3">
+                            {{ $professeurs->links() }}
+                        </div>
+                    </div>
+                    <!-- /.card-body -->
+                </div>
+                <!-- /.card -->
+            </div>
+            <!-- /.col -->
+        </div>
+        <!-- /.row -->
+    </div>
+    <!-- /.container-fluid -->
+@stop
 
 <!-- Modal d'importation -->
 <div class="modal fade" id="importModal" tabindex="-1" role="dialog" aria-labelledby="importModalLabel" aria-hidden="true">
@@ -166,17 +152,28 @@
     .img-circle {
         border-radius: 50%;
     }
+    .badge {
+        margin-right: 3px;
+        margin-bottom: 3px;
+        display: inline-block;
+    }
 </style>
 @endpush
 
 @push('scripts')
-<!-- bs-custom-file-input -->
-<script src="{{ asset('plugins/bs-custom-file-input/bs-custom-file-input.min.js') }}"></script>
-
 <script>
-$(function () {
-    // Gestion de l'affichage du nom du fichier sélectionné
-    bsCustomFileInput.init();
+$(document).ready(function() {
+    // Initialisation des tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+    
+    // Gestion des messages flash
+    @if(session('success'))
+        toastr.success('{{ session('success') }}');
+    @endif
+    
+    @if(session('error'))
+        toastr.error('{{ session('error') }}');
+    @endif
 });
 </script>
 @endpush

@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Paiement;
+use App\Models\PaiementProfesseur;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
@@ -13,20 +14,25 @@ class PaiementPolicy
     /**
      * Détermine si l'utilisateur peut voir n'importe quel paiement.
      */
-    public function viewAny(User $user): bool
+    public function viewAny(User $user, string $type = 'eleve'): bool
     {
-        // Les administrateurs et les assistants peuvent tout voir
-        if ($user->hasAnyRole(['admin', 'assistant'])) {
+        // Les administrateurs peuvent tout voir
+        if ($user->hasRole('admin')) {
             return true;
         }
         
-        // Les étudiants peuvent voir leurs propres paiements
-        if ($user->hasRole('etudiant')) {
+        // Les assistants peuvent voir les paiements des élèves
+        if ($user->hasRole('assistant') && $type === 'eleve') {
             return true;
         }
         
-        // Les parents peuvent voir les paiements de leurs enfants
-        if ($user->hasRole('parent')) {
+        // Les professeurs peuvent voir leurs propres paiements
+        if ($user->hasRole('professeur') && $type === 'professeur') {
+            return true;
+        }
+        
+        // Les élèves peuvent voir leurs propres paiements
+        if ($user->hasRole('eleve') && $type === 'eleve') {
             return true;
         }
         
@@ -39,68 +45,90 @@ class PaiementPolicy
     }
 
     /**
-     * Détermine si l'utilisateur peut voir un paiement spécifique.
+     * Détermine si l'utilisateur peut voir un paiement élève spécifique.
      */
-    public function view(User $user, Paiement $paiement): bool
+    public function viewEleve(User $user, Paiement $paiement): bool
     {
         // Un élève peut voir ses propres paiements
         if ($user->hasRole('eleve') && $paiement->eleve_id === $user->id) {
             return true;
         }
         
-        // Admin et assistant peuvent voir tous les paiements
-        return $user->hasAnyRole(['admin', 'assistant']);
-    }
-
-    /**
-     * Détermine si l'utilisateur peut créer des paiements.
-     */
-    public function create(User $user): bool
-    {
-        // Vérifier si l'utilisateur a un rôle autorisé
-        if (!$user->hasAnyRole(['admin', 'assistant', 'comptable'])) {
-            return false;
+        // Un parent peut voir les paiements de ses enfants
+        if ($user->hasRole('parent') && $user->enfants->contains('id', $paiement->eleve_id)) {
+            return true;
         }
         
-        // Vérifier si l'utilisateur a la permission spécifique
-        if (!$user->can('create_paiement')) {
-            return false;
-        }
-        
-        // Vérifier si la période de paiement est ouverte (si applicable)
-        if (!$this->isPaiementPeriodOpen() && !$user->hasRole('admin')) {
-            return false;
-        }
-        
-        return true;
+        // Admin, assistant et direction peuvent voir tous les paiements
+        return $user->hasAnyRole(['admin', 'assistant', 'direction']);
     }
     
     /**
-     * Vérifie si la période de paiement est ouverte.
+     * Détermine si l'utilisateur peut voir un paiement professeur spécifique.
      */
-    protected function isPaiementPeriodOpen(): bool
+    public function viewProfesseur(User $user, PaiementProfesseur $paiement): bool
     {
-        // Implémentez la logique pour vérifier si la période de paiement est ouverte
-        // Par exemple, en vérifiant les dates dans la base de données ou dans un fichier de configuration
-        return true; // À remplacer par la logique réelle
+        // Un professeur peut voir ses propres paiements
+        if ($user->hasRole('professeur') && $paiement->professeur_id === $user->id) {
+            return true;
+        }
+        
+        // Admin et direction peuvent voir tous les paiements
+        return $user->hasAnyRole(['admin', 'direction']);
     }
 
     /**
-     * Détermine si l'utilisateur peut mettre à jour un paiement.
+     * Détermine si l'utilisateur peut créer des paiements élèves.
      */
-    public function update(User $user, Paiement $paiement): bool
+    public function createEleve(User $user): bool
     {
-        // Seul un admin peut mettre à jour un paiement
-        return $user->hasRole('admin');
+        // Seuls les administrateurs et les assistants peuvent créer des paiements élèves
+        return $user->hasAnyRole(['admin', 'assistant', 'direction']);
+    }
+    
+    /**
+     * Détermine si l'utilisateur peut créer des paiements professeurs.
+     */
+    public function createProfesseur(User $user): bool
+    {
+        // Seuls les administrateurs peuvent créer des paiements professeurs
+        return $user->hasRole('admin') || $user->hasRole('direction');
     }
 
     /**
-     * Détermine si l'utilisateur peut supprimer un paiement.
+     * Détermine si l'utilisateur peut mettre à jour un paiement élève.
      */
-    public function delete(User $user, Paiement $paiement): bool
+    public function updateEleve(User $user, Paiement $paiement): bool
     {
-        // Seul un admin peut supprimer un paiement
-        return $user->hasRole('admin');
+        // Seuls les administrateurs et les assistants peuvent mettre à jour les paiements élèves
+        return $user->hasAnyRole(['admin', 'assistant', 'direction']);
+    }
+    
+    /**
+     * Détermine si l'utilisateur peut mettre à jour un paiement professeur.
+     */
+    public function updateProfesseur(User $user, PaiementProfesseur $paiement): bool
+    {
+        // Seuls les administrateurs peuvent mettre à jour les paiements professeurs
+        return $user->hasRole('admin') || $user->hasRole('direction');
+    }
+
+    /**
+     * Détermine si l'utilisateur peut supprimer un paiement élève.
+     */
+    public function deleteEleve(User $user, Paiement $paiement): bool
+    {
+        // Seuls les administrateurs peuvent supprimer des paiements élèves
+        return $user->hasRole('admin') || $user->hasRole('direction');
+    }
+    
+    /**
+     * Détermine si l'utilisateur peut supprimer un paiement professeur.
+     */
+    public function deleteProfesseur(User $user, PaiementProfesseur $paiement): bool
+    {
+        // Seuls les administrateurs peuvent supprimer des paiements professeurs
+        return $user->hasRole('admin') || $user->hasRole('direction');
     }
 
     /**
@@ -131,12 +159,7 @@ class PaiementPolicy
             return true;
         }
         
-        // Le parent peut voir les factures de son enfant
-        if ($user->hasRole('parent') && $paiement->eleve->parent_id === $user->id) {
-            return true;
-        }
-        
-        // Admin, assistant et comptable peuvent générer toutes les factures
+        // Le secrétariat peut voir toutes les factures
         return $user->hasAnyRole(['admin', 'assistant', 'comptable']);
     }
     
@@ -191,12 +214,7 @@ class PaiementPolicy
             return true;
         }
         
-        // Le parent peut voir les reçus de son enfant
-        if ($user->hasRole('parent') && $paiement->eleve->parent_id === $user->id) {
-            return true;
-        }
-        
-        // Admin, assistant et comptable peuvent voir tous les reçus
+        // Le secrétariat peut voir tous les reçus
         return $user->hasAnyRole(['admin', 'assistant', 'comptable']);
     }
 }

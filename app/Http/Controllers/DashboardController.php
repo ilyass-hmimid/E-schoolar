@@ -141,7 +141,7 @@ class DashboardController extends Controller
                 'matiere:id,nom',
                 'cours:id,date_debut'
             ])
-            ->select('id', 'etudiant_id', 'matiere_id', 'cours_id', 'valeur', 'type', 'created_at')
+            ->select('id', 'etudiant_id', 'matiere_id', 'cours_id', 'note as valeur', 'type', 'created_at')
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get()

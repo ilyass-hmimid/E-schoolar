@@ -54,12 +54,6 @@ class EditUser extends Component
     public $is_active = true;
     public $bio;
     
-    // Parents (pour les élèves)
-    public $parent_name;
-    public $parent_phone;
-    public $parent_email;
-    public $parent_profession;
-    
     // Options pour les sélecteurs
     public $roles = [];
     public $niveaux = [];
@@ -140,12 +134,6 @@ class EditUser extends Component
         
         // Bio
         $this->bio = $this->user->bio;
-        
-        // Informations des parents (pour les élèves)
-        $this->parent_name = $this->user->parent_name;
-        $this->parent_phone = $this->user->parent_phone;
-        $this->parent_email = $this->user->parent_email;
-        $this->parent_profession = $this->user->parent_profession;
     }
     
     public function updated($propertyName)
@@ -190,10 +178,6 @@ class EditUser extends Component
                 'filiere' => $this->filiere,
                 'etablissement' => $this->etablissement,
                 'bio' => $this->bio,
-                'parent_name' => $this->parent_name,
-                'parent_phone' => $this->parent_phone,
-                'parent_email' => $this->parent_email,
-                'parent_profession' => $this->parent_profession,
             ];
             
             // Mise à jour du mot de passe si fourni

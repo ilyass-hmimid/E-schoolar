@@ -42,28 +42,49 @@ class ClasseSeeder extends Seeder
         
         // Tableau des classes à créer
         $classes = [
-            ['libelle' => '1ère Année Bac Sciences Mathématiques', 'niveau_id' => $niveaux->where('libelle', '1ère année Bac Sciences')->first()->id, 'filiere_id' => $filieres->where('libelle', 'Sciences Mathématiques')->first()->id],
-            ['libelle' => '2ème Année Bac Sciences Mathématiques', 'niveau_id' => $niveaux->where('libelle', '2ème année Bac Sciences')->first()->id, 'filiere_id' => $filieres->where('libelle', 'Sciences Mathématiques')->first()->id],
-            ['libelle' => '1ère Année Bac Sciences Expérimentales', 'niveau_id' => $niveaux->where('libelle', '1ère année Bac Sciences')->first()->id, 'filiere_id' => $filieres->where('libelle', 'Sciences Expérimentales')->first()->id],
-            ['libelle' => '2ème Année Bac Sciences Physiques', 'niveau_id' => $niveaux->where('libelle', '2ème année Bac Sciences')->first()->id, 'filiere_id' => $filieres->where('libelle', 'Sciences Physiques')->first()->id],
-            ['libelle' => '2ème Année Bac Sciences Économiques', 'niveau_id' => $niveaux->where('libelle', '2ème année Bac Sciences')->first()->id, 'filiere_id' => $filieres->where('libelle', 'Sciences Économiques')->first()->id],
+            ['nom' => '1ère année Bac - Sciences Mathématiques', 'niveau_code' => '1BAC', 'filiere_code' => 'SM'],
+            ['nom' => '2ème année Bac - Sciences Mathématiques', 'niveau_code' => '2BAC', 'filiere_code' => 'SM'],
+            ['nom' => '1ère année Bac - Sciences Physiques', 'niveau_code' => '1BAC', 'filiere_code' => 'SPC'],
+            ['nom' => '2ème année Bac - Sciences Physiques', 'niveau_code' => '2BAC', 'filiere_code' => 'SPC'],
+            ['nom' => '2ème année Bac - Sciences Économiques', 'niveau_code' => '2BAC', 'filiere_code' => 'SE'],
         ];
+        
+        // Convertir les codes en IDs
+        $classes = array_map(function($classe) use ($niveaux, $filieres) {
+            $niveau = $niveaux->where('code', $classe['niveau_code'])->first();
+            $filiere = $filieres->where('code', $classe['filiere_code'])->first();
+            
+            if (!$niveau || !$filiere) {
+                $this->command->warn("Skipping class {$classe['nom']} - Niveau or Filiere not found");
+                return null;
+            }
+            
+            return [
+                'nom' => $classe['nom'],
+                'niveau_id' => $niveau->id,
+                'filiere_id' => $filiere->id,
+                'code_classe' => strtoupper(substr($classe['nom'], 0, 3)) . '_' . $niveau->code . '_' . $filiere->code,
+            ];
+        }, $classes);
+        
+        // Filtrer les classes valides
+        $classes = array_filter($classes);
 
         foreach ($classes as $index => $classeData) {
             $professeurPrincipal = $professeurs->isNotEmpty() ? $professeurs->random() : null;
             
             Classe::create([
-                'libelle' => $classeData['libelle'],
+                'nom' => $classeData['nom'],
+                'code_classe' => $classeData['code_classe'],
                 'niveau_id' => $classeData['niveau_id'],
                 'filiere_id' => $classeData['filiere_id'],
                 'professeur_principal_id' => $professeurPrincipal ? $professeurPrincipal->id : null,
                 'annee_scolaire' => $anneeScolaire,
                 'effectif_max' => 30,
-                'salle' => 'Salle ' . ($index + 1),
                 'est_actif' => true,
             ]);
             
-            $this->command->info("Classe créée : " . $classeData['libelle']);
+            $this->command->info("Classe créée : " . $classeData['nom']);
         }
     }
 }

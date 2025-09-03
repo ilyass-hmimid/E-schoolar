@@ -179,7 +179,6 @@ return [
             'no_file_chosen' => 'No file chosen',
             'justify' => 'Justify',
             'unjustify' => 'Unjustify',
-            'notify_parents' => 'Notify Parents',
             'view_statistics' => 'View Statistics',
         ],
         'confirm' => [
@@ -196,7 +195,6 @@ return [
             'deleted' => 'Absence deleted successfully.',
             'justified' => 'Absence marked as justified.',
             'unjustified' => 'Absence marked as unjustified.',
-            'notified' => 'Parents have been notified successfully.',
             'justificatif_uploaded' => 'Proof document uploaded successfully.',
             'justificatif_removed' => 'Proof document removed successfully.',
         ],

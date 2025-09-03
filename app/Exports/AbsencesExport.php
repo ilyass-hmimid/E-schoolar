@@ -38,15 +38,21 @@ class AbsencesExport implements FromCollection, WithHeadings, WithMapping, WithS
     public function map($absence): array
     {
         return [
-            $absence->eleve->nom_complet,
-            $absence->eleve->classe->nom_complet ?? 'N/A',
-            $absence->cours->matiere->nom ?? 'N/A',
-            $absence->cours->professeur->nom_complet ?? 'N/A',
+            $absence->etudiant->nom_complet,
+            $absence->etudiant->classe->nom ?? 'N/A',
+            $absence->matiere->nom ?? 'N/A',
+            $absence->professeur->name ?? 'N/A',
             $absence->date_absence->format('d/m/Y'),
-            $absence->type_absence,
-            $absence->duree_absence ? $absence->duree_absence . ' min' : 'N/A',
+            $absence->heure_debut . ' - ' . $absence->heure_fin,
+            ucfirst($absence->type),
+            $absence->duree_retard ? $absence->duree_retard . ' min' : 'N/A',
             $absence->justifiee ? 'Oui' : 'Non',
+            $absence->statut_justification ? ucfirst($absence->statut_justification) : 'N/A',
             $absence->motif ?? 'Non précisé',
+            $absence->piece_jointe ? 'Oui' : 'Non',
+            $absence->commentaire_validation ?? 'N/A',
+            $absence->assistant->name ?? 'N/A',
+            $absence->validateur->name ?? 'N/A',
             $absence->created_at->format('d/m/Y H:i'),
             $absence->utilisateurCreation->name ?? 'Système',
         ];
@@ -58,17 +64,22 @@ class AbsencesExport implements FromCollection, WithHeadings, WithMapping, WithS
     public function headings(): array
     {
         return [
-            'Élève',
+            'Étudiant',
             'Classe',
             'Matière',
             'Professeur',
-            'Date d\'absence',
+            'Date',
+            'Période',
             'Type',
-            'Durée',
+            'Durée retard',
             'Justifiée',
+            'Statut justification',
             'Motif',
-            'Date de saisie',
-            'Saisi par',
+            'Pièce jointe',
+            'Commentaire validation',
+            'Saisie par',
+            'Validé par',
+            'Date d\'enregistrement',
         ];
     }
 
@@ -78,17 +89,22 @@ class AbsencesExport implements FromCollection, WithHeadings, WithMapping, WithS
     public function columnWidths(): array
     {
         return [
-            'A' => 25, // Élève
-            'B' => 20, // Classe
+            'A' => 25, // Étudiant
+            'B' => 15, // Classe
             'C' => 25, // Matière
             'D' => 25, // Professeur
-            'E' => 15, // Date absence
-            'F' => 15, // Type
-            'G' => 12, // Durée
-            'H' => 12, // Justifiée
-            'I' => 30, // Motif
-            'J' => 18, // Date saisie
-            'K' => 20, // Saisi par
+            'E' => 12, // Date
+            'F' => 20, // Période
+            'G' => 15, // Type
+            'H' => 15, // Durée retard
+            'I' => 12, // Justifiée
+            'J' => 20, // Statut justification
+            'K' => 30, // Motif
+            'L' => 15, // Pièce jointe
+            'M' => 30, // Commentaire validation
+            'N' => 25, // Saisie par
+            'O' => 25, // Validé par
+            'P' => 20, // Date d'enregistrement
         ];
     }
 
@@ -97,45 +113,48 @@ class AbsencesExport implements FromCollection, WithHeadings, WithMapping, WithS
      */
     public function styles(Worksheet $sheet)
     {
-        // Style pour l'en-tête
-        $sheet->getStyle('A1:K1')->applyFromArray([
-            'font' => [
-                'bold' => true,
-                'color' => ['rgb' => 'FFFFFF'],
-            ],
-            'fill' => [
-                'fillType' => 'solid',
-                'startColor' => ['rgb' => '4F81BD'],
-            ],
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => 'thin',
-                    'color' => ['rgb' => '000000'],
+        $styleArray = [
+            // Style de l'en-tête
+            1 => [
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => [
+                    'fillType' => 'solid',
+                    'startColor' => ['rgb' => '4F81BD'],
                 ],
             ],
-        ]);
-
-        // Style pour les lignes paires
-        $sheet->getStyle('A2:K' . ($this->absences->count() + 1))
-            ->applyFromArray([
+            // Style des lignes paires
+            'A2:P' . ($this->absences->count() + 1) => [
+                'fill' => [
+                    'fillType' => 'solid',
+                    'startColor' => ['rgb' => 'DCE6F1'],
+                ],
+            ],
+            // Style des bordures
+            'A1:P' . ($this->absences->count() + 1) => [
                 'borders' => [
                     'allBorders' => [
                         'borderStyle' => 'thin',
-                        'color' => ['rgb' => 'DDDDDD'],
+                        'color' => ['rgb' => '000000'],
                     ],
                 ],
-            ]);
+            ],
+            // Alignement du texte
+            'A1:P' . ($this->absences->count() + 1) => [
+                'alignment' => [
+                    'vertical' => 'center',
+                ],
+            ],
+            // Largeur automatique des colonnes
+            'A:Z' => [
+                'alignment' => [
+                    'wrapText' => true,
+                ],
+            ],
+        ];
 
-        // Alternance des couleurs de ligne
-        foreach (range(2, $this->absences->count() + 1) as $row) {
-            $fillColor = $row % 2 == 0 ? 'FFFFFF' : 'F2F2F2';
-            $sheet->getStyle('A' . $row . ':K' . $row)
-                ->getFill()
-                ->setFillType('solid')
-                ->getStartColor()
-                ->setARGB($fillColor);
+        foreach ($styleArray as $cell => $style) {
+            $sheet->getStyle($cell)->applyFromArray($style);
         }
-
         // Ajuster la hauteur des lignes
         $sheet->getDefaultRowDimension()->setRowHeight(20);
         $sheet->getRowDimension(1)->setRowHeight(25);

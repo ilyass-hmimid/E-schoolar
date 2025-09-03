@@ -189,38 +189,6 @@
                     </div>
                 </div>
 
-                <!-- Section pour les élèves -->
-                @if($role === 'eleve')
-                <div class="mb-8">
-                    <h2 class="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Informations des parents</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Nom du parent -->
-                        <div class="form-group">
-                            <label for="parent_name" class="form-label">Nom du parent</label>
-                            <input type="text" id="parent_name" wire:model="parent_name" class="form-control">
-                        </div>
-
-                        <!-- Téléphone du parent -->
-                        <div class="form-group">
-                            <label for="parent_phone" class="form-label">Téléphone du parent</label>
-                            <input type="tel" id="parent_phone" wire:model="parent_phone" class="form-control">
-                        </div>
-
-                        <!-- Email du parent -->
-                        <div class="form-group">
-                            <label for="parent_email" class="form-label">Email du parent</label>
-                            <input type="email" id="parent_email" wire:model="parent_email" class="form-control">
-                        </div>
-
-                        <!-- Profession du parent -->
-                        <div class="form-group">
-                            <label for="parent_profession" class="form-label">Profession du parent</label>
-                            <input type="text" id="parent_profession" wire:model="parent_profession" class="form-control">
-                        </div>
-                    </div>
-                </div>
-                @endif
-
                 <!-- Section Photo de profil -->
                 <div class="mb-8">
                     <h2 class="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Photo de profil</h2>

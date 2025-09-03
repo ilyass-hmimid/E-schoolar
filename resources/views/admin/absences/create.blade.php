@@ -114,38 +114,13 @@
                         <div class="mt-1">
                             <textarea id="justificatif" name="justificatif" rows="3"
                                 class="shadow-sm focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md">{{ old('justificatif') }}</textarea>
-                        </div>
-                        <p class="mt-2 text-sm text-gray-500">
-                            Détails sur le justificatif (facultatif).
-                        </p>
-                        @error('justificatif')
-                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Statut de justification -->
-                    <div class="sm:col-span-6">
-                        <div class="flex items-center">
-                            <input id="justifiee" name="justifiee" type="checkbox" value="1"
-                                {{ old('justifiee') ? 'checked' : '' }}
-                                class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
-                            <label for="justifiee" class="ml-2 block text-sm text-gray-700">
-                                Marquer comme justifiée
-                            </label>
-                        </div>
-                        @error('justifiee')
-                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-                </div>
-
                 <div class="mt-8 border-t border-gray-200 pt-5">
                     <div class="flex justify-end">
                         <a href="{{ route('admin.absences.index') }}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                             Annuler
                         </a>
                         <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                            Enregistrer l'absence
+                            Enregistrer
                         </button>
                     </div>
                 </div>

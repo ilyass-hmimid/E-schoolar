@@ -46,7 +46,7 @@ class DashboardController extends Controller
         // Récupérer la moyenne générale actuelle
         $moyenneGenerale = Note::whereHas('enseignement', function($query) use ($professeur) {
             $query->where('professeur_id', $professeur->id);
-        })->avg('valeur');
+        })->avg('note');
         
         // Récupérer les prochains cours (7 prochains jours)
         $prochainsCours = $professeur->cours()
@@ -107,7 +107,7 @@ class DashboardController extends Controller
         $moyenneMoisDernier = Note::whereHas('enseignement', function($query) use ($professeur, $moisDernier, $maintenant) {
             $query->where('professeur_id', $professeur->id)
                   ->whereBetween('created_at', [$moisDernier, $maintenant]);
-        })->avg('valeur');
+        })->avg('note');
         
         $evolutionMoyenne = $moyenneMoisDernier > 0 
             ? round((($moyenneGenerale - $moyenneMoisDernier) / $moyenneMoisDernier) * 100, 1)
@@ -139,7 +139,7 @@ class DashboardController extends Controller
             ->join('matieres', 'enseignements.matiere_id', '=', 'matieres.id')
             ->select(
                 'matieres.nom as matiere',
-                DB::raw('AVG(notes.valeur) as moyenne'),
+                DB::raw('AVG(notes.note) as moyenne'),
                 DB::raw('COUNT(notes.id) as nombre_notes')
             )
             ->where('enseignements.professeur_id', $professeurId)

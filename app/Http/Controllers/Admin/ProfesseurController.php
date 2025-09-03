@@ -7,88 +7,78 @@ use App\Models\User;
 use App\Models\Matiere;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Inertia\Inertia;
-use Illuminate\Validation\Rules;
-use Illuminate\Validation\Rule;
+use Spatie\Permission\Models\Role;
 
 class ProfesseurController extends Controller
 {
     /**
      * Afficher la liste des professeurs
      */
-    public function index(Request $request)
+    /**
+     * Afficher la liste des professeurs
+     */
+    public function index()
     {
-        $this->authorize('viewAny', User::class);
-
-        $filters = $request->only(['search', 'status']);
-        
-        $professeurs = User::role('professeur')
-            ->with('matieres')
-            ->when($filters['search'] ?? null, function ($query, $search) {
-                $query->where(function ($query) use ($search) {
-                    $query->where('name', 'like', '%' . $search . '%')
-                        ->orWhere('email', 'like', '%' . $search . '%');
-                });
-            })
-            ->when($filters['status'] ?? null, function ($query, $status) {
-                $query->where('is_active', $status === 'actif');
-            })
-            ->orderBy('name')
-            ->paginate(10)
-            ->withQueryString();
-
-        return Inertia::render('Admin/Professeurs/Index', [
-            'professeurs' => $professeurs,
-            'filters' => $filters,
-        ]);
+        try {
+            $professeurs = User::role('professeur')
+                ->with('matieres')
+                ->latest()
+                ->paginate(10);
+                
+            // Debug: Check if view exists
+            if (!view()->exists('admin.professeurs.index')) {
+                \Log::error('View not found: admin.professeurs.index');
+                return redirect()->route('admin.dashboard')->with('error', 'La vue des professeurs est introuvable.');
+            }
+            
+            return view('admin.professeurs.index', compact('professeurs'));
+            
+        } catch (\Exception $e) {
+            \Log::error('Error in ProfesseurController@index: ' . $e->getMessage());
+            return redirect()->route('admin.dashboard')->with('error', 'Une erreur est survenue lors du chargement de la liste des professeurs.');
+        }
     }
 
     /**
      * Afficher le formulaire de création d'un professeur
      */
+    /**
+     * Afficher le formulaire de création d'un professeur
+     */
     public function create()
     {
-        $this->authorize('create', User::class);
-
         $matieres = Matiere::orderBy('nom')->get();
-
-        return Inertia::render('Admin/Professeurs/Create', [
-            'matieres' => $matieres
-        ]);
+        return view('admin.professeurs.create', compact('matieres'));
     }
 
     /**
      * Enregistrer un nouveau professeur
      */
+    /**
+     * Enregistrer un nouveau professeur
+     */
     public function store(Request $request)
     {
-        $this->authorize('create', User::class);
-
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string|max:255',
-            'matieres' => 'required|array|min:1',
+            'password' => 'required|string|min:8|confirmed',
+            'telephone' => 'nullable|string|max:20',
+            'adresse' => 'nullable|string|max:255',
+            'date_naissance' => 'nullable|date',
+            'matieres' => 'required|array',
             'matieres.*' => 'exists:matieres,id',
-            'date_embauche' => 'required|date',
-            'salaire' => 'required|numeric|min:0',
-            'is_active' => 'boolean',
         ]);
 
-        // Générer un mot de passe aléatoire
-        $password = substr(str_shuffle(str_repeat($x='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', ceil(10/strlen($x)) )),1,10);
-        
         // Créer l'utilisateur
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => Hash::make($password),
-            'phone' => $validated['phone'] ?? null,
-            'address' => $validated['address'] ?? null,
-            'date_embauche' => $validated['date_embauche'],
-            'salaire' => $validated['salaire'],
-            'is_active' => $validated['is_active'] ?? true,
+            'password' => Hash::make($validated['password']),
+            'telephone' => $validated['telephone'],
+            'adresse' => $validated['adresse'],
+            'date_naissance' => $validated['date_naissance'],
+            'email_verified_at' => now(),
         ]);
 
         // Assigner le rôle de professeur
@@ -97,86 +87,73 @@ class ProfesseurController extends Controller
         // Attacher les matières enseignées
         $user->matieres()->sync($validated['matieres']);
 
-        // Envoyer un email avec les identifiants (à implémenter)
-        // Mail::to($user)->send(new NewProfessorAccount($user, $password));
-
         return redirect()->route('admin.professeurs.index')
-            ->with('success', 'Le professeur a été créé avec succès. Un email a été envoyé avec ses identifiants.');
+            ->with('success', 'Le professeur a été créé avec succès.');
     }
 
     /**
      * Afficher les détails d'un professeur
      */
+    /**
+     * Afficher les détails d'un professeur
+     */
     public function show(User $professeur)
     {
-        $this->authorize('view', $professeur);
-
         $professeur->load(['matieres', 'cours' => function($query) {
-            $query->with('matiere')
-                ->whereDate('date_debut', '>=', now())
-                ->orderBy('date_debut')
-                ->limit(5);
+            $query->with('classe', 'matiere')
+                ->orderBy('jour')
+                ->orderBy('heure_debut');
         }]);
 
-        $stats = [
-            'cours_ce_mois' => $professeur->cours()
-                ->whereMonth('date_debut', now()->month)
-                ->count(),
-            'taux_presence' => 95, // À implémenter avec la logique de présence
-        ];
-
-        return Inertia::render('Admin/Professeurs/Show', [
-            'professeur' => $professeur,
-            'stats' => $stats,
-        ]);
+        return view('admin.professeurs.show', compact('professeur'));
     }
 
     /**
      * Afficher le formulaire de modification d'un professeur
      */
+    /**
+     * Afficher le formulaire de modification d'un professeur
+     */
     public function edit(User $professeur)
     {
-        $this->authorize('update', $professeur);
-
-        $professeur->load('matieres');
         $matieres = Matiere::orderBy('nom')->get();
-
-        return Inertia::render('Admin/Professeurs/Edit', [
-            'professeur' => $professeur,
-            'matieres' => $matieres,
-            'matieresEnseignees' => $professeur->matieres->pluck('id')
-        ]);
+        $professeur->load('matieres');
+        
+        return view('admin.professeurs.edit', compact('professeur', 'matieres'));
     }
 
     /**
      * Mettre à jour un professeur
      */
+    /**
+     * Mettre à jour un professeur
+     */
     public function update(Request $request, User $professeur)
     {
-        $this->authorize('update', $professeur);
-
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($professeur->id)],
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string|max:255',
-            'matieres' => 'required|array|min:1',
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                Rule::unique('users')->ignore($professeur->id),
+            ],
+            'password' => 'nullable|string|min:8|confirmed',
+            'telephone' => 'nullable|string|max:20',
+            'adresse' => 'nullable|string|max:255',
+            'date_naissance' => 'nullable|date',
+            'matieres' => 'required|array',
             'matieres.*' => 'exists:matieres,id',
-            'date_embauche' => 'required|date',
-            'salaire' => 'required|numeric|min:0',
-            'is_active' => 'boolean',
-            'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
         ]);
 
         // Mise à jour des informations de base
         $professeur->update([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'phone' => $validated['phone'] ?? null,
-            'address' => $validated['address'] ?? null,
-            'date_embauche' => $validated['date_embauche'],
-            'salaire' => $validated['salaire'],
-            'is_active' => $validated['is_active'] ?? $professeur->is_active,
+            'telephone' => $validated['telephone'],
+            'adresse' => $validated['adresse'],
+            'date_naissance' => $validated['date_naissance'],
         ]);
 
         // Mise à jour du mot de passe si fourni
@@ -189,17 +166,18 @@ class ProfesseurController extends Controller
         // Mise à jour des matières enseignées
         $professeur->matieres()->sync($validated['matieres']);
 
-        return redirect()->route('admin.professeurs.index')
+        return redirect()->route('admin.professeurs.show', $professeur)
             ->with('success', 'Les informations du professeur ont été mises à jour avec succès.');
     }
 
     /**
      * Supprimer un professeur
      */
+    /**
+     * Supprimer un professeur
+     */
     public function destroy(User $professeur)
     {
-        $this->authorize('delete', $professeur);
-
         // Vérifier s'il y a des cours associés
         if ($professeur->cours()->exists()) {
             return back()->with('error', 'Impossible de supprimer ce professeur car il a des cours associés.');

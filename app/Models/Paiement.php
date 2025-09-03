@@ -74,6 +74,21 @@ class Paiement extends Model
                 'email' => 'inconnu@exemple.com'
             ]);
     }
+    
+    /**
+     * Relation avec l'utilisateur (étudiant) via la relation etudiant
+     */
+    public function user()
+    {
+        return $this->hasOneThrough(
+            User::class,
+            Etudiant::class,
+            'id', // Foreign key on etudiants table
+            'id', // Foreign key on users table
+            'etudiant_id', // Local key on paiements table
+            'user_id' // Local key on etudiants table
+        );
+    }
 
     /**
      * Relation avec la matière concernée (si le paiement est lié à une matière spécifique)

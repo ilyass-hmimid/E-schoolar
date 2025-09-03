@@ -1,0 +1,142 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+
+class Etudiant extends Authenticatable
+{
+    use HasApiTokens, HasFactory, Notifiable;
+    
+    protected $table = 'etudiants';
+    protected $primaryKey = 'id';
+    public $timestamps = true;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'code_etudiant',
+        'nom',
+        'prenom',
+        'email',
+        'telephone',
+        'adresse',
+        'ville',
+        'pays',
+        'date_naissance',
+        'lieu_naissance',
+        'cin',
+        'cne',
+        'sexe',
+        'photo',
+        'notes',
+        'user_id',
+        'classe_id',
+        'niveau_id',
+        'filiere_id',
+        'est_actif',
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'remember_token',
+    ];
+    
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'date_naissance' => 'date',
+        'est_actif' => 'boolean',
+    ];
+
+    /**
+     * Get the user associated with the etudiant.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the classe of the etudiant.
+     */
+    public function classe(): BelongsTo
+    {
+        return $this->belongsTo(Classe::class);
+    }
+
+    /**
+     * Get the niveau of the etudiant.
+     */
+    public function niveau(): BelongsTo
+    {
+        return $this->belongsTo(Niveau::class);
+    }
+
+    /**
+     * Get the filiere of the etudiant.
+     */
+    public function filiere(): BelongsTo
+    {
+        return $this->belongsTo(Filiere::class);
+    }
+
+    /**
+     * Get the presences for the etudiant.
+     */
+    public function presences(): HasMany
+    {
+        return $this->hasMany(Presence::class, 'etudiant_id');
+    }
+
+    /**
+     * Get the notes for the etudiant.
+     */
+    public function notes(): HasMany
+    {
+        return $this->hasMany(Note::class, 'etudiant_id');
+    }
+
+    /**
+     * Get the paiements for the etudiant.
+     */
+    public function paiements(): HasMany
+    {
+        return $this->hasMany(Paiement::class, 'etudiant_id');
+    }
+
+    /**
+     * Get the absences for the etudiant.
+     */
+    public function absences(): HasMany
+    {
+        return $this->hasMany(Absence::class, 'etudiant_id');
+    }
+
+    /**
+     * Get the matieres for the etudiant.
+     */
+    public function matieres(): BelongsToMany
+    {
+        return $this->belongsToMany(Matiere::class, 'inscriptions', 'etudiant_id', 'matiere_id')
+            ->withPivot(['note', 'appreciation', 'annee_scolaire'])
+            ->withTimestamps();
+    }
+}

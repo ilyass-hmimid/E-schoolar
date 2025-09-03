@@ -25,25 +25,59 @@ class InitialDataSeeder extends Seeder
     private function createNiveaux(): void
     {
         $niveaux = [
-            ['libelle' => '6ème', 'description' => 'Sixième année du collège'],
-            ['libelle' => '5ème', 'description' => 'Cinquième année du collège'],
-            ['libelle' => '4ème', 'description' => 'Quatrième année du collège'],
-            ['libelle' => '3ème', 'description' => 'Troisième année du collège'],
-            ['libelle' => '2ème année Bac', 'description' => 'Deuxième année du baccalauréat'],
-            ['libelle' => '1ère année Bac', 'description' => 'Première année du baccalauréat'],
-            ['libelle' => 'Tronc Commun', 'description' => 'Tronc commun scientifique et littéraire'],
-            ['libelle' => '1ère année Bac Sciences', 'description' => 'Première année baccalauréat scientifique'],
-            ['libelle' => '2ème année Bac Sciences', 'description' => 'Deuxième année baccalauréat scientifique'],
-            ['libelle' => '1ère année Bac Lettres', 'description' => 'Première année baccalauréat littéraire'],
-            ['libelle' => '2ème année Bac Lettres', 'description' => 'Deuxième année baccalauréat littéraire'],
-            ['libelle' => '1ère année Bac Économie', 'description' => 'Première année baccalauréat sciences économiques'],
-            ['libelle' => '2ème année Bac Économie', 'description' => 'Deuxième année baccalauréat sciences économiques'],
-            ['libelle' => '1ère année Bac Techniques', 'description' => 'Première année baccalauréat techniques'],
-            ['libelle' => '2ème année Bac Techniques', 'description' => 'Deuxième année baccalauréat techniques'],
+            [
+                'code' => '6EME', 
+                'nom' => '6ème', 
+                'description' => 'Sixième année du collège',
+                'ordre' => 1,
+                'est_actif' => true
+            ],
+            [
+                'code' => '5EME', 
+                'nom' => '5ème', 
+                'description' => 'Cinquième année du collège',
+                'ordre' => 2,
+                'est_actif' => true
+            ],
+            [
+                'code' => '4EME', 
+                'nom' => '4ème', 
+                'description' => 'Quatrième année du collège',
+                'ordre' => 3,
+                'est_actif' => true
+            ],
+            [
+                'code' => '3EME', 
+                'nom' => '3ème', 
+                'description' => 'Troisième année du collège',
+                'ordre' => 4,
+                'est_actif' => true
+            ],
+            [
+                'code' => 'TC', 
+                'nom' => 'Tronc Commun', 
+                'description' => 'Tronc commun scientifique et littéraire',
+                'ordre' => 5,
+                'est_actif' => true
+            ],
+            [
+                'code' => '1BAC', 
+                'nom' => '1ère année Bac', 
+                'description' => 'Première année du baccalauréat',
+                'ordre' => 6,
+                'est_actif' => true
+            ],
+            [
+                'code' => '2BAC', 
+                'nom' => '2ème année Bac', 
+                'description' => 'Deuxième année du baccalauréat',
+                'ordre' => 7,
+                'est_actif' => true
+            ]
         ];
 
         foreach ($niveaux as $niveau) {
-            Niveau::firstOrCreate(['libelle' => $niveau['libelle']], $niveau);
+            Niveau::firstOrCreate(['code' => $niveau['code']], $niveau);
         }
     }
 
@@ -53,17 +87,64 @@ class InitialDataSeeder extends Seeder
     private function createFilieres(): void
     {
         $filieres = [
-            ['libelle' => 'Sciences Mathématiques', 'description' => 'Filière Sciences Mathématiques'],
-            ['libelle' => 'Sciences Expérimentales', 'description' => 'Filière Sciences Expérimentales'],
-            ['libelle' => 'Sciences Économiques', 'description' => 'Filière Sciences Économiques'],
-            ['libelle' => 'Lettres', 'description' => 'Filière Lettres'],
-            ['libelle' => 'Sciences Humaines', 'description' => 'Filière Sciences Humaines'],
-            ['libelle' => 'Sciences et Technologies Électriques', 'description' => 'Filière Sciences et Technologies Électriques'],
-            ['libelle' => 'Sciences et Technologies Mécaniques', 'description' => 'Filière Sciences et Technologies Mécaniques'],
+            [
+                'code' => 'SM', 
+                'nom' => 'Sciences Mathématiques', 
+                'description' => 'Filière Sciences Mathématiques',
+                'duree_annees' => 2,
+                'frais_inscription' => 1500,
+                'frais_mensuel' => 800,
+                'est_actif' => true
+            ],
+            [
+                'code' => 'SPC', 
+                'nom' => 'Sciences Physiques', 
+                'description' => 'Filière Sciences Physiques et Chimie',
+                'duree_annees' => 2,
+                'frais_inscription' => 1400,
+                'frais_mensuel' => 750,
+                'est_actif' => true
+            ],
+            [
+                'code' => 'SVT', 
+                'nom' => 'Sciences Vie et Terre', 
+                'description' => 'Filière Sciences de la Vie et de la Terre',
+                'duree_annees' => 2,
+                'frais_inscription' => 1300,
+                'frais_mensuel' => 700,
+                'est_actif' => true
+            ],
+            [
+                'code' => 'LET', 
+                'nom' => 'Lettres', 
+                'description' => 'Filière Littéraire',
+                'duree_annees' => 2,
+                'frais_inscription' => 1200,
+                'frais_mensuel' => 650,
+                'est_actif' => true
+            ],
+            [
+                'code' => 'ECO', 
+                'nom' => 'Sciences Économiques', 
+                'description' => 'Filière Sciences Économiques',
+                'duree_annees' => 2,
+                'frais_inscription' => 1400,
+                'frais_mensuel' => 750,
+                'est_actif' => true
+            ],
+            [
+                'code' => 'SH', 
+                'nom' => 'Sciences Humaines', 
+                'description' => 'Filière Sciences Humaines',
+                'duree_annees' => 2,
+                'frais_inscription' => 1300,
+                'frais_mensuel' => 700,
+                'est_actif' => true
+            ]
         ];
 
         foreach ($filieres as $filiere) {
-            Filiere::firstOrCreate(['libelle' => $filiere['libelle']], $filiere);
+            Filiere::firstOrCreate(['code' => $filiere['code']], $filiere);
         }
     }
 
@@ -74,31 +155,151 @@ class InitialDataSeeder extends Seeder
     {
         $matieres = [
             // Matières scientifiques
-            ['libelle' => 'Mathématiques', 'description' => 'Mathématiques', 'coefficient' => 4],
-            ['libelle' => 'Physique', 'description' => 'Physique', 'coefficient' => 3],
-            ['libelle' => 'Chimie', 'description' => 'Chimie', 'coefficient' => 2],
-            ['libelle' => 'Sciences de la Vie et de la Terre', 'description' => 'SVT', 'coefficient' => 2],
+            [
+                'code' => 'MATH', 
+                'nom' => 'Mathématiques', 
+                'description' => 'Mathématiques', 
+                'type' => 'scientifique', 
+                'prix' => 300, 
+                'prix_prof' => 150,
+                'est_actif' => true
+            ],
+            [
+                'code' => 'PHYS', 
+                'nom' => 'Physique', 
+                'description' => 'Physique', 
+                'type' => 'scientifique', 
+                'prix' => 280, 
+                'prix_prof' => 140,
+                'est_actif' => true
+            ],
+            [
+                'code' => 'CHIM', 
+                'nom' => 'Chimie', 
+                'description' => 'Chimie', 
+                'type' => 'scientifique', 
+                'prix' => 260, 
+                'prix_prof' => 130,
+                'est_actif' => true
+            ],
+            [
+                'code' => 'SVT', 
+                'nom' => 'Sciences de la Vie et de la Terre', 
+                'description' => 'SVT', 
+                'type' => 'scientifique', 
+                'prix' => 250, 
+                'prix_prof' => 125,
+                'est_actif' => true
+            ],
             
             // Matières littéraires
-            ['libelle' => 'Français', 'description' => 'Langue Française', 'coefficient' => 3],
-            ['libelle' => 'Anglais', 'description' => 'Langue Anglaise', 'coefficient' => 2],
-            ['libelle' => 'Arabe', 'description' => 'Langue Arabe', 'coefficient' => 2],
-            ['libelle' => 'Philosophie', 'description' => 'Philosophie', 'coefficient' => 2],
-            ['libelle' => 'Histoire-Géographie', 'description' => 'Histoire et Géographie', 'coefficient' => 2],
+            [
+                'code' => 'FR', 
+                'nom' => 'Français', 
+                'description' => 'Langue Française', 
+                'type' => 'litteraire', 
+                'prix' => 200, 
+                'prix_prof' => 100,
+                'est_actif' => true
+            ],
+            [
+                'code' => 'EN', 
+                'nom' => 'Anglais', 
+                'description' => 'Langue Anglaise', 
+                'type' => 'litteraire', 
+                'prix' => 180, 
+                'prix_prof' => 90,
+                'est_actif' => true
+            ],
+            [
+                'code' => 'AR', 
+                'nom' => 'Arabe', 
+                'description' => 'Langue Arabe', 
+                'type' => 'litteraire', 
+                'prix' => 180, 
+                'prix_prof' => 90,
+                'est_actif' => true
+            ],
+            [
+                'code' => 'PHILO', 
+                'nom' => 'Philosophie', 
+                'description' => 'Philosophie', 
+                'type' => 'litteraire', 
+                'prix' => 200, 
+                'prix_prof' => 100,
+                'est_actif' => true
+            ],
+            [
+                'code' => 'HISTGEO', 
+                'nom' => 'Histoire-Géographie', 
+                'description' => 'Histoire et Géographie', 
+                'type' => 'litteraire', 
+                'prix' => 180, 
+                'prix_prof' => 90,
+                'est_actif' => true
+            ],
             
             // Autres matières
-            ['libelle' => 'Éducation Islamique', 'description' => 'Éducation Islamique', 'coefficient' => 1],
-            ['libelle' => 'Éducation Physique et Sportive', 'description' => 'EPS', 'coefficient' => 1],
-            ['libelle' => 'Informatique', 'description' => 'Informatique et Programmation', 'coefficient' => 2],
+            [
+                'code' => 'ISLAM', 
+                'nom' => 'Éducation Islamique', 
+                'description' => 'Éducation Islamique', 
+                'type' => 'autre', 
+                'prix' => 150, 
+                'prix_prof' => 75,
+                'est_actif' => true
+            ],
+            [
+                'code' => 'EPS', 
+                'nom' => 'Éducation Physique et Sportive', 
+                'description' => 'EPS', 
+                'type' => 'technique', 
+                'prix' => 100, 
+                'prix_prof' => 50,
+                'est_actif' => true
+            ],
+            [
+                'code' => 'INFO', 
+                'nom' => 'Informatique', 
+                'description' => 'Informatique et Programmation', 
+                'type' => 'scientifique', 
+                'prix' => 250, 
+                'prix_prof' => 125,
+                'est_actif' => true
+            ],
             
             // Matières économiques
-            ['libelle' => 'Sciences Économiques', 'description' => 'Économie Générale', 'coefficient' => 3],
-            ['libelle' => 'Comptabilité', 'description' => 'Comptabilité et Gestion', 'coefficient' => 3],
-            ['libelle' => 'Statistiques', 'description' => 'Statistiques et Probabilités', 'coefficient' => 2],
+            [
+                'code' => 'ECO', 
+                'nom' => 'Sciences Économiques', 
+                'description' => 'Économie Générale', 
+                'type' => 'autre', 
+                'prix' => 280, 
+                'prix_prof' => 140,
+                'est_actif' => true
+            ],
+            [
+                'code' => 'COMPTA', 
+                'nom' => 'Comptabilité', 
+                'description' => 'Comptabilité et Gestion', 
+                'type' => 'autre', 
+                'prix' => 260, 
+                'prix_prof' => 130,
+                'est_actif' => true
+            ],
+            [
+                'code' => 'STAT', 
+                'nom' => 'Statistiques', 
+                'description' => 'Statistiques et Probabilités', 
+                'type' => 'scientifique', 
+                'prix' => 240, 
+                'prix_prof' => 120,
+                'est_actif' => true
+            ],
         ];
 
         foreach ($matieres as $matiere) {
-            Matiere::firstOrCreate(['libelle' => $matiere['libelle']], $matiere);
+            Matiere::firstOrCreate(['code' => $matiere['code']], $matiere);
         }
     }
 }
