@@ -1,0 +1,265 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        // First, drop foreign key constraints that might reference the columns we're going to drop
+        $foreignKeys = [];
+        
+        Schema::table('paiements', function (Blueprint $table) use (&$foreignKeys) {
+            // Get the current connection
+            $connection = DB::connection();
+            
+            // List of known foreign keys that might exist
+            $possibleForeignKeys = [
+                'paiements_assistant_id_foreign',
+                'paiements_eleve_id_foreign',
+                'paiements_etudiant_id_foreign',
+                'paiements_matiere_id_foreign',
+                'paiements_pack_id_foreign',
+                'paiements_tarif_id_foreign',
+                'paiements_user_id_foreign'
+            ];
+            
+            try {
+                // Check if the table exists first
+                $tableExists = $connection->select("SHOW TABLES LIKE 'paiements'");
+                
+                if (count($tableExists) > 0) {
+                    // Drop each foreign key if it exists
+                    foreach ($possibleForeignKeys as $fkName) {
+                        try {
+                            $fkExists = $connection->select("
+                                SELECT COUNT(*) as count 
+                                FROM information_schema.TABLE_CONSTRAINTS 
+                                WHERE CONSTRAINT_SCHEMA = DATABASE() 
+                                AND TABLE_NAME = 'paiements' 
+                                AND CONSTRAINT_NAME = ? 
+                                AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+                            ", [$fkName]);
+                            
+                            if ($fkExists[0]->count > 0) {
+                                $table->dropForeign($fkName);
+                            }
+                        } catch (\Exception $e) {
+                            // Skip if there's an error dropping the foreign key
+                            continue;
+                        }
+                    }
+                    
+                    // Get the remaining foreign keys to store them for later
+                    $query = "SELECT CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME 
+                             FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+                             WHERE TABLE_NAME = 'paiements' 
+                             AND REFERENCED_TABLE_NAME IS NOT NULL";
+                    
+                    $constraints = $connection->select($query);
+                    foreach ($constraints as $constraint) {
+                        $foreignKeys[] = [
+                            'name' => $constraint->CONSTRAINT_NAME,
+                            'column' => $constraint->COLUMN_NAME,
+                            'referenced_table' => $constraint->REFERENCED_TABLE_NAME,
+                            'referenced_column' => $constraint->REFERENCED_COLUMN_NAME
+                        ];
+                    }
+                }
+            } catch (\Exception $e) {
+                // Skip if there's an error getting the constraints
+            }
+        });
+        
+        // Now modify the table structure
+        Schema::table('paiements', function (Blueprint $table) use ($foreignKeys) {
+            // Drop columns that are not needed
+            $columnsToDrop = [];
+            
+            // Check if columns exist before trying to drop them
+            $schema = DB::getDoctrineSchemaManager();
+            $columns = $schema->listTableDetails('paiements');
+            
+            if ($columns->hasColumn('eleve_id')) $columnsToDrop[] = 'eleve_id';
+            if ($columns->hasColumn('matiere_id')) $columnsToDrop[] = 'matiere_id';
+            if ($columns->hasColumn('pack_id')) $columnsToDrop[] = 'pack_id';
+            if ($columns->hasColumn('assistant_id')) $columnsToDrop[] = 'assistant_id';
+            if ($columns->hasColumn('type')) $columnsToDrop[] = 'type';
+            if ($columns->hasColumn('reference_paiement')) $columnsToDrop[] = 'reference_paiement';
+            if ($columns->hasColumn('commentaires')) $columnsToDrop[] = 'commentaires';
+            if ($columns->hasColumn('deleted_at')) $columnsToDrop[] = 'deleted_at';
+            
+            if (!empty($columnsToDrop)) {
+                $table->dropColumn($columnsToDrop);
+            }
+            
+            // Rename columns to match requirements
+            if ($columns->hasColumn('mode_paiement')) {
+                $table->renameColumn('mode_paiement', 'mode');
+            }
+            
+            if ($columns->hasColumn('mois_periode')) {
+                $table->renameColumn('mois_periode', 'mois_paiement');
+            }
+            
+            // Add missing columns if they don't exist
+            if (!$columns->hasColumn('user_id')) {
+                $table->unsignedBigInteger('user_id')->after('etudiant_id')->comment('ID de l\'utilisateur qui a créé le paiement');
+            }
+            
+            if (!$columns->hasColumn('montant_paye')) {
+                $table->decimal('montant_paye', 10, 2)->after('montant')->default(0);
+            }
+            
+            if (!$columns->hasColumn('reste')) {
+                $table->decimal('reste', 10, 2)->after('montant_paye')->default(0);
+            }
+            
+            // Handle statut column carefully
+            try {
+                // First, try to modify the column if it exists
+                if ($columns->hasColumn('statut')) {
+                    // Check if the column is an enum
+                    $columnType = $connection->getDoctrineColumn('paiements', 'statut')->getType()->getName();
+                    
+                    if ($columnType === 'string') {
+                        // It's already a string, just modify it
+                        DB::statement("ALTER TABLE paiements MODIFY statut VARCHAR(20) NOT NULL DEFAULT 'en_attente'");
+                    } else {
+                        // It's an enum, need to convert it to string
+                        DB::statement("ALTER TABLE paiements MODIFY statut VARCHAR(20) NOT NULL DEFAULT 'en_attente'");
+                    }
+                } else {
+                    // Add new column if it doesn't exist
+                    DB::statement("ALTER TABLE paiements ADD COLUMN statut VARCHAR(20) NOT NULL DEFAULT 'en_attente'");
+                }
+                
+                // Try to add check constraint if supported
+                try {
+                    DB::statement("ALTER TABLE paiements DROP CONSTRAINT IF EXISTS chk_paiements_statut");
+                    DB::statement("ALTER TABLE paiements ADD CONSTRAINT chk_paiements_statut 
+                        CHECK (statut IN ('en_attente', 'valide', 'annule', 'partiel'))");
+                } catch (\Exception $e) {
+                    // Ignore if check constraints are not supported
+                }
+                
+            } catch (\Exception $e) {
+                // If we can't modify the column, try to drop and recreate it
+                try {
+                    DB::statement("ALTER TABLE paiements DROP COLUMN IF EXISTS statut");
+                    DB::statement("ALTER TABLE paiements ADD COLUMN statut VARCHAR(20) NOT NULL DEFAULT 'en_attente'");
+                } catch (\Exception $e) {
+                    // If all else fails, just log the error and continue
+                    \Log::error('Failed to modify statut column: ' . $e->getMessage());
+                }
+            }
+            
+            // Add foreign key for user_id
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            
+            // Recreate any other foreign keys that were dropped
+            foreach ($foreignKeys as $fk) {
+                // Skip if the column was dropped or if it's the user_id we just added
+                if (in_array($fk['column'], $columnsToDrop) || $fk['column'] === 'user_id') {
+                    continue;
+                }
+                
+                $table->foreign($fk['column'])
+                      ->references($fk['referenced_column'])
+                      ->on($fk['referenced_table'])
+                      ->onDelete('cascade');
+            }
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        // First, drop the foreign key constraints we added
+        Schema::table('paiements', function (Blueprint $table) {
+            // Drop the foreign key constraint for user_id if it exists
+            $connection = DB::connection();
+            $query = "SELECT CONSTRAINT_NAME 
+                     FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+                     WHERE TABLE_NAME = 'paiements' 
+                     AND COLUMN_NAME = 'user_id' 
+                     AND REFERENCED_TABLE_NAME IS NOT NULL";
+            
+            $constraints = $connection->select($query);
+            
+            foreach ($constraints as $constraint) {
+                $table->dropForeign($constraint->CONSTRAINT_NAME);
+            }
+        });
+        
+        // Now modify the table structure
+        Schema::table('paiements', function (Blueprint $table) {
+            // Drop added columns if they exist
+            $schema = DB::getDoctrineSchemaManager();
+            $columns = $schema->listTableDetails('paiements');
+            
+            if ($columns->hasColumn('user_id')) {
+                $table->dropColumn('user_id');
+            }
+            
+            if ($columns->hasColumn('montant_paye')) {
+                $table->dropColumn('montant_paye');
+            }
+            
+            if ($columns->hasColumn('reste')) {
+                $table->dropColumn('reste');
+            }
+            
+            // Re-add dropped columns with their original structure
+            if (!$columns->hasColumn('eleve_id')) {
+                $table->unsignedBigInteger('eleve_id')->nullable()->after('etudiant_id');
+            }
+            
+            if (!$columns->hasColumn('matiere_id')) {
+                $table->unsignedBigInteger('matiere_id')->after('eleve_id');
+            }
+            
+            if (!$columns->hasColumn('pack_id')) {
+                $table->unsignedBigInteger('pack_id')->nullable()->after('matiere_id');
+            }
+            
+            if (!$columns->hasColumn('assistant_id')) {
+                $table->unsignedBigInteger('assistant_id')->nullable()->after('pack_id');
+            }
+            
+            if (!$columns->hasColumn('type')) {
+                $table->string('type')->nullable()->after('assistant_id');
+            }
+            
+            if ($columns->hasColumn('mode') && !$columns->hasColumn('mode_paiement')) {
+                $table->renameColumn('mode', 'mode_paiement');
+            }
+            
+            if (!$columns->hasColumn('reference_paiement')) {
+                $table->string('reference_paiement')->nullable()->after('mode_paiement');
+            }
+            
+            if (!$columns->hasColumn('commentaires')) {
+                $table->text('commentaires')->nullable()->after('statut');
+            }
+            
+            if (!$columns->hasColumn('deleted_at')) {
+                $table->timestamp('deleted_at')->nullable()->after('updated_at');
+            }
+            
+            if ($columns->hasColumn('mois_paiement') && !$columns->hasColumn('mois_periode')) {
+                $table->renameColumn('mois_paiement', 'mois_periode');
+            }
+            
+            // Revert statut enum using raw SQL
+            DB::statement("ALTER TABLE paiements MODIFY statut ENUM('en_attente', 'valide', 'annule') NOT NULL DEFAULT 'en_attente'");
+        });
+    }
+};

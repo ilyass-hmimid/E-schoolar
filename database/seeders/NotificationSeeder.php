@@ -34,16 +34,6 @@ class NotificationSeeder extends Seeder
         }
         
         $notificationsCreees = 0;
-        $types = TypeNotification::cases();
-        $sujets = [
-            'Paiement en retard',
-            'Absence non justifiée',
-            'Nouvelle note disponible',
-            'Changement d\'emploi du temps',
-            'Annonce importante',
-            'Rappel de rendez-vous',
-            'Information administrative',
-        ];
         
         // Créer des notifications pour chaque utilisateur
         foreach ($users as $user) {
@@ -51,25 +41,29 @@ class NotificationSeeder extends Seeder
             $nombreNotifications = rand(3, 10);
             
             for ($i = 0; $i < $nombreNotifications; $i++) {
+                $sujets = [
+                    'Paiement en retard',
+                    'Absence non justifiée',
+                    'Nouvelle note disponible',
+                    'Changement d\'emploi du temps',
+                    'Annonce importante',
+                    'Rappel de rendez-vous',
+                    'Information administrative',
+                ];
+                
                 $sujet = $sujets[array_rand($sujets)];
                 $type = $this->getNotificationType($sujet);
                 $estLue = (bool)rand(0, 1);
                 
-                // Pour les élèves, définir un élève aléatoire
-                $eleveId = null;
-                if ($user->role === 'professeur' || $user->role === 'admin') {
-                    $eleve = User::where('role', 'eleve')->inRandomOrder()->first();
-                    $eleveId = $eleve ? $eleve->id : null;
-                }
-                
+                // Créer la notification avec les champs existants
                 Notification::create([
                     'user_id' => $user->id,
-                    'eleve_id' => $eleveId,
+                    'titre' => $sujet,
+                    'contenu' => $this->genererMessage($sujet, $user->name),
                     'type' => $type,
-                    'message' => $this->genererMessage($sujet, $user->name),
-                    'status' => $estLue ? 'lu' : 'non_lu',
-                    'read_at' => $estLue ? now() : null,
-                    'data' => json_encode(['sujet' => $sujet]),
+                    'est_lu' => $estLue,
+                    'date_lecture' => $estLue ? now() : null,
+                    'donnees' => ['sujet' => $sujet],
                     'created_at' => now()->subDays(rand(0, 30)),
                     'updated_at' => now(),
                 ]);

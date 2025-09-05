@@ -39,7 +39,7 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\PreventBackAfterLogout::class,
             \App\Http\Middleware\EnsureUserIsActive::class,
             \App\Http\Middleware\ValidateRequestData::class,
-
+            \App\Http\Middleware\ActionLogger::class,
         ],
 
         'api' => [
@@ -73,7 +73,12 @@ class Kernel extends HttpKernel
         'permission' => \App\Http\Middleware\CheckPermission::class,
         'role' => \App\Http\Middleware\RoleMiddleware::class,
         'active' => \App\Http\Middleware\EnsureUserIsActive::class,
+        'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+        'professor' => \App\Http\Middleware\EnsureUserIsProfessor::class,
+        'student' => \App\Http\Middleware\EnsureUserIsStudent::class,
+        'parent' => \App\Http\Middleware\EnsureUserIsParent::class,
         'handle.welcome' => \App\Http\Middleware\HandleWelcomePage::class,
         'validate' => \App\Http\Middleware\ValidateRequestData::class,
+        'action.logger' => \App\Http\Middleware\ActionLogger::class,
     ];
 }

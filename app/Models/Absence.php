@@ -5,52 +5,50 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Builder;
+use Carbon\Carbon;
 
 class Absence extends Model
 {
-    // Statuts de justification
-    public const STATUT_JUSTIFICATION = [
-        'en_attente' => 'En attente',
-        'justifiee' => 'Justifiée',
-        'non_justifiee' => 'Non justifiée',
-        'en_cours' => 'En cours de traitement'
-    ];
-    
     use SoftDeletes;
 
-    protected $table = 'absences';
+    // Types d'absence
+    public const TYPE_COURS = 'cours';
+    public const TYPE_EXAMEN = 'examen';
+    public const TYPE_AUTRE = 'autre';
+
+    // Statuts d'absence
+    public const STATUT_JUSTIFIEE = 'justifiee';
+    public const STATUT_NON_JUSTIFIEE = 'non_justifiee';
+    public const STATUT_EN_ATTENTE = 'en_attente';
 
     protected $fillable = [
         'eleve_id',
-        'classe_id',
-        'date_debut',
-        'date_fin',
+        'matiere_id',
+        'professeur_id',
+        'date_absence',
         'type',
-        'motif',
-        'est_justifiee',
-        'justification',
-        'piece_jointe',
         'statut',
-        'enregistre_par',
-        'valide_par',
-        'valide_le',
-        'commentaires_validation',
+        'motif',
+        'justificatif',
+        'duree',
+        'commentaire',
+        'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
-        'date_debut' => 'date',
-        'date_fin' => 'date',
-        'est_justifiee' => 'boolean',
-        'valide_le' => 'datetime',
+        'date_absence' => 'date',
+        'duree' => 'integer', // Durée en minutes
     ];
 
     protected $appends = [
-        'duree',
-        'statut_label',
+        'duree_formatee',
+        'est_justifiee',
     ];
 
     /**
-     * Get the eleve that owns the absence.
+     * Relation avec l'élève
      */
     public function eleve(): BelongsTo
     {
@@ -58,182 +56,139 @@ class Absence extends Model
     }
 
     /**
-     * Get the classe that owns the absence.
+     * Relation avec la matière
      */
-    public function classe(): BelongsTo
+    public function matiere(): BelongsTo
     {
-        return $this->belongsTo(Classe::class);
+        return $this->belongsTo(Matiere::class);
     }
 
     /**
-     * Get the user who recorded the absence.
+     * Relation avec le professeur
      */
-    public function enregistrePar(): BelongsTo
+    public function professeur(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'enregistre_par');
+        return $this->belongsTo(Professeur::class);
     }
 
     /**
-     * Get the user who validated the absence.
+     * Relation avec la classe via l'élève
      */
-    public function validePar(): BelongsTo
+    public function classe()
     {
-        return $this->belongsTo(User::class, 'valide_par');
+        return $this->eleve->classe();
     }
 
     /**
-     * Calculate the duration of the absence in days.
+     * Relation avec l'utilisateur qui a créé l'absence
      */
-    public function getDureeAttribute(): int
+    public function createdBy()
     {
-        if (!$this->date_fin) {
-            return 1;
-        }
-        
-        return $this->date_debut->diffInDays($this->date_fin) + 1;
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     /**
-     * Get the status label for the absence.
+     * Relation avec l'utilisateur qui a mis à jour l'absence
      */
-    public function getStatutLabelAttribute(): string
+    public function updatedBy()
     {
-        return [
-            'en_attente' => 'En attente',
-            'validee' => 'Validée',
-            'rejetee' => 'Rejetée',
-        ][$this->statut] ?? $this->statut;
+        return $this->belongsTo(User::class, 'updated_by');
     }
 
     /**
-     * Scopes
+     * Scope pour les absences justifiées
      */
-    
-    /**
-     * Scope for absences (not delays)
-     */
-    public function scopeAbsences($query)
+    public function scopeJustifiees(Builder $query): Builder
     {
-        return $query->where('type', 'absence');
-    }
-    
-    /**
-     * Scope for delays
-     */
-    public function scopeRetards($query)
-    {
-        return $query->where('type', 'retard');
-    }
-    
-    /**
-     * Scope for justified absences
-     */
-    public function scopeJustifiees($query)
-    {
-        return $query->where('est_justifiee', true);
-    }
-    
-    /**
-     * Scope for pending validation absences
-     */
-    public function scopeEnAttenteValidation($query)
-    {
-        return $query->where('statut', 'en_attente');
-    }
-    
-    /**
-     * Scope for validated absences
-     */
-    public function scopeValidees($query)
-    {
-        return $query->where('statut', 'validee');
-    }
-    
-    /**
-     * Scope for rejected absences
-     */
-    public function scopeRejetees($query)
-    {
-        return $query->where('statut', 'rejetee');
-    }
-    
-    /**
-     * Scope for non-justified absences
-     */
-    public function scopeNonJustifiees($query)
-    {
-        return $query->where('est_justifiee', false);
+        return $query->where('statut', self::STATUT_JUSTIFIEE);
     }
 
     /**
-     * Scope pour filtrer les absences par date ou par plage de dates
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string|\Carbon\Carbon $startDate
-     * @param string|\Carbon\Carbon|null $endDate
-     * @return \Illuminate\Database\Eloquent\Builder
+     * Scope pour les absences non justifiées
      */
-    public function scopeParDate($query, $startDate, $endDate = null)
+    public function scopeNonJustifiees(Builder $query): Builder
     {
-        if ($endDate === null) {
-            return $query->whereDate('date_absence', $startDate);
-        }
-        
-        return $query->whereBetween('date_absence', [
-            $startDate,
-            $endDate
-        ]);
+        return $query->where('statut', self::STATUT_NON_JUSTIFIEE);
     }
 
-    public function scopeParMatiere($query, $matiereId)
+    /**
+     * Scope pour les absences en attente de justification
+     */
+    public function scopeEnAttente(Builder $query): Builder
+    {
+        return $query->where('statut', self::STATUT_EN_ATTENTE);
+    }
+
+    /**
+     * Scope pour les absences d'un élève
+     */
+    public function scopePourEleve(Builder $query, int $eleveId): Builder
+    {
+        return $query->where('eleve_id', $eleveId);
+    }
+
+    /**
+     * Scope pour les absences d'une matière
+     */
+    public function scopePourMatiere(Builder $query, int $matiereId): Builder
     {
         return $query->where('matiere_id', $matiereId);
     }
 
-    public function scopeParEtudiant($query, $etudiantId)
-    {
-        return $query->where('etudiant_id', $etudiantId);
-    }
-    
     /**
-     * Accessor pour l'URL de la pièce jointe
-     *
-     * @return string|null
+     * Scope pour les absences entre deux dates
      */
-    public function getPieceJointeUrlAttribute()
+    public function scopeEntreDates(Builder $query, string $dateDebut, string $dateFin): Builder
     {
-        return $this->piece_jointe ? Storage::url($this->piece_jointe) : null;
+        return $query->whereBetween('date_absence', [
+            Carbon::parse($dateDebut)->startOfDay(),
+            Carbon::parse($dateFin)->endOfDay()
+        ]);
     }
-    
+
     /**
-     * Vérifie si l'absence a une pièce jointe
-     *
-     * @return bool
+     * Compter les absences d'un élève sur une période
      */
-    public function getAPieceJointeAttribute()
+    public static function compterPourEleve(int $eleveId, ?string $dateDebut = null, ?string $dateFin = null): int
     {
-        return !empty($this->piece_jointe);
-    }
-    
-    /**
-     * Obtient la durée formatée du retard
-     *
-     * @return string
-     */
-    public function getDureeRetardFormateeAttribute()
-    {
-        if (!$this->duree_retard) {
-            return '-';
+        $query = self::where('eleve_id', $eleveId);
+        
+        if ($dateDebut && $dateFin) {
+            $query->whereBetween('date_absence', [
+                Carbon::parse($dateDebut)->startOfDay(),
+                Carbon::parse($dateFin)->endOfDay()
+            ]);
         }
         
-        $heures = floor($this->duree_retard / 60);
-        $minutes = $this->duree_retard % 60;
-        
-        if ($heures > 0) {
-            return sprintf('%dh%02d', $heures, $minutes);
+        return $query->count();
+    }
+
+    /**
+     * Obtenir la durée formatée (ex: "2h30")
+     */
+    public function getDureeFormateeAttribute(): string
+    {
+        if (!$this->duree) {
+            return '';
         }
         
-        return $minutes . ' min';
+        $heures = floor($this->duree / 60);
+        $minutes = $this->duree % 60;
+        
+        if ($heures > 0 && $minutes > 0) {
+            return "{$heures}h" . str_pad($minutes, 2, '0', STR_PAD_LEFT);
+        } elseif ($heures > 0) {
+            return "{$heures}h";
+        } else {
+            return "{$minutes}min";
+        }
     }
-    
+
+    /**
+     * Vérifier si l'absence est justifiée
+     */
+    public function getEstJustifieeAttribute(): bool
+    {
+        return $this->statut === self::STATUT_JUSTIFIEE;
+    }
 }

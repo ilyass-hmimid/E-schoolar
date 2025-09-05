@@ -22,6 +22,16 @@ class Kernel extends ConsoleKernel
                 ->onFailure(function () {
                     Log::error('Échec de la vérification des retards de paiement');
                 });
+                
+        // Calcul mensuel des paiements des professeurs le 1er de chaque mois à 1h du matin
+        $schedule->command('payments:calculate --month=now')
+                ->monthlyOn(1, '01:00')
+                ->onSuccess(function () {
+                    Log::info('Calcul des paiements des professeurs effectué avec succès');
+                })
+                ->onFailure(function () {
+                    Log::error('Échec du calcul des paiements des professeurs');
+                });
     }
 
     /**

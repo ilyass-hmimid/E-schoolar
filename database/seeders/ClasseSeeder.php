@@ -75,13 +75,13 @@ class ClasseSeeder extends Seeder
             
             Classe::create([
                 'nom' => $classeData['nom'],
-                'code_classe' => $classeData['code_classe'],
+                'code' => $classeData['code_classe'],
                 'niveau_id' => $classeData['niveau_id'],
                 'filiere_id' => $classeData['filiere_id'],
-                'professeur_principal_id' => $professeurPrincipal ? $professeurPrincipal->id : null,
-                'annee_scolaire' => $anneeScolaire,
-                'effectif_max' => 30,
+                'description' => $classeData['nom'],
+                'capacite_max' => 30,
                 'est_actif' => true,
+                'annee_scolaire' => $anneeScolaire,
             ]);
             
             $this->command->info("Classe créée : " . $classeData['nom']);

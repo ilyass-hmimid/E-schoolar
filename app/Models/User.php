@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Models;
+
 use App\Enums\RoleType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -8,44 +9,35 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use App\Models\Presence;
-use App\Models\Enseignant;
-use App\Models\PaiementProfesseur;
 use Spatie\Permission\Traits\HasRoles;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-use App\Events\NewNotificationEvent;
 use Carbon\Carbon;
 
-class User extends Authenticatable implements ShouldBroadcast
+class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles, LogsActivity;
     
     /**
-     * The attributes that are mass assignable.
+     * Les attributs qui sont assignables en masse.
      *
      * @var array<int, string>
      */
     protected $fillable = [
         'name',
         'email',
-        'avatar',
         'password',
         'role',
         'phone',
         'address',
-        'niveau_id',
-        'filiere_id',
-        'somme_a_payer',
-        'date_debut',
+        'classe_id',
         'is_active',
-        'date_naissance'
+        'email_verified_at'
     ];
-
+    
     /**
-     * The attributes that should be hidden for serialization.
+     * Les attributs qui doivent être cachés pour la sérialisation.
      *
      * @var array<int, string>
      */
@@ -77,6 +69,34 @@ class User extends Authenticatable implements ShouldBroadcast
         'is_active' => 'boolean',
         'date_naissance' => 'date',
     ];
+    
+    /**
+     * Configuration du journal d'activité
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['name', 'email', 'role', 'is_active'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => "L'utilisateur a été {$eventName}");
+    }
+    
+    /**
+     * Get the classe that the user belongs to.
+     */
+    public function classe(): BelongsTo
+    {
+        return $this->belongsTo(Classe::class);
+    }
+    
+    /**
+     * Get the classes where this user is the main teacher.
+     */
+    public function classesEnseignees(): HasMany
+    {
+        return $this->hasMany(Classe::class, 'professeur_principal_id');
+    }
     
     /**
      * Find the user instance for the given username.

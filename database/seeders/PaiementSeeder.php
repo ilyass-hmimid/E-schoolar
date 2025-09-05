@@ -28,13 +28,18 @@ class PaiementSeeder extends Seeder
         // Réactiver les contraintes de clé étrangère
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
-        // Récupérer les étudiants avec leurs classes
-        $etudiants = Etudiant::with(['user', 'classe'])->get();
-        
-        if ($etudiants->isEmpty()) {
-            $this->command->error('Veuillez d\'abord exécuter EtudiantSeeder pour créer des étudiants.');
+        // Récupérer tous les élèves avec leur utilisateur associé
+        $eleves = DB::table('eleves')
+            ->join('users', 'eleves.user_id', '=', 'users.id')
+            ->select('eleves.id as eleve_id', 'users.id as user_id', 'users.name')
+            ->get();
+            
+        if ($eleves->isEmpty()) {
+            $this->command->error('Aucun élève trouvé. Veuillez d\'abord exécuter EleveSeeder pour créer des élèves.');
             return;
         }
+        
+        $this->command->info('Nombre d\'élèves trouvés : ' . $eleves->count());
 
         // Mois de l'année scolaire (de septembre à juin)
         $moisAnneeScolaire = [
@@ -53,8 +58,8 @@ class PaiementSeeder extends Seeder
         $paiementsCrees = 0;
         $anneeScolaire = (date('m') >= 9 ? date('Y') : date('Y') - 1) . '-' . (date('m') >= 9 ? date('Y') + 1 : date('Y'));
         
-        foreach ($etudiants as $etudiant) {
-            $dateInscription = $etudiant->date_inscription ?? now()->subMonths(rand(1, 12));
+        foreach ($eleves as $eleve) {
+            $dateInscription = now()->subMonths(rand(1, 12));
             $dateDebut = Carbon::parse($dateInscription)->startOfMonth();
             $dateActuelle = now();
             
@@ -106,32 +111,38 @@ class PaiementSeeder extends Seeder
                             }
                         }
                         
-                        // Sélectionner une matière aléatoire pour l'étudiant
-                        $matiereId = 1; // Default matiere_id
-                        
-                        // Vérifier si la classe a des matières associées
-                        if ($etudiant->classe && $etudiant->classe->matieres && $etudiant->classe->matieres->isNotEmpty()) {
-                            $matiereId = $etudiant->classe->matieres->random()->id;
-                        } else {
-                            // Si pas de matières, essayer d'en trouver une dans la base de données
-                            $matiere = DB::table('matieres')->inRandomOrder()->first();
-                            if ($matiere) {
-                                $matiereId = $matiere->id;
-                            }
-                        }
+                        // Sélectionner une matière aléatoire
+                        $matiere = DB::table('matieres')->inRandomOrder()->first();
+                        $matiereId = $matiere ? $matiere->id : 1;
                         
                         // Créer le paiement
+                        // Calculate montant_paye and reste based on status
+                        $montantPaye = in_array($statut, ['valide', 'partiel']) ? $montant : 0;
+                        $reste = $montant - $montantPaye;
+                        
+                        // If status is 'partiel', set montant_paye to a random amount less than montant
+                        if ($statut === 'partiel') {
+                            $montantPaye = round($montant * (rand(50, 90) / 100), 2);
+                            $reste = $montant - $montantPaye;
+                        }
+                        
                         Paiement::create([
-                            'etudiant_id' => $etudiant->id,
+                            'user_id' => $eleve->user_id, // Clé étrangère vers users
+                            'etudiant_id' => $eleve->user_id, // Pour rétrocompatibilité
+                            'eleve_id' => $eleve->eleve_id, // Clé étrangère vers eleves
                             'matiere_id' => $matiereId,
                             'pack_id' => null, // Peut être défini plus tard si nécessaire
                             'assistant_id' => null, // Peut être défini plus tard si nécessaire
+                            'type' => 'scolarite', // Type de paiement
                             'montant' => $montant,
+                            'montant_paye' => $montantPaye,
+                            'reste' => $reste,
                             'mode_paiement' => $this->getRandomMethodePaiement(),
                             'reference_paiement' => 'PAY-' . strtoupper(Str::random(10)),
                             'date_paiement' => $datePaiement,
                             'statut' => $statut,
                             'commentaires' => 'Paiement généré automatiquement',
+                            'notes' => 'Période: ' . $dateDebut->format('F Y'),
                             'mois_periode' => $dateDebut->format('Y-m'),
                             'created_at' => $dateDebut,
                             'updated_at' => $dateDebut,

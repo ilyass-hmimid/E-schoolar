@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Enums\RoleType;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class DatabaseSeeder extends Seeder
 {
@@ -15,28 +16,34 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Désactiver les contraintes de clé étrangère
-        \DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
         // Vider les tables si nécessaire (en développement uniquement)
         if (app()->environment('local', 'testing')) {
             $this->truncateTables([
-                'users', 'etudiants', 'enseignants', 'classes', 'cours',
-                'paiements', 'absences', 'notifications', 'niveaux',
-                'filieres', 'matieres', 'model_has_roles', 'roles', 'permissions',
-                'model_has_permissions', 'role_has_permissions', 'enseignements', 'inscriptions'
+                'users', 'eleves', 'professeurs', 'classes', 'paiements', 
+                'absences', 'niveaux', 'filieres', 'matieres', 'packs',
+                'model_has_roles', 'roles', 'permissions', 'model_has_permissions',
+                'role_has_permissions', 'sessions'
             ]);
         }
 
         // Exécuter les seeders des données de base
         $this->call([
-            RolePermissionSeeder::class,
-            PermissionSeeder::class,
-            ConfigurationSalaireSeeder::class,
-            InitialDataSeeder::class, // Niveaux, filières et matières
-            TestDataSeeder::class, // Données de test réalistes
+            RolePermissionSeeder::class,  // Rôles et permissions de base
+            PermissionSeeder::class,      // Permissions du système
+            NiveauTableSeeder::class,     // Niveaux scolaires
+            FiliereTableSeeder::class,    // Filières
+            MatiereTableSeeder::class,    // Matières
+            AdminUserSeeder::class,       // Utilisateur admin
+            ClasseSeeder::class,          // Classes
+            EleveSeeder::class,           // Élèves
+            ProfesseurSeeder::class,      // Professeurs
+            AbsenceSeeder::class,         // Absences
+            PaiementSeeder::class,        // Paiements
         ]);
 
-        // Créer l'administrateur principal
+        // Créer l'administrateur principal s'il n'existe pas
         $admin = User::firstOrCreate(
             ['email' => 'admin@allotawjih.com'],
             [
@@ -50,7 +57,9 @@ class DatabaseSeeder extends Seeder
         );
 
         // Attribuer le rôle admin à l'utilisateur admin
-        $admin->assignRole('admin');
+        if ($admin->wasRecentlyCreated) {
+            $admin->assignRole('admin');
+        }
 
         // Créer des données de test pour le développement
         if (app()->environment('local', 'testing')) {

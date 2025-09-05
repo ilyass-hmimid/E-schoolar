@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -12,55 +11,89 @@ class RoleMiddleware
 {
     /**
      * Handle an incoming request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure  $next
+     * @param  string|array  ...$roles
+     * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
      */
-    public function handle(Request $request, Closure $next, string $role): Response
+    public function handle(Request $request, Closure $next, ...$roles): mixed
     {
         $user = $request->user();
 
-        // Check if user is authenticated
+        // Vérifier si l'utilisateur est connecté
         if (!$user) {
-            return response()->json(['message' => 'Non authentifié.'], 401);
+            return $this->unauthorized($request);
         }
 
-        // If user is admin, allow access
-        if ($user->isAdmin()) {
+        // Normaliser les rôles (s'assurer que c'est un tableau plat)
+        $roles = is_array($roles) ? array_map('strtolower', $roles) : [strtolower($roles)];
+        $roles = array_map('trim', $roles);
+        $roles = array_unique($roles);
+
+        // Si l'utilisateur a le rôle admin, on lui donne accès
+        if ($user->hasRole('admin')) {
             return $next($request);
         }
 
-        // Get user role and normalize it
-        $userRole = $this->normalizeRole($user->role);
-        $requiredRoles = array_map([$this, 'normalizeRole'], explode('|', $role));
+        // Vérifier si l'utilisateur a l'un des rôles requis
+        $userRoles = $user->getRoleNames()->map(fn($role) => strtolower(trim($role)));
         
-        // Check if user has any of the required roles
-        if (in_array($userRole, $requiredRoles, true)) {
-            return $next($request);
+        foreach ($roles as $requiredRole) {
+            if ($userRoles->contains($requiredRole)) {
+                return $next($request);
+            }
         }
-        
-        // Log unauthorized access attempt
+
+        // Journaliser la tentative d'accès non autorisée
+        $this->logUnauthorizedAccess($request, $user, $roles);
+
+        return $this->unauthorized($request);
+    }
+
+    /**
+     * Journaliser une tentative d'accès non autorisée
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\User  $user
+     * @param  array  $requiredRoles
+     * @return void
+     */
+    private function logUnauthorizedAccess($request, $user, array $requiredRoles): void
+    {
         Log::warning('Tentative d\'accès non autorisée', [
             'user_id' => $user->id,
-            'user_role' => $userRole,
+            'email' => $user->email,
+            'user_roles' => $user->getRoleNames(),
             'required_roles' => $requiredRoles,
             'route' => $request->route()?->getName(),
-            'ip' => $request->ip()
+            'method' => $request->method(),
+            'url' => $request->fullUrl(),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
-
-        return response()->json(['message' => 'Accès non autorisé. Vous n\'avez pas les permissions nécessaires.'], 403);
     }
-    
+
     /**
-     * Normalize role to string representation
+     * Gérer une réponse non autorisée
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
      */
-    private function normalizeRole($role): string
+    private function unauthorized($request)
     {
-        if ($role instanceof \BackedEnum) {
-            return strtolower($role->value);
-        }
+        $message = 'Accès non autorisé. Vous n\'avez pas les permissions nécessaires pour accéder à cette ressource.';
         
-        if (is_object($role) && method_exists($role, 'value')) {
-            $role = $role->value;
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+                'code' => 403
+            ], 403);
         }
-        
-        return is_string($role) ? strtolower(trim($role)) : '';
+
+        return redirect()
+            ->route('home')
+            ->with('error', $message);
     }
 }

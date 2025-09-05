@@ -31,14 +31,11 @@ class UserSeeder extends Seeder
             ['email' => 'admin1@example.com'],
             [
                 'name' => 'Admin Principal',
-                'nom' => 'Admin',
-                'prenom' => 'Principal',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => Str::random(10),
                 'role' => RoleType::ADMIN->value,
                 'phone' => $generatePhone(),
-                'address' => '123 Rue Admin, Casablanca 20000, Maroc',
                 'is_active' => true,
             ]
         );
@@ -50,14 +47,11 @@ class UserSeeder extends Seeder
             ['email' => 'admin2@example.com'],
             [
                 'name' => 'Admin Secondaire',
-                'nom' => 'Admin',
-                'prenom' => 'Secondaire',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => Str::random(10),
                 'role' => RoleType::ADMIN->value,
                 'phone' => $generatePhone(),
-                'address' => '456 Avenue Admin, Rabat 10000, Maroc',
                 'is_active' => true,
             ]
         );
@@ -70,17 +64,12 @@ class UserSeeder extends Seeder
             ['email' => 'prof1@example.com'],
             [
                 'name' => 'Ahmed Alami',
-                'nom' => 'Alami',
-                'prenom' => 'Ahmed',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => Str::random(10),
                 'role' => RoleType::PROFESSEUR->value,
                 'phone' => $generatePhone(),
-                'address' => '789 Rue des Professeurs, Casablanca 20000',
                 'is_active' => true,
-                'niveau_id' => !empty($niveaux) ? $niveaux[array_rand($niveaux)] : null,
-                'filiere_id' => !empty($filieres) ? $filieres[array_rand($filieres)] : null,
             ]
         );
         if ($professeur1->wasRecentlyCreated) {
@@ -91,17 +80,12 @@ class UserSeeder extends Seeder
             ['email' => 'prof2@example.com'],
             [
                 'name' => 'Fatima Zahra',
-                'nom' => 'Zahra',
-                'prenom' => 'Fatima',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => Str::random(10),
                 'role' => RoleType::PROFESSEUR->value,
                 'phone' => $generatePhone(),
-                'address' => '101 Avenue des Enseignants, Rabat 10000',
                 'is_active' => true,
-                'niveau_id' => !empty($niveaux) ? $niveaux[array_rand($niveaux)] : null,
-                'filiere_id' => !empty($filieres) ? $filieres[array_rand($filieres)] : null,
             ]
         );
         if ($professeur2->wasRecentlyCreated) {
@@ -113,17 +97,12 @@ class UserSeeder extends Seeder
             ['email' => 'etudiant1@example.com'],
             [
                 'name' => 'Youssef Benali',
-                'nom' => 'Benali',
-                'prenom' => 'Youssef',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => Str::random(10),
                 'role' => RoleType::ELEVE->value,
                 'phone' => $generatePhone(),
                 'address' => '123 Rue des Étudiants, Casablanca 20000',
-                'date_naissance' => now()->subYears(rand(18, 25))->format('Y-m-d'),
-                'niveau_id' => !empty($niveaux) ? $niveaux[array_rand($niveaux)] : null,
-                'filiere_id' => !empty($filieres) ? $filieres[array_rand($filieres)] : null,
                 'is_active' => true,
             ]
         );
@@ -136,17 +115,12 @@ class UserSeeder extends Seeder
             ['email' => 'etudiant2@example.com'],
             [
                 'name' => 'Leila El Mansouri',
-                'nom' => 'El Mansouri',
-                'prenom' => 'Leila',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => Str::random(10),
                 'role' => RoleType::ELEVE->value,
                 'phone' => $generatePhone(),
                 'address' => '456 Avenue des Étudiantes, Rabat 10000',
-                'date_naissance' => now()->subYears(rand(18, 22))->format('Y-m-d'),
-                'niveau_id' => !empty($niveaux) ? $niveaux[array_rand($niveaux)] : null,
-                'filiere_id' => !empty($filieres) ? $filieres[array_rand($filieres)] : null,
                 'is_active' => true,
             ]
         );
@@ -158,15 +132,12 @@ class UserSeeder extends Seeder
         $assistant1 = User::firstOrCreate(
             ['email' => 'assistant1@example.com'],
             [
-                'name' => 'Karim Bennis',
-                'nom' => 'Bennis',
-                'prenom' => 'Karim',
+                'name' => 'Assistante1',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => Str::random(10),
                 'role' => RoleType::ASSISTANT->value,
                 'phone' => $generatePhone(),
-                'address' => '789 Rue des Assistants, Casablanca 20000',
                 'is_active' => true,
             ]
         );
@@ -177,15 +148,12 @@ class UserSeeder extends Seeder
         $assistant2 = User::firstOrCreate(
             ['email' => 'assistant2@example.com'],
             [
-                'name' => 'Salma El Amrani',
-                'nom' => 'El Amrani',
-                'prenom' => 'Salma',
+                'name' => 'Assistante2',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => Str::random(10),
                 'role' => RoleType::ASSISTANT->value,
                 'phone' => $generatePhone(),
-                'address' => '101 Avenue des Assistantes, Rabat 10000',
                 'is_active' => true,
             ]
         );

@@ -6,39 +6,53 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Carbon\Carbon;
 
 class Eleve extends Model
 {
     use SoftDeletes;
 
     protected $fillable = [
-        'nom',
-        'prenom',
-        'email',
-        'telephone',
+        'user_id',
         'classe_id',
         'date_naissance',
+        'lieu_naissance',
         'adresse',
-        'ville',
-        'code_postal',
-        'pays',
+        'telephone',
+        'sexe',
+        'cin',
+        'cne',
+        'date_inscription',
         'nom_pere',
         'profession_pere',
         'telephone_pere',
         'nom_mere',
         'profession_mere',
         'telephone_mere',
-        'notes',
-        'est_actif',
+        'adresse_parents',
+        'remarques',
     ];
 
     protected $casts = [
         'date_naissance' => 'date',
-        'est_actif' => 'boolean',
+        'date_inscription' => 'date',
+    ];
+
+    protected $appends = [
+        'nom_complet',
+        'age',
     ];
 
     /**
-     * Get the classe that owns the eleve.
+     * Relation avec l'utilisateur associé
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Relation avec la classe de l'élève
      */
     public function classe(): BelongsTo
     {
@@ -46,98 +60,76 @@ class Eleve extends Model
     }
 
     /**
-     * Get the paiements for the eleve.
-     */
-    public function paiements()
-    {
-        return $this->hasMany(PaiementEleve::class)->orderBy('mois', 'desc');
-    }
-    
-    /**
-     * Get the active paiements for the eleve.
-     */
-    public function paiementsActifs()
-    {
-        return $this->paiements()->where('statut', 'paye');
-    }
-    
-    /**
-     * Get the pending paiements for the eleve.
-     */
-    public function paiementsEnAttente()
-    {
-        return $this->paiements()->whereIn('statut', ['en_retard', 'impaye']);
-    }
-    
-    /**
-     * Get the full name of the student.
-     */
-    public function getNomCompletAttribute()
-    {
-        return "{$this->prenom} {$this->nom}";
-    }
-    
-    /**
-     * Scope a query to only include active students.
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('est_actif', true);
-    }
-
-    /**
-     * Get the absences for the eleve.
+     * Relation avec les absences de l'élève
      */
     public function absences(): HasMany
     {
         return $this->hasMany(Absence::class, 'eleve_id')
-            ->orderBy('date_debut', 'desc');
-    }
-    
-    /**
-     * Get the justified absences for the eleve.
-     */
-    public function absencesJustifiees(): HasMany
-    {
-        return $this->absences()->where('est_justifiee', true);
-    }
-    
-    /**
-     * Get the unjustified absences for the eleve.
-     */
-    public function absencesNonJustifiees(): HasMany
-    {
-        return $this->absences()->where('est_justifiee', false);
-    }
-    
-    /**
-     * Get the absences by status.
-     */
-    public function absencesParStatut(string $statut): HasMany
-    {
-        return $this->absences()->where('statut', $statut);
-    }
-    
-    /**
-     * Get the absences count by status.
-     */
-    public function getNombreAbsencesParStatutAttribute(): array
-    {
-        return [
-            'total' => $this->absences()->count(),
-            'justifiees' => $this->absencesJustifiees()->count(),
-            'non_justifiees' => $this->absencesNonJustifiees()->count(),
-            'en_attente' => $this->absencesParStatut('en_attente')->count(),
-            'validees' => $this->absencesParStatut('validee')->count(),
-            'rejetees' => $this->absencesParStatut('rejetee')->count(),
-        ];
+            ->orderBy('date_absence', 'desc');
     }
 
     /**
-     * Get the user's full name.
+     * Relation avec les paiements de l'élève (nouvelle relation)
      */
-    public function getFullNameAttribute(): string
+    public function paiements(): HasMany
     {
-        return "{$this->prenom} {$this->nom}";
+        return $this->hasMany(Paiement::class, 'eleve_id');
+    }
+
+    /**
+     * Relation avec les paiements de l'élève (ancienne relation)
+     */
+    public function anciensPaiements(): HasMany
+    {
+        return $this->hasMany(Paiement::class, 'etudiant_id', 'user_id');
+    }
+
+    /**
+     * Accessor pour le nom complet
+     */
+    public function getNomCompletAttribute(): string
+    {
+        return $this->user ? $this->user->name : 'Utilisateur inconnu';
+    }
+
+    /**
+     * Accessor pour l'âge
+     */
+    public function getAgeAttribute(): ?int
+    {
+        if (!$this->date_naissance) {
+            return null;
+        }
+        
+        return $this->date_naissance->age;
+    }
+
+    /**
+     * Vérifie si l'élève est actif
+     */
+    public function estActif(): bool
+    {
+        return $this->user ? $this->user->is_active : false;
+    }
+
+    public function scopeActif($query)
+    {
+        return $query->where('est_actif', true);
+    }
+
+    public function scopeDeClasse($query, $classeId)
+    {
+        return $query->where('classe_id', $classeId);
+    }
+
+    public function getStatutPaiementAttribute(): string
+    {
+        $dernierPaiement = $this->paiements()->latest('date_paiement')->first();
+        
+        if (!$dernierPaiement) {
+            return 'jamais_paye';
+        }
+        
+        return $dernierPaiement->statut;
     }
 }

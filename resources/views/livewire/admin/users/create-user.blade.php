@@ -9,6 +9,7 @@
 
         <div class="bg-white rounded-lg shadow-md p-6">
             <form wire:submit.prevent="save">
+                @include('partials.errors')
                 <!-- Section Informations de base -->
                 <div class="mb-8">
                     <h2 class="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Informations de base</h2>
@@ -17,21 +18,18 @@
                         <div class="form-group">
                             <label for="name" class="form-label">Nom complet <span class="text-red-500">*</span></label>
                             <input type="text" id="name" wire:model="name" class="form-control" required>
-                            @error('name') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
                         <!-- Email -->
                         <div class="form-group">
                             <label for="email" class="form-label">Email <span class="text-red-500">*</span></label>
                             <input type="email" id="email" wire:model="email" class="form-control" required>
-                            @error('email') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
                         <!-- Mot de passe -->
                         <div class="form-group">
                             <label for="password" class="form-label">Mot de passe <span class="text-red-500">*</span></label>
                             <input type="password" id="password" wire:model="password" class="form-control" required>
-                            @error('password') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
                         <!-- Confirmation du mot de passe -->
@@ -48,7 +46,6 @@
                                     <option value="{{ $role['value'] }}">{{ $role['label'] }}</option>
                                 @endforeach
                             </select>
-                            @error('role') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
                         <!-- Statut -->
@@ -72,7 +69,6 @@
                                     <option value="{{ $niveau->id }}">{{ $niveau->nom }}</option>
                                 @endforeach
                             </select>
-                            @error('niveau_id') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
                         <!-- Filière -->
@@ -84,7 +80,6 @@
                                     <option value="{{ $filiere->id }}">{{ $filiere->nom }}</option>
                                 @endforeach
                             </select>
-                            @error('filiere_id') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
                         <!-- Matières (visible seulement pour les élèves) -->
@@ -207,7 +202,6 @@
                             <label for="photo" class="btn btn-secondary cursor-pointer">
                                 <i class="fas fa-upload mr-2"></i> Choisir une photo
                             </label>
-                            @error('photo') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
                             <p class="text-sm text-gray-500 mt-2">Taille maximale : 2MB. Formats acceptés : JPG, PNG, GIF</p>
                         </div>
                     </div>

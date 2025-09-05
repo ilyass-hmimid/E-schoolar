@@ -1,7 +1,9 @@
+// @ts-check
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+
     plugins: [
         laravel({
             input: [
@@ -17,10 +19,14 @@ export default defineConfig({
         hmr: {
             host: 'localhost',
         },
+        watch: {
+            usePolling: true,
+        },
     },
     build: {
         outDir: 'public/build',
-        manifest: true,
+        manifest: 'manifest.json',
+        manifestPath: 'public/build/manifest.json',
         rollupOptions: {
             output: {
                 entryFileNames: 'assets/[name]-[hash].js',
@@ -38,4 +44,4 @@ export default defineConfig({
     optimizeDeps: {
         include: ['alpinejs', 'axios'],
     },
-});
+}));

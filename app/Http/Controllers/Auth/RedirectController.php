@@ -34,23 +34,31 @@ class RedirectController extends Controller
                 ->with('error', 'Votre compte est désactivé. Veuillez contacter l\'administrateur.');
         }
         
+        // Journalisation des informations de débogage
+        \Log::info('Redirection après connexion', [
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'roles' => $user->getRoleNames(),
+            'intended_url' => session('url.intended')
+        ]);
+        
         // Vérifier s'il y a une URL d'origine (intended URL)
         if (session()->has('url.intended')) {
             return redirect()->intended();
         }
         
-        // Rediriger en fonction du rôle
+        // Redirection basée sur le rôle
         if ($user->hasRole('admin')) {
-            return redirect()->intended(route('admin.dashboard'));
+            return redirect()->route('admin.dashboard');
         } elseif ($user->hasRole('professeur')) {
-            return redirect()->intended(route('professeur.dashboard'));
-        } elseif ($user->hasRole('assistant')) {
-            return redirect()->intended(route('assistant.dashboard'));
+            return redirect()->route('professeur.dashboard');
         } elseif ($user->hasRole('eleve')) {
-            return redirect()->intended(route('eleve.dashboard'));
+            return redirect()->route('eleve.dashboard');
+        } elseif ($user->hasRole('assistant')) {
+            return redirect()->route('assistant.dashboard');
         }
         
-        // Redirection par défaut vers le tableau de bord général
-        return redirect()->intended(route('dashboard'));
+        // Redirection par défaut si aucun rôle ne correspond
+        return redirect()->route('home');
     }
 }

@@ -93,4 +93,79 @@ class AuthServiceProvider extends ServiceProvider
             return $user->hasAnyRole(['admin', 'assistant', 'professeur']);
         });
     }
+
+    /**
+     * Define custom gates for specific permissions
+     */
+    protected function defineCustomGates(): void
+    {
+        // Allow professors to manage their classes
+        Gate::define('manage-class', function (User $user, $class) {
+            if ($user->hasRole('admin')) {
+                return true;
+            }
+            
+            if ($user->hasRole('professor')) {
+                return $user->classes()->where('id', $class->id)->exists();
+            }
+            
+            return false;
+        });
+
+        // Allow professors to manage their subjects
+        Gate::define('manage-subject', function (User $user, $subject) {
+            if ($user->hasRole('admin')) {
+                return true;
+            }
+            
+            if ($user->hasRole('professor')) {
+                return $user->subjects()->where('id', $subject->id)->exists();
+            }
+            
+            return false;
+        });
+
+        // Allow users to manage their own profile
+        Gate::define('manage-profile', function (User $user, $profileUser) {
+            return $user->id === $profileUser->id || 
+                   $user->hasRole('admin') ||
+                   ($user->hasRole('parent') && $user->children->contains('id', $profileUser->id));
+        });
+    }
+
+    /**
+     * Extend the authentication guard to handle remember me functionality
+     */
+    protected function extendAuthGuard(): void
+    {
+        // Extend the auth guard to handle remember me functionality
+        $this->app['auth']->extend('session', function ($app, $name, array $config) {
+            $provider = $app['auth']->createUserProvider($config['provider']);
+            
+            $guard = new \Illuminate\Auth\SessionGuard(
+                $name,
+                $provider,
+                $app['session.store'],
+                $app['request'],
+                $app['config']['auth.remember_me.expire'] ?? 10080 // Default 7 days
+            );
+            
+            // When using the remember me functionality of the authentication services we
+            // will need to be set the encryption instance of the guard, which allows
+            // secure, encrypted cookie values to get generated for those cookies.
+            if (method_exists($guard, 'setCookieJar')) {
+                $guard->setCookieJar($app['cookie']);
+            }
+            
+            if (method_exists($guard, 'setDispatcher')) {
+                $guard->setDispatcher($app['events']);
+            }
+            
+            if (method_exists($guard, 'setRequest')) {
+                $guard->setRequest($app->refresh('request', $guard, 'setRequest'));
+            }
+            
+            return $guard;
+        });
+    }
 }

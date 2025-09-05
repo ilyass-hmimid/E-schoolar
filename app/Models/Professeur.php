@@ -3,57 +3,48 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use App\Models\Enseignant;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Professeur extends Enseignant
 {
-    // Utilise la table 'enseignants' du modèle parent
+    protected $table = 'professeurs';
+    
+    protected $appends = [
+        'nom_complet',
+        'anciennete',
+    ];
 
-    /**
-     * Relation avec les matières enseignées par le professeur
-     */
     public function matieres(): BelongsToMany
     {
         return $this->belongsToMany(Matiere::class, 'enseignements', 'professeur_id', 'matiere_id');
     }
-
-    /**
-     * Relation avec les filières enseignées par le professeur
-     */
-    public function filieres(): BelongsToMany
+    
+    public function classes(): BelongsToMany
     {
-        return $this->belongsToMany(Filiere::class, 'enseignements', 'professeur_id', 'filiere_id');
+        return $this->belongsToMany(Classe::class, 'enseignements', 'professeur_id', 'classe_id');
     }
 
-    /**
-     * Relation avec les niveaux enseignés par le professeur
-     */
-    public function niveaux(): BelongsToMany
+    public function absences(): HasMany
     {
-        return $this->belongsToMany(Niveau::class, 'enseignements', 'professeur_id', 'niveau_id');
+        return $this->hasMany(Absence::class, 'professeur_id');
     }
 
-    /**
-     * Relation avec les étudiants du professeur
-     */
-    public function etudiants(): BelongsToMany
+    public function getNomCompletAttribute(): string
     {
-        return $this->belongsToMany(Etudiant::class, 'inscriptions', 'professeur_id', 'etudiant_id');
+        return trim("{$this->prenom} {$this->nom}");
     }
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
+    public function scopeActif($query)
+    {
+        return $query->where('est_actif', true);
+    }
 
-
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'password' => 'hashed',
-    ];
+    public function getAncienneteAttribute(): ?int
+    {
+        if (!$this->date_embauche) {
+            return null;
+        }
+        
+        return $this->date_embauche->diffInYears(now());
+    }
 }

@@ -124,6 +124,7 @@
         @error($errorKey)
             <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
         @enderror
+        @include('partials.errors')
         
         @if($help && !$hasError)
             <p class="mt-1 text-xs text-gray-400">{{ $help }}</p>

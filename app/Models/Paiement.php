@@ -2,349 +2,208 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Carbon\Carbon;
-use App\Models\User;
-use App\Models\Matiere;
-use App\Models\Pack;
-use App\Models\Tarif;
-use App\Models\Etudiant;
 
 class Paiement extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
 
-    protected $table = 'paiements';
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
+        'eleve_id',
         'etudiant_id',
         'matiere_id',
         'pack_id',
-        'tarif_id',
         'assistant_id',
+        'type',
         'montant',
+        'montant_paye',
+        'reste',
         'mode_paiement',
         'reference_paiement',
         'date_paiement',
         'statut',
         'commentaires',
+        'notes',
         'mois_periode',
+        'created_by',
+        'updated_by',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'montant' => 'decimal:2',
+        'montant_paye' => 'decimal:2',
+        'reste' => 'decimal:2',
         'date_paiement' => 'date',
+        'mois_periode' => 'date',
     ];
 
+    protected $appends = [
+        'statut_libelle',
+        'mois_periode_formate',
+    ];
+
+    // Statuts possibles pour un paiement
+    public const STATUT_PAYE = 'paye';
+    public const STATUT_IMPAYE = 'impaye';
+    public const STATUT_EN_RETARD = 'en_retard';
+    public const STATUT_ANNULE = 'annule';
+
+    // Modes de paiement possibles
+    public const MODE_ESPECES = 'especes';
+    public const MODE_VIREMENT = 'virement';
+    public const MODE_CHEQUE = 'cheque';
+    public const MODE_PRELEVEMENT = 'prelevement';
+
     /**
-     * Relations
+     * Relation avec l'élève concerné (nouvelle relation)
      */
+    public function eleve(): BelongsTo
+    {
+        return $this->belongsTo(Eleve::class, 'eleve_id')->withTrashed();
+    }
+
     /**
-     * Relation avec l'étudiant concerné par le paiement
+     * Relation avec l'étudiant (ancienne relation)
      */
     public function etudiant(): BelongsTo
     {
-        // Essayer d'abord avec la table users, puis avec etudiants si nécessaire
-        if (class_exists(Etudiant::class)) {
-            return $this->belongsTo(Etudiant::class, 'etudiant_id')
-                ->withDefault([
-                    'nom' => 'Inconnu',
-                    'prenom' => 'Étudiant',
-                    'email' => 'inconnu@exemple.com'
-                ]);
-        }
-        
-        return $this->belongsTo(User::class, 'etudiant_id')
-            ->withDefault([
-                'name' => 'Inconnu',
-                'email' => 'inconnu@exemple.com'
-            ]);
-    }
-    
-    /**
-     * Relation avec l'utilisateur (étudiant) via la relation etudiant
-     */
-    public function user()
-    {
-        return $this->hasOneThrough(
-            User::class,
-            Etudiant::class,
-            'id', // Foreign key on etudiants table
-            'id', // Foreign key on users table
-            'etudiant_id', // Local key on paiements table
-            'user_id' // Local key on etudiants table
-        );
+        return $this->belongsTo(User::class, 'etudiant_id')->withTrashed();
     }
 
     /**
-     * Relation avec la matière concernée (si le paiement est lié à une matière spécifique)
+     * Relation avec la matière
      */
     public function matiere(): BelongsTo
     {
-        return $this->belongsTo(Matiere::class, 'matiere_id')
-            ->withDefault([
-                'code' => 'NC',
-                'nom' => 'Non spécifiée',
-                'prix' => 0
-            ]);
+        return $this->belongsTo(Matiere::class, 'matiere_id');
     }
 
     /**
-     * Relation avec le pack (si le paiement est lié à un pack)
+     * Relation avec le pack
      */
     public function pack(): BelongsTo
     {
-        return $this->belongsTo(Pack::class, 'pack_id')
-            ->withDefault([
-                'nom' => 'Aucun pack',
-                'description' => 'Paiement hors pack',
-                'prix' => 0
-            ]);
+        return $this->belongsTo(Pack::class, 'pack_id');
     }
 
     /**
-     * Relation avec le modèle Tarif.
-     */
-    /**
-     * Relation avec le tarif appliqué
-     */
-    public function tarif(): BelongsTo
-    {
-        return $this->belongsTo(Tarif::class, 'tarif_id')
-            ->withDefault([
-                'montant' => $this->montant ?? 0,
-                'description' => 'Tarif par défaut'
-            ]);
-    }
-
-    /**
-     * Relation avec l'assistant qui a enregistré le paiement
+     * Relation avec l'assistant
      */
     public function assistant(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'assistant_id')
-            ->withDefault([
-                'name' => 'Système',
-                'email' => 'system@allotawjih.ma',
-                'role' => 'system'
-            ]);
-    }
-    
-    /**
-     * Les factures associées à ce paiement
-     */
-    /**
-     * Les factures associées à ce paiement
-     */
-    public function factures(): HasMany
-    {
-        return $this->hasMany(Facture::class, 'paiement_id')
-            ->orderBy('date_facture', 'desc');
-    }
-    
-    /**
-     * Les remboursements liés à ce paiement
-     */
-    /**
-     * Les remboursements liés à ce paiement
-     */
-    public function remboursements(): HasMany
-    {
-        return $this->hasMany(Remboursement::class, 'paiement_id')
-            ->orderBy('date_remboursement', 'desc');
-    }
-    
-    /**
-     * Calcule le montant total des remboursements
-     */
-    public function getTotalRembourseAttribute(): float
-    {
-        return (float) $this->remboursements()->sum('montant');
-    }
-    
-    /**
-     * Calcule le solde restant après déduction des remboursements
-     */
-    public function getSoldeRestantAttribute(): float
-    {
-        return (float) $this->montant - $this->total_rembourse;
-    }
-    
-    /**
-     * Vérifie si le paiement est complètement remboursé
-     */
-    public function estRembourseIntegralement(): bool
-    {
-        return $this->solde_restant <= 0.01; // Tolérance aux erreurs d'arrondi
-    }
-    
-    /**
-     * Statuts de paiement possibles
-     */
-    public const STATUTS = [
-        'en_attente' => 'En attente',
-        'valide' => 'Validé',
-        'refuse' => 'Refusé',
-        'rembourse' => 'Remboursé',
-        'annule' => 'Annulé',
-    ];
-    
-    /**
-     * Modes de paiement possibles
-     */
-    public const MODES_PAIEMENT = [
-        'especes' => 'Espèces',
-        'cheque' => 'Chèque',
-        'virement' => 'Virement bancaire',
-        'carte' => 'Carte bancaire',
-        'autre' => 'Autre',
-    ];
-
-    /**
-     * Scopes
-     */
-    public function scopeValides($query)
-    {
-        return $query->where('statut', 'valide');
-    }
-
-    public function scopeEnAttente($query)
-    {
-        return $query->where('statut', 'en_attente');
-    }
-
-    public function scopeAnnules($query)
-    {
-        return $query->where('statut', 'annule');
-    }
-
-    public function scopeParMois($query, $moisPeriode)
-    {
-        return $query->where('mois_periode', $moisPeriode);
-    }
-
-    public function scopeParEtudiant($query, $etudiantId)
-    {
-        return $query->where('etudiant_id', $etudiantId);
-    }
-
-    public function scopeParMatiere($query, $matiereId)
-    {
-        return $query->where('matiere_id', $matiereId);
-    }
-
-    public function scopeParModePaiement($query, $mode)
-    {
-        return $query->where('mode_paiement', $mode);
+        return $this->belongsTo(User::class, 'assistant_id')->withTrashed();
     }
 
     /**
-     * Scope pour filtrer les paiements par date ou par plage de dates
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string|\Carbon\Carbon $startDate
-     * @param string|\Carbon\Carbon|null $endDate
-     * @return \Illuminate\Database\Eloquent\Builder
+     * Relation avec l'utilisateur qui a créé le paiement
      */
-    public function scopeParDate($query, $startDate, $endDate = null)
+    public function createur(): BelongsTo
     {
-        if ($endDate === null) {
-            return $query->whereDate('date_paiement', $startDate);
-        }
-        
-        return $query->whereBetween('date_paiement', [
-            $startDate,
-            $endDate
-        ]);
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     /**
-     * Méthodes utilitaires
+     * Relation avec l'utilisateur qui a modifié le paiement
      */
-    public function getStatutLabelAttribute(): string
+    public function modificateur(): BelongsTo
     {
-        return match($this->statut) {
-            'en_attente' => 'En attente',
-            'valide' => 'Validé',
-            'annule' => 'Annulé',
-            default => 'Inconnu',
-        };
+        return $this->belongsTo(User::class, 'updated_by');
     }
 
-    public function getModePaiementLabelAttribute(): string
+    /**
+     * Accessor pour le libellé du statut
+     */
+    public function getStatutLibelleAttribute(): string
     {
-        return match($this->mode_paiement) {
-            'especes' => 'Espèces',
-            'cheque' => 'Chèque',
-            'virement' => 'Virement',
-            'carte' => 'Carte bancaire',
-            default => 'Inconnu',
-        };
+        return [
+            self::STATUT_PAYE => 'Payé',
+            self::STATUT_IMPAYE => 'Impayé',
+            self::STATUT_EN_RETARD => 'En retard',
+            self::STATUT_ANNULE => 'Annulé',
+        ][$this->statut] ?? 'Inconnu';
     }
 
-    public function getStatutBadgeClassAttribute(): string
-    {
-        return match($this->statut) {
-            'en_attente' => 'bg-yellow-100 text-yellow-800',
-            'valide' => 'bg-green-100 text-green-800',
-            'annule' => 'bg-red-100 text-red-800',
-            default => 'bg-gray-100 text-gray-800',
-        };
-    }
-    
     /**
-     * Vérifie si le paiement est éligible au remboursement
+     * Accessor pour le formatage du mois de période
      */
-    public function estRemboursable(): bool
+    public function getMoisPeriodeFormateAttribute(): string
     {
-        // Un paiement est remboursable s'il est validé
-        // et qu'il n'a pas déjà été intégralement remboursé
-        return $this->statut === 'valide' && 
-               $this->montant > $this->montantDejaRembourse();
+        return $this->mois_periode 
+            ? Carbon::parse($this->mois_periode)->format('m/Y')
+            : '';
     }
-    
+
     /**
-     * Calcule le montant déjà remboursé
+     * Scope pour les paiements payés
      */
-    public function montantDejaRembourse(): float
+    public function scopePayes($query)
     {
-        return (float) $this->remboursements()
-            ->where('statut', 'valide')
-            ->sum('montant');
+        return $query->where('statut', self::STATUT_PAYE);
     }
-    
+
     /**
-     * Calcule le montant restant à rembourser
+     * Scope pour les paiements impayés
      */
-    public function montantRestantARembourser(): float
+    public function scopeImpayes($query)
     {
-        return max(0, $this->montant - $this->montantDejaRembourse());
+        return $query->where('statut', self::STATUT_IMPAYE);
     }
-    
+
+    /**
+     * Scope pour les paiements en retard
+     */
+    public function scopeEnRetard($query)
+    {
+        return $query->where('statut', self::STATUT_EN_RETARD);
+    }
+
+    /**
+     * Scope pour les paiements d'un mois et d'une année donnés
+     */
+    public function scopePourMois($query, $mois, $annee)
+    {
+        return $query->whereYear('mois_periode', $annee)
+                    ->whereMonth('mois_periode', $mois);
+    }
+
+    /**
+     * Scope pour les paiements d'un élève donné
+     */
+    public function scopePourEleve($query, $eleveId)
+    {
+        return $query->where('eleve_id', $eleveId);
+    }
+
     /**
      * Vérifie si le paiement est en retard
      */
     public function estEnRetard(): bool
     {
-        if ($this->statut !== 'en_attente') {
+        if ($this->statut === self::STATUT_PAYE || $this->statut === self::STATUT_ANNULE) {
             return false;
         }
+
+        return $this->mois_periode && $this->mois_periode->isPast();
+    }
+
+    /**
+     * Marque le paiement comme payé
+     */
+    public function marquerCommePaye(array $donnees = []): bool
+    {
+        $this->statut = self::STATUT_PAYE;
+        $this->date_paiement = $donnees['date_paiement'] ?? now();
+        $this->mode_paiement = $donnees['mode_paiement'] ?? self::MODE_ESPECES;
+        $this->reference = $donnees['reference'] ?? null;
+        $this->commentaire = $donnees['commentaire'] ?? null;
         
-        // Un paiement est en retard s'il est en attente depuis plus de 3 jours
-        return $this->created_at->diffInDays(now()) > 3;
+        if (auth()->check()) {
+            $this->updated_by = auth()->id();
+        }
+
+        return $this->save();
     }
 }

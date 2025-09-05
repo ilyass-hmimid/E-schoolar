@@ -178,9 +178,7 @@
                         </p>
                     </div>
                 </div>
-                @error('fichier')
-                    <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                @enderror
+                @include('partials.errors')
             </div>
             
             <div class="flex justify-end">

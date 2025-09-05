@@ -17,19 +17,43 @@ class LoginController extends Controller
      *
      * @var string
      */
-    protected $redirectTo = '/dashboard';
-    
+    protected $redirectTo = '/home';
+
     /**
-     * The user has been authenticated.
+     * Get the post register / login redirect path.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  mixed  $user
-     * @return \Illuminate\Http\RedirectResponse
+     * @return string
      */
-    protected function authenticated(Request $request, $user)
+    public function redirectTo()
     {
-        // Use the RedirectController for consistent redirection logic
-        return app(RedirectController::class)->redirectToDashboard();
+        $user = auth()->user();
+        
+        // Vérifier si l'utilisateur est actif
+        if (!$user->is_active) {
+            auth()->logout();
+            return '/login';
+        }
+
+        // Redirection basée sur le rôle
+        if ($user->role == 1) { // Admin
+            return '/admin/dashboard';
+        }
+        
+        if ($user->role == 2) { // Professeur
+            return '/professeur/dashboard';
+        }
+        
+        if ($user->role == 3) { // Assistant
+            return '/assistant/dashboard';
+        }
+        
+        if ($user->role == 4) { // Élève
+            return '/eleve/dashboard';
+        }
+
+        // Si le rôle n'est pas reconnu, on déconnecte et on redirige avec une erreur
+        auth()->logout();
+        return '/login';
     }
 
     /**

@@ -28,5 +28,5 @@ return [
         ] : null,
     ],
 
-    'build_path' => 'build',
+    'build_path' => 'public/build',
 ];

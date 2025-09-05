@@ -92,6 +92,8 @@
                         @endforeach
                     </select>
                 </div>
+                <div>
+                
                 
                 <!-- Type d'absence -->
                 <div>

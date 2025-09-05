@@ -14,8 +14,10 @@ class RedirectIfAuthenticated
      * Handle an incoming request.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  string|null  ...$guards
+     * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function handle(Request $request, Closure $next, string ...$guards): Response
+    public function handle(Request $request, Closure $next, ...$guards)
     {
         $guards = empty($guards) ? [null] : $guards;
 
@@ -23,22 +25,32 @@ class RedirectIfAuthenticated
             if (Auth::guard($guard)->check()) {
                 $user = Auth::guard($guard)->user();
                 
-                // Vérifier que l'utilisateur est actif
-                if ($user && $user->is_active) {
-                    // Si l'utilisateur est connecté et actif, le rediriger vers son dashboard
-                    // Mais seulement si il essaie d'accéder aux pages d'authentification
-                    if ($request->is('login') || $request->is('register') || $request->is('forgot-password') || $request->is('reset-password*')) {
-                        return redirect(getDashboardUrl());
-                    }
-                } else {
-                    // Si l'utilisateur n'est pas actif, le déconnecter
+                // Check if user is active
+                if (!$user->is_active) {
                     Auth::guard($guard)->logout();
                     $request->session()->invalidate();
                     $request->session()->regenerateToken();
+                    
+                    return redirect()->route('login')->withErrors([
+                        'email' => 'Votre compte a été désactivé. Veuillez contacter l\'administrateur.',
+                    ]);
                 }
+                
+                return $this->redirectToRoleBasedDashboard($user);
             }
         }
 
         return $next($request);
+    }
+    
+    /**
+     * Redirect user to their role-based dashboard
+     *
+     * @param  \App\Models\User  $user
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    protected function redirectToRoleBasedDashboard($user)
+    {
+        return redirect(RouteServiceProvider::getHomeForUser($user));
     }
 }

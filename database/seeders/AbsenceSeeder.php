@@ -44,52 +44,45 @@ class AbsenceSeeder extends Seeder
             // Récupérer les étudiants de la classe du cours
             $etudiantsClasse = $etudiants->where('classe_id', $coursItem->classe_id);
             
-            // Générer des dates de cours pour les 3 derniers mois
-            $dateCours = Carbon::parse($coursItem->date_debut);
+            // Utiliser la date du cours
+            $dateCours = Carbon::parse($coursItem->date);
             
-            while ($dateCours->lte($finPeriode)) {
-                // Vérifier si c'est le bon jour de la semaine
-                $jourSemaine = $this->getJourSemaine($coursItem->jour);
-                
-                if ($dateCours->dayOfWeek === $jourSemaine && $dateCours->between($debutPeriode, $finPeriode)) {
-                    // Pour chaque étudiant, 10% de chance d'être absent
-                    foreach ($etudiantsClasse as $etudiant) {
-                        if (rand(1, 100) <= 10) { // 10% de chance d'être absent
-                            // Statut aléatoire (70% non justifié, 20% justifié, 10% en attente)
-                            $statut = StatutAbsence::NON_JUSTIFIEE;
-                            $justification = null;
-                            
-                            $rand = rand(1, 100);
-                            if ($rand <= 20) {
-                                $statut = StatutPaiement::JUSTIFIEE;
-                                $justification = $this->getRandomJustification();
-                            } elseif ($rand <= 30) {
-                                $statut = StatutPaiement::EN_ATTENTE;
-                                $justification = 'En attente de justificatif';
-                            }
-                            
-                            // Créer l'absence
-                            Absence::create([
-                                'etudiant_id' => $etudiant->id,
-                                'cours_id' => $coursItem->id,
-                                'date_absence' => $dateCours->toDateString(),
-                                'heure_debut' => $coursItem->heure_debut,
-                                'heure_fin' => $coursItem->heure_fin,
-                                'statut' => $statut,
-                                'justification' => $justification,
-                                'date_justification' => $statut === StatutPaiement::JUSTIFIEE ? $dateCours->copy()->addDays(rand(1, 3)) : null,
-                                'user_id' => $coursItem->user_id, // Le professeur
-                                'created_at' => $dateCours,
-                                'updated_at' => $dateCours,
-                            ]);
-                            
-                            $absencesCreees++;
+            // Vérifier si la date est dans la période
+            if ($dateCours->between($debutPeriode, $finPeriode)) {
+                // Pour chaque étudiant, 10% de chance d'être absent
+                foreach ($etudiantsClasse as $etudiant) {
+                    if (rand(1, 100) <= 10) { // 10% de chance d'être absent
+                        // Statut aléatoire (70% non justifié, 20% justifié, 10% en attente)
+                        $statut = StatutAbsence::NON_JUSTIFIEE;
+                        $justification = null;
+                        
+                        $rand = rand(1, 100);
+                        if ($rand <= 20) {
+                            $statut = StatutAbsence::JUSTIFIEE;
+                            $justification = $this->getRandomJustification();
+                        } elseif ($rand <= 30) {
+                            $statut = StatutAbsence::EN_ATTENTE;
+                            $justification = 'En attente de justificatif';
                         }
+                        
+                        // Créer l'absence
+                        Absence::create([
+                            'etudiant_id' => $etudiant->id,
+                            'cours_id' => $coursItem->id,
+                            'date_absence' => $dateCours->toDateString(),
+                            'heure_debut' => $coursItem->heure_debut,
+                            'heure_fin' => $coursItem->heure_fin,
+                            'statut' => $statut,
+                            'justification' => $justification,
+                            'date_justification' => $statut === StatutAbsence::JUSTIFIEE ? $dateCours->copy()->addDays(rand(1, 3)) : null,
+                            'user_id' => $coursItem->enseignant_id, // Le professeur
+                            'created_at' => $dateCours,
+                            'updated_at' => $dateCours,
+                        ]);
+                        
+                        $absencesCreees++;
                     }
                 }
-                
-                // Passer à la semaine suivante
-                $dateCours->addWeek();
             }
         }
         

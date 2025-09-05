@@ -7,8 +7,6 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AvatarController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\Auth\RedirectController;
 use App\Http\Controllers\HomeController;
 
 // Contrôleurs Admin
@@ -39,22 +37,63 @@ use App\Http\Controllers\Eleve\PaiementController as ElevePaiementController;
 */
 
 // Page d'accueil
-Route::get('/', function () {
-    return view('auth.login');
-})->name('home');
+// Test routes for error pages (only in local environment)
+if (app()->environment('local')) {
+    // Test route for Classe model
+    Route::get('/test/classe', function () {
+        try {
+            // Test creating a new class
+            $classe = new App\Models\Classe([
+                'nom' => 'Test Class',
+                'code' => 'TEST-001',
+                'niveau_id' => 1, // Assuming this ID exists in the niveaux table
+                'filiere_id' => 1, // Assuming this ID exists in the filieres table
+                'annee_scolaire' => '2024-2025',
+                'capacite_max' => 30,
+                'est_actif' => true,
+            ]);
+            
+            // Save the class
+            $classe->save();
+            
+            // Test relationships
+            $classe->load('niveau', 'filiere');
+            
+            return [
+                'message' => 'Class created successfully',
+                'class' => [
+                    'id' => $classe->id,
+                    'nom' => $classe->nom,
+                    'code' => $classe->code,
+                    'niveau' => $classe->niveau ? $classe->niveau->nom : null,
+                    'filiere' => $classe->filiere ? $classe->filiere->nom : null,
+                    'nom_complet' => $classe->nom_complet,
+                    'effectif_actuel' => $classe->effectif_actuel,
+                    'est_complete' => $classe->est_complete,
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ];
+        }
+    })->name('test.classe');
+    
+    // Existing test routes
+    Route::get('/test/403', function () {
+        abort(403, 'Accès non autorisé');
+    })->name('test.403');
 
-// Authentification
-Auth::routes([
-    'verify' => true,
-    'login' => true,
-    'logout' => true,
-    'register' => false,
-    'reset' => true,
-    'confirm' => true,
-    'verification' => ['verify', 'resend']
-]);
+    Route::get('/test/404', function () {
+        abort(404);
+    })->name('test.404');
 
-// Page d'accueil
+    Route::get('/test/500', function () {
+        throw new \Exception('Erreur serveur de test');
+    })->name('test.500');
+}
+
 Route::get('/', function () {
     if (Auth::check()) {
         if (Auth::user()->hasRole('admin')) {
@@ -67,11 +106,19 @@ Route::get('/', function () {
             return redirect()->route('eleve.dashboard');
         }
     }
-    return view('auth.login');
+    return view('home');
 })->name('home');
+
+// Authentification
+Auth::routes([
+    'register' => false, // Désactive l'enregistrement
+    'verify' => true,    // Active la vérification d'email
+]);
 
 // Routes accessibles aux invités
 Route::middleware('guest')->group(function () {
+    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [LoginController::class, 'login']);
     Route::get('/forgot-password', [LoginController::class, 'showForgotPasswordForm'])->name('password.request');
     Route::post('/forgot-password', [LoginController::class, 'sendResetLink'])->name('password.email');
     Route::get('/reset-password/{token}', [LoginController::class, 'showResetForm'])->name('password.reset');
@@ -84,11 +131,7 @@ Route::middleware('guest')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'verified', 'active'])->group(function () {
-    // Tableau de bord selon le rôle
-    Route::get('/dashboard', [RedirectController::class, 'redirectToDashboard'])
-        ->name('dashboard');
-
-    // Routes du profil utilisateur
+    // Gestion du profil utilisateur
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'show'])->name('show');
         Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
@@ -97,119 +140,76 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
     });
 
-    /*
-    |--------------------------------------------------------------------------
-    | Routes Admin
-    |--------------------------------------------------------------------------
-    */
-    Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
-        // Tableau de bord
-        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
-        
-        // Gestion des élèves
-        Route::resource('eleves', AdminEleveController::class);
-        
-        // Gestion des professeurs
-        Route::resource('professeurs', AdminProfesseurController::class);
-        
-        // Gestion des paiements
-        Route::resource('paiements', AdminPaiementController::class);
-        
-        // Gestion des absences
-        Route::resource('absences', AdminAbsenceController::class);
-    });
+    // Les routes d'administration ont été déplacées vers routes/admin.php
+    // pour une meilleure organisation et maintenabilité du code.
 
-    /*
-    |--------------------------------------------------------------------------
-    | Routes Professeur
-    |--------------------------------------------------------------------------
-    */
+    // Routes pour les professeurs
     Route::middleware(['role:professeur'])->prefix('professeur')->name('professeur.')->group(function () {
-        // Tableau de bord
+        // Tableau de bord professeur
         Route::get('/dashboard', [ProfesseurDashboardController::class, 'index'])->name('dashboard');
         
         // Gestion des absences
         Route::resource('absences', ProfesseurAbsenceController::class);
     });
 
-    /*
-    |--------------------------------------------------------------------------
-    | Routes Assistant
-    |--------------------------------------------------------------------------
-    */
+    // Routes pour les assistants
     Route::middleware(['role:assistant'])->prefix('assistant')->name('assistant.')->group(function () {
-        // Tableau de bord
+        // Tableau de bord assistant
         Route::get('/dashboard', [AssistantDashboardController::class, 'index'])->name('dashboard');
+        
+        // Gestion des élèves
+        Route::resource('eleves', AssistantEleveController::class);
         
         // Gestion des absences
         Route::resource('absences', AssistantAbsenceController::class);
-        Route::get('absences/eleve/{eleve}', [AssistantAbsenceController::class, 'byEleve'])->name('absences.by_eleve');
-            
-        // Gestion des élèves (lecture seule)
-        Route::get('eleves', [AssistantEleveController::class, 'index'])->name('eleves.index');
-        Route::get('eleves/{eleve}', [AssistantEleveController::class, 'show'])->name('eleves.show');
     });
 
-    /*
-    |--------------------------------------------------------------------------
-    | Routes Élève
-    |--------------------------------------------------------------------------
-    */
+    // Routes pour les élèves
     Route::middleware(['role:eleve'])->prefix('eleve')->name('eleve.')->group(function () {
-        // Tableau de bord
+        // Tableau de bord élève
         Route::get('/dashboard', [EleveDashboardController::class, 'index'])->name('dashboard');
         
-        // Gestion des absences
+        // Voir les absences
         Route::get('/absences', [EleveAbsenceController::class, 'index'])->name('absences.index');
         
-        // Gestion des paiements
+        // Voir les paiements
         Route::get('/paiements', [ElevePaiementController::class, 'index'])->name('paiements.index');
-        Route::get('/paiements/{paiement}', [ElevePaiementController::class, 'show'])->name('paiements.show');
     });
 });
 
-// Routes d'authentification
-Auth::routes([
-    'verify' => true,
-    'login' => true,
-    'logout' => false, // Désactive la route de déconnexion par défaut
-    'register' => true,
-    'reset' => true,
-    'confirm' => true,
-    'verification' => ['verify', 'resend']
-]);
-
-// Route de déconnexion personnalisée
-Route::post('/logout', [\App\Http\Controllers\Auth\LogoutController::class, '__invoke'])
-    ->name('logout');
-
-// Route d'accueil
-Route::get('/', function () {
-    if (auth()->check()) {
-        if (auth()->user()->hasRole('admin')) {
-            return redirect()->route('admin.dashboard');
-        } elseif (auth()->user()->hasRole('professeur')) {
-            return redirect()->route('professeur.dashboard');
-        } elseif (auth()->user()->hasRole('assistant')) {
-            return redirect()->route('assistant.dashboard');
-        } else {
-            return redirect()->route('eleve.dashboard');
+// Route de débogage pour vérifier les rôles (uniquement en développement)
+if (app()->environment('local')) {
+    Route::get('/debug/roles', function() {
+        if (!auth()->check()) {
+            return response()->json(['error' => 'Non connecté'], 401);
         }
-    }
-    return view('home');
-})->name('home');
-
-// Routes de contact support
-Route::prefix('contact')->name('support.')->group(function () {
-    Route::get('/', [\App\Http\Controllers\SupportController::class, 'contact'])
-        ->name('contact');
-    Route::post('/', [\App\Http\Controllers\SupportController::class, 'send'])
-        ->name('contact.send');
-});
-
-// Ancienne route home (redirige vers le tableau de bord si connecté)
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])
-    ->name('home.legacy');
-
-// Importer les routes d'administration
-require __DIR__.'/admin.php';
+        
+        $user = auth()->user();
+        
+        // Debug output for the current user's role
+        $output = [
+            'user_id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role->name ?? 'No role',
+            'is_active' => $user->is_active,
+            'role_type' => get_class($user->role),
+            'is_admin' => $user->role === \App\Enums\RoleType::ADMIN ? 'Yes' : 'No',
+            'role_value' => $user->role->value ?? null,
+            'role_name' => $user->role->name ?? null,
+            'role_label' => $user->role->label() ?? null,
+        ];
+        
+        // Check if user is in the admin group
+        $output['in_admin_group'] = $user->role === \App\Enums\RoleType::ADMIN ? 'Yes' : 'No';
+        
+        return response()->json($output);
+        return [
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'roles' => $user->getRoleNames(),
+            'is_admin' => $user->hasRole('admin'),
+            'all_roles' => \Spatie\Permission\Models\Role::all()->pluck('name')
+        ];
+    })->middleware('auth');
+}

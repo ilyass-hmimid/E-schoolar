@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Absence;
 use App\Models\Paiement;
-use App\Models\Salaire;
 use App\Models\Matiere;
 use App\Models\Niveau;
 use App\Models\Filiere;
@@ -66,24 +65,6 @@ class RapportController extends Controller
         $niveaux = Niveau::all(['id', 'nom']);
         
         return view('admin.rapports.paiements', compact('stats', 'charts', 'filters', 'niveaux'));
-    }
-
-    public function salaires(Request $request)
-    {
-        $user = Auth::user();
-        
-        if (!in_array($user->role, [RoleType::ADMIN])) {
-            abort(403, 'Accès non autorisé');
-        }
-
-        $filters = $request->only(['mois', 'annee', 'professeur_id', 'matiere_id']);
-        
-        $stats = $this->getSalaryStats($filters);
-        $charts = $this->getSalaryChartData($filters);
-        $professeurs = User::professeurs()->get(['id', 'name']);
-        $matieres = Matiere::actifs()->get(['id', 'nom']);
-        
-        return view('admin.rapports.salaires', compact('stats', 'charts', 'filters', 'professeurs', 'matieres'));
     }
 
     public function exportAbsences(Request $request)
@@ -181,24 +162,6 @@ class RapportController extends Controller
         return $pdf->download($filename);
     }
 
-    public function exportSalaires(Request $request)
-    {
-        $user = Auth::user();
-        
-        if (!in_array($user->role, [RoleType::ADMIN, RoleType::PROFESSEUR])) {
-            abort(403, 'Accès non autorisé');
-        }
-
-        $filters = $request->only(['mois', 'annee', 'professeur_id', 'matiere_id', 'statut']);
-        
-        $pdfService = new PdfExportService();
-        $pdf = $pdfService->generateSalaryReport($filters);
-        
-        $filename = 'rapport_salaires_' . date('Y-m-d_H-i-s') . '.pdf';
-        
-        return $pdf->download($filename);
-    }
-
     /**
      * Récupère les statistiques globales pour le tableau de bord
      */
@@ -255,28 +218,6 @@ class RapportController extends Controller
             ]
         ];
     }
-
-    public function exportSalarySlip(Request $request, Salaire $salaire)
-    {
-        $user = Auth::user();
-        
-        // Vérifier que l'utilisateur peut accéder à ce bulletin
-        if ($user->role === RoleType::PROFESSEUR && $salaire->professeur_id !== $user->id) {
-            abort(403, 'Accès non autorisé');
-        }
-        
-        if (!in_array($user->role, [RoleType::ADMIN, RoleType::PROFESSEUR])) {
-            abort(403, 'Accès non autorisé');
-        }
-
-        $pdfService = new PdfExportService();
-        $pdf = $pdfService->generateSalarySlip($salaire);
-        
-        $filename = 'bulletin_salaire_' . $salaire->professeur->name . '_' . $salaire->mois . '_' . $salaire->annee . '.pdf';
-        
-        return $pdf->download($filename);
-    }
-
 
     private function getChartData()
     {
@@ -456,45 +397,6 @@ class RapportController extends Controller
                 ]]
             ]
         ];
-        $absencesParJour = [];
-        for ($i = 29; $i >= 0; $i--) {
-            $date = Carbon::now()->subDays($i);
-            $count = (clone $query)->whereDate('date_absence', $date)->count();
-            $absencesParJour[] = [
-                'date' => $date->format('d/m'),
-                'total' => $count
-            ];
-        }
-
-        // Absences par matière
-        $absencesParMatiere = (clone $query)
-            ->join('matieres', 'absences.matiere_id', '=', 'matieres.id')
-            ->select('matieres.nom', DB::raw('count(*) as total'))
-            ->groupBy('matieres.id', 'matieres.nom')
-            ->orderBy('total', 'desc')
-            ->limit(10)
-            ->get();
-
-        return [
-            'evolution_quotidienne' => [
-                'labels' => array_column($absencesParJour, 'date'),
-                'datasets' => [[
-                    'label' => 'Nombre d\'absences',
-                    'data' => array_column($absencesParJour, 'total'),
-                    'borderColor' => 'rgb(239, 68, 68)',
-                    'backgroundColor' => 'rgba(239, 68, 68, 0.1)',
-                    'tension' => 0.1
-                ]]
-            ],
-            'par_matiere' => [
-                'labels' => $absencesParMatiere->pluck('nom')->toArray(),
-                'datasets' => [[
-                    'label' => 'Absences par matière',
-                    'data' => $absencesParMatiere->pluck('total')->toArray(),
-                    'backgroundColor' => 'rgba(59, 130, 246, 0.8)',
-                ]]
-            ]
-        ];
     }
 
     private function getPaymentStats($filters)
@@ -612,169 +514,6 @@ class RapportController extends Controller
                         'rgba(16, 185, 129, 0.8)',
                         'rgba(239, 68, 68, 0.8)',
                         'rgba(139, 92, 246, 0.8)'
-                    ]
-                ]]
-            ]
-        ];
-        $paiementsParJour = [];
-        for ($i = 29; $i >= 0; $i--) {
-            $date = Carbon::now()->subDays($i);
-            $montant = (clone $query)->whereDate('date_paiement', $date)->sum('montant');
-            $paiementsParJour[] = [
-                'date' => $date->format('d/m'),
-                'montant' => $montant
-            ];
-        }
-
-        // Paiements par méthode
-        $paiementsParMethode = (clone $query)
-            ->select('methode_paiement', DB::raw('count(*) as total'))
-            ->groupBy('methode_paiement')
-            ->get();
-
-        return [
-            'evolution_quotidienne' => [
-                'labels' => array_column($paiementsParJour, 'date'),
-                'datasets' => [[
-                    'label' => 'Montant des paiements (DH)',
-                    'data' => array_column($paiementsParJour, 'montant'),
-                    'borderColor' => 'rgb(34, 197, 94)',
-                    'backgroundColor' => 'rgba(34, 197, 94, 0.1)',
-                    'tension' => 0.1
-                ]]
-            ],
-            'par_methode' => [
-                'labels' => $paiementsParMethode->pluck('methode_paiement')->toArray(),
-                'datasets' => [[
-                    'data' => $paiementsParMethode->pluck('total')->toArray(),
-                    'backgroundColor' => [
-                        'rgba(34, 197, 94, 0.8)',
-                        'rgba(59, 130, 246, 0.8)',
-                        'rgba(245, 158, 11, 0.8)',
-                        'rgba(168, 85, 247, 0.8)',
-                    ]
-                ]]
-            ]
-        ];
-    }
-
-    private function getSalaryStats($filters)
-    {
-        $query = Salaire::with(['professeur', 'contrat.matiere']);
-        $this->applySalaryFilters($query, $filters);
-
-        $totalBrut = $query->sum('montant_brut');
-        $totalNet = $query->sum('montant_net');
-        $totalRetenues = $query->sum('total_retenues');
-        $totalPrimes = $query->sum('total_primes');
-        $totalHeuresSupp = $query->sum('heures_supplementaires');
-        $totalSalaires = $query->count();
-        
-        // Derniers salaires pour le tableau de bord
-        $derniersSalaires = (clone $query)
-            ->orderBy('periode', 'desc')
-            ->limit(5)
-            ->get()
-            ->map(function($salaire) {
-                return [
-                    'professeur' => $salaire->professeur->name ?? 'N/A',
-                    'periode' => $salaire->periode->format('m/Y'),
-                    'brut' => $salaire->montant_brut,
-                    'net' => $salaire->montant_net,
-                    'statut' => $salaire->statut
-                ];
-            });
-
-        return [
-            'total_brut' => $totalBrut,
-            'total_net' => $totalNet,
-            'total_retenues' => $totalRetenues,
-            'total_primes' => $totalPrimes,
-            'total_heures_supp' => $totalHeuresSupp,
-            'total_salaires' => $totalSalaires,
-            'moyenne_brut' => $totalSalaires > 0 ? $totalBrut / $totalSalaires : 0,
-            'moyenne_net' => $totalSalaires > 0 ? $totalNet / $totalSalaires : 0,
-            'derniers_salaires' => $derniersSalaires
-        ];
-    }
-
-    private function getSalaryChartData($filters)
-    {
-        $query = Salaire::query();
-        $this->applySalaryFilters($query, $filters);
-
-        // Salaires par professeur (top 5)
-        $salairesParProfesseur = (clone $query)
-            ->select('users.name as professeur', DB::raw('sum(montant_net) as total'))
-            ->join('users', 'salaires.professeur_id', '=', 'users.id')
-            ->groupBy('professeur_id', 'users.name')
-            ->orderBy('total', 'desc')
-            ->limit(5)
-            ->get()
-            ->map(function($item) {
-                return [
-                    'professeur' => $item->professeur,
-                    'total' => $item->total
-                ];
-            });
-            
-        // Évolution des salaires sur 12 mois
-        $salairesParMois = [];
-        $now = Carbon::now();
-        
-        for ($i = 11; $i >= 0; $i--) {
-            $date = $now->copy()->subMonths($i);
-            $total = (clone $query)
-                ->whereYear('periode', $date->year)
-                ->whereMonth('periode', $date->month)
-                ->sum('montant_net');
-                
-            $salairesParMois[] = [
-                'mois' => $date->format('M Y'),
-                'montant' => $total
-            ];
-        }
-        
-        // Répartition des salaires par statut
-        $salairesParStatut = (clone $query)
-            ->select('statut', DB::raw('sum(montant_net) as total'))
-            ->groupBy('statut')
-            ->pluck('total', 'statut')
-            ->toArray();
-            
-        return [
-            'par_professeur' => [
-                'labels' => $salairesParProfesseur->pluck('professeur')->toArray(),
-                'datasets' => [[
-                    'label' => 'Salaire net total (DH)',
-                    'data' => $salairesParProfesseur->pluck('total')->toArray(),
-                    'backgroundColor' => [
-                        'rgba(59, 130, 246, 0.8)',
-                        'rgba(16, 185, 129, 0.8)',
-                        'rgba(245, 158, 11, 0.8)',
-                        'rgba(239, 68, 68, 0.8)',
-                        'rgba(139, 92, 246, 0.8)'
-                    ]
-                ]]
-            ],
-            'par_mois' => [
-                'labels' => array_column($salairesParMois, 'mois'),
-                'datasets' => [[
-                    'label' => 'Total des salaires (DH)',
-                    'data' => array_column($salairesParMois, 'montant'),
-                    'borderColor' => 'rgb(168, 85, 247)',
-                    'backgroundColor' => 'rgba(168, 85, 247, 0.1)',
-                    'tension' => 0.1
-                ]]
-            ],
-            'par_statut' => [
-                'labels' => array_keys($salairesParStatut),
-                'datasets' => [[
-                    'data' => array_values($salairesParStatut),
-                    'backgroundColor' => [
-                        'rgba(16, 185, 129, 0.8)',
-                        'rgba(245, 158, 11, 0.8)',
-                        'rgba(239, 68, 68, 0.8)'
                     ]
                 ]]
             ]

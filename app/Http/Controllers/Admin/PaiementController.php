@@ -21,6 +21,27 @@ class PaiementController extends Controller
      */
     public function create()
     {
+        // Check if the request is for student payments
+        if (request()->is('admin/paiements/eleves*')) {
+            $eleves = User::where('is_active', true)
+                ->where('role', 'eleve')
+                ->select('id', 'name', 'email')
+                ->orderBy('name')
+                ->get()
+                ->map(function($eleve) {
+                    return [
+                        'id' => $eleve->id,
+                        'name' => $eleve->name,
+                        'email' => $eleve->email
+                    ];
+                });
+
+            return view('admin.paiements.eleves.create', [
+                'eleves' => $eleves,
+                'paiement' => new \App\Models\Paiement()
+            ]);
+        }
+
         // Récupérer les données nécessaires pour les formulaires
         $etudiants = User::where('is_active', true)
             ->whereIn('role', [RoleType::ELEVE->value])
@@ -423,6 +444,156 @@ class PaiementController extends Controller
         }
     }
 
+    /**
+     * Afficher la liste des paiements des élèves
+     */
+    public function indexEleves()
+    {
+        $eleves = User::where('is_active', true)
+            ->where('role', 'eleve')
+            ->with(['paiements' => function($query) {
+                $query->orderBy('date_paiement', 'desc');
+            }])
+            ->orderBy('name')
+            ->get();
+            
+        return view('admin.paiements.eleves.index', compact('eleves'));
+    }
+    
+    /**
+     * Afficher le formulaire de création d'un paiement d'élève
+     */
+    public function createEleve()
+    {
+        $eleves = User::where('is_active', true)
+            ->where('role', 'eleve')
+            ->select('id', 'name', 'email')
+            ->orderBy('name')
+            ->get();
+            
+        return view('admin.paiements.eleves.create', [
+            'eleves' => $eleves,
+            'paiement' => new \App\Models\Paiement()
+        ]);
+    }
+    
+    /**
+     * Enregistrer un nouveau paiement d'élève
+     */
+    public function storeEleve(Request $request)
+    {
+        $validated = $request->validate([
+            'eleve_id' => 'required|exists:users,id',
+            'montant' => 'required|numeric|min:0',
+            'mode_paiement' => 'required|in:especes,cheque,virement,carte',
+            'reference_paiement' => 'nullable|string|max:255',
+            'date_paiement' => 'required|date',
+            'statut' => 'required|in:en_attente,valide,annule',
+            'notes' => 'nullable|string',
+        ]);
+        
+        try {
+            DB::beginTransaction();
+            
+            $paiement = new Paiement($validated);
+            $paiement->type = 'eleve';
+            $paiement->save();
+            
+            DB::commit();
+            
+            return redirect()->route('admin.paiements.eleves.index')
+                ->with('success', 'Paiement enregistré avec succès.');
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Erreur lors de l\'enregistrement du paiement: ' . $e->getMessage());
+            
+            return back()->with('error', 'Une erreur est survenue lors de l\'enregistrement du paiement.');
+        }
+    }
+    
+    /**
+     * Afficher les détails d'un paiement d'élève
+     */
+    public function showEleve(Paiement $paiement)
+    {
+        $paiement->load('eleve');
+        return view('admin.paiements.eleves.show', compact('paiement'));
+    }
+    
+    /**
+     * Afficher le formulaire d'édition d'un paiement d'élève
+     */
+    public function editEleve(Paiement $paiement)
+    {
+        $eleves = User::where('is_active', true)
+            ->where('role', 'eleve')
+            ->select('id', 'name', 'email')
+            ->orderBy('name')
+            ->get();
+            
+        return view('admin.paiements.eleves.edit', [
+            'paiement' => $paiement,
+            'eleves' => $eleves
+        ]);
+    }
+    
+    /**
+     * Mettre à jour un paiement d'élève
+     */
+    public function updateEleve(Request $request, Paiement $paiement)
+    {
+        $validated = $request->validate([
+            'eleve_id' => 'required|exists:users,id',
+            'montant' => 'required|numeric|min:0',
+            'mode_paiement' => 'required|in:especes,cheque,virement,carte',
+            'reference_paiement' => 'nullable|string|max:255',
+            'date_paiement' => 'required|date',
+            'statut' => 'required|in:en_attente,valide,annule',
+            'notes' => 'nullable|string',
+        ]);
+        
+        try {
+            DB::beginTransaction();
+            
+            $paiement->update($validated);
+            
+            DB::commit();
+            
+            return redirect()->route('admin.paiements.eleves.show', $paiement)
+                ->with('success', 'Paiement mis à jour avec succès.');
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Erreur lors de la mise à jour du paiement: ' . $e->getMessage());
+            
+            return back()->with('error', 'Une erreur est survenue lors de la mise à jour du paiement.');
+        }
+    }
+    
+    /**
+     * Supprimer un paiement d'élève
+     */
+    public function destroyEleve(Paiement $paiement)
+    {
+        try {
+            DB::beginTransaction();
+            
+            $paiement->delete();
+            
+            DB::commit();
+            
+            return redirect()->route('admin.paiements.eleves.index')
+                ->with('success', 'Paiement supprimé avec succès.');
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Erreur lors de la suppression du paiement: ' . $e->getMessage());
+            
+            return back()->with('error', 'Une erreur est survenue lors de la suppression du paiement.');
+        }
+    }
+    
     /**
      * Mettre à jour le statut de l'inscription liée au pack
      */

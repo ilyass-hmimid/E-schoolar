@@ -12,6 +12,7 @@ use App\Models\Absence;
 use App\Models\Notification;
 use App\Models\Niveau;
 use App\Models\Filiere;
+use Illuminate\Support\Facades\Schema;
 use App\Models\Matiere;
 use App\Enums\RoleType;
 use Illuminate\Database\Seeder;
@@ -55,7 +56,8 @@ class TestDataSeeder extends Seeder
             Niveau::firstOrCreate(['code' => $niveau['code']], $niveau);
         }
 
-        // Créer les filières
+        // Créer les filières avec niveau_id
+        $niveaux = Niveau::all();
         $filieres = [
             [
                 'code' => 'SM', 
@@ -63,7 +65,8 @@ class TestDataSeeder extends Seeder
                 'description' => 'Filière Sciences Mathématiques',
                 'duree_annees' => 2,
                 'frais_inscription' => 1500,
-                'frais_mensuel' => 800
+                'frais_mensuel' => 800,
+                'niveau_id' => $niveaux->where('code', '1BAC')->first()->id
             ],
             [
                 'code' => 'SPC', 
@@ -71,7 +74,8 @@ class TestDataSeeder extends Seeder
                 'description' => 'Filière Sciences Physiques et Chimie',
                 'duree_annees' => 2,
                 'frais_inscription' => 1400,
-                'frais_mensuel' => 750
+                'frais_mensuel' => 750,
+                'niveau_id' => $niveaux->where('code', '1BAC')->first()->id
             ],
             [
                 'code' => 'SVT', 
@@ -79,7 +83,8 @@ class TestDataSeeder extends Seeder
                 'description' => 'Filière Sciences de la Vie et de la Terre',
                 'duree_annees' => 2,
                 'frais_inscription' => 1300,
-                'frais_mensuel' => 700
+                'frais_mensuel' => 700,
+                'niveau_id' => $niveaux->where('code', '1BAC')->first()->id
             ],
             [
                 'code' => 'LET', 
@@ -87,7 +92,8 @@ class TestDataSeeder extends Seeder
                 'description' => 'Filière Littéraire',
                 'duree_annees' => 2,
                 'frais_inscription' => 1200,
-                'frais_mensuel' => 650
+                'frais_mensuel' => 650,
+                'niveau_id' => $niveaux->where('code', '1BAC')->first()->id
             ],
             [
                 'code' => 'ECO', 
@@ -95,7 +101,8 @@ class TestDataSeeder extends Seeder
                 'description' => 'Filière Sciences Économiques',
                 'duree_annees' => 2,
                 'frais_inscription' => 1400,
-                'frais_mensuel' => 750
+                'frais_mensuel' => 750,
+                'niveau_id' => $niveaux->where('code', '1BAC')->first()->id
             ],
             [
                 'code' => 'SH', 
@@ -103,7 +110,8 @@ class TestDataSeeder extends Seeder
                 'description' => 'Filière Sciences Humaines',
                 'duree_annees' => 2,
                 'frais_inscription' => 1300,
-                'frais_mensuel' => 700
+                'frais_mensuel' => 700,
+                'niveau_id' => $niveaux->where('code', '1BAC')->first()->id
             ],
         ];
 
@@ -177,17 +185,29 @@ class TestDataSeeder extends Seeder
             $email = 'professeur' . $i . '@example.com';
             $userData = [
                 'name' => 'Professeur ' . $i,
+                'email' => $email,
                 'password' => Hash::make('password'),
                 'role' => RoleType::PROFESSEUR->value,
                 'is_active' => true,
-                'nom' => 'Professeur',
-                'prenom' => 'Prénom' . $i,
-                'date_naissance' => now()->subYears(rand(30, 60)),
-                'address' => $this->faker->address,
                 'phone' => $this->faker->phoneNumber,
             ];
             
-            User::firstOrCreate(['email' => $email], $userData);
+            $user = User::firstOrCreate(['email' => $email], $userData);
+            
+            // Create corresponding Enseignant record
+            Enseignant::firstOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'nom' => 'Professeur',
+                    'prenom' => 'Prénom' . $i,
+                    'email' => $email,
+                    'telephone' => $user->phone,
+                    'specialite' => $this->faker->randomElement(['Mathématiques', 'Physique', 'Chimie', 'SVT', 'Français', 'Arabe', 'Anglais', 'Histoire', 'Géographie', 'Philosophie']),
+                    'date_naissance' => now()->subYears(rand(30, 60))->format('Y-m-d'),
+                    'date_embauche' => now()->subYears(rand(1, 10))->format('Y-m-d'),
+                    'salaire_base' => $this->faker->numberBetween(8000, 15000),
+                ]
+            );
         }
 
         // Créer 50 étudiants
@@ -195,17 +215,37 @@ class TestDataSeeder extends Seeder
             $email = 'etudiant' . $i . '@example.com';
             $userData = [
                 'name' => 'Étudiant ' . $i,
+                'email' => $email,
                 'password' => Hash::make('password'),
                 'role' => RoleType::ELEVE->value,
                 'is_active' => true,
-                'nom' => 'Étudiant',
-                'prenom' => 'Prénom' . $i,
-                'date_naissance' => $this->faker->dateTimeBetween('-25 years', '-15 years'),
-                'address' => $this->faker->address,
                 'phone' => $this->faker->phoneNumber,
             ];
             
-            User::firstOrCreate(['email' => $email], $userData);
+            $user = User::firstOrCreate(['email' => $email], $userData);
+            
+            // Create corresponding Etudiant record
+            $codeEtudiant = 'ETD' . str_pad($i, 4, '0', STR_PAD_LEFT);
+            Etudiant::firstOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'code_etudiant' => $codeEtudiant,
+                    'nom' => 'Étudiant',
+                    'prenom' => 'Prénom' . $i,
+                    'email' => $email,
+                    'telephone' => $user->phone,
+                    'adresse' => $this->faker->address,
+                    'ville' => $this->faker->city,
+                    'pays' => 'Maroc',
+                    'date_naissance' => $this->faker->dateTimeBetween('-25 years', '-15 years')->format('Y-m-d'),
+                    'lieu_naissance' => $this->faker->city,
+                    'cin' => 'AB' . $this->faker->randomNumber(6),
+                    'cne' => $this->faker->randomNumber(8),
+                    'sexe' => $this->faker->randomElement(['M', 'F']),
+                    'notes' => null,
+                    'classe_id' => null, // Will be set when creating classes
+                ]
+            );
         }
 
         // Créer 5 assistants
@@ -213,17 +253,30 @@ class TestDataSeeder extends Seeder
             $email = 'assistant' . $i . '@example.com';
             $userData = [
                 'name' => 'Assistant ' . $i,
+                'email' => $email,
                 'password' => Hash::make('password'),
                 'role' => RoleType::ASSISTANT->value,
                 'is_active' => true,
-                'nom' => 'Assistant',
-                'prenom' => 'Prénom' . $i,
-                'date_naissance' => now()->subYears(rand(25, 50)),
-                'address' => $this->faker->address,
                 'phone' => $this->faker->phoneNumber,
             ];
             
-            User::firstOrCreate(['email' => $email], $userData);
+            $user = User::firstOrCreate(['email' => $email], $userData);
+            
+            // Create corresponding Assistant record if table exists
+            if (Schema::hasTable('assistants')) {
+                Assistant::firstOrCreate(
+                    ['user_id' => $user->id],
+                    [
+                        'nom' => 'Assistant',
+                        'prenom' => 'Prénom' . $i,
+                        'email' => $email,
+                        'telephone' => $user->phone,
+                        'date_naissance' => $this->faker->dateTimeBetween('-50 years', '-20 years')->format('Y-m-d'),
+                        'adresse' => $this->faker->address,
+                        'date_embauche' => now()->subYears(rand(1, 5))->format('Y-m-d'),
+                    ]
+                );
+            }
         }
     }
 
@@ -268,11 +321,11 @@ class TestDataSeeder extends Seeder
         }
         
         if ($niveauNom === '1ère année Bac') {
-            return $filiereNom !== 'Sciences Économiques';
+            return $filiereNom === 'Sciences Mathématiques' || $filiereNom === 'Sciences Physiques' || $filiereNom === 'Sciences de la Vie et de la Terre' || $filiereNom === 'Lettres';
         }
         
         if ($niveauNom === '2ème année Bac') {
-            return $filiereNom !== 'Sciences Humaines';
+            return $filiereNom === 'Sciences Mathématiques' || $filiereNom === 'Sciences Physiques' || $filiereNom === 'Sciences de la Vie et de la Terre' || $filiereNom === 'Lettres' || $filiereNom === 'Sciences Économiques';
         }
         
         return false;
@@ -316,6 +369,28 @@ class TestDataSeeder extends Seeder
             3  // ASSISTANT = 3
         ])->get();
         
+        // Get some matieres for paiements
+        $matieres = Matiere::all();
+        
+        // If no matieres exist, create a default one
+        if ($matieres->isEmpty()) {
+            $matiere = Matiere::create([
+                'nom' => 'Frais de scolarité',
+                'code' => 'SCOL',
+                'prix' => 5000,
+                'prix_prof' => 1000,
+                'type' => 'obligatoire',
+                'description' => 'Frais de scolarité annuels'
+            ]);
+            $matieres = collect([$matiere]);
+        }
+        
+        // If no users exist with the required roles, skip creating payments
+        if ($users->isEmpty()) {
+            $this->command->info('Skipping payments creation: No users with required roles (ADMIN or ASSISTANT) found.');
+            return;
+        }
+        
         foreach ($etudiants as $etudiant) {
             // Créer entre 1 et 3 paiements par étudiant
             $nbPaiements = $this->faker->numberBetween(1, 3);
@@ -323,19 +398,33 @@ class TestDataSeeder extends Seeder
             for ($i = 0; $i < $nbPaiements; $i++) {
                 $montant = $this->faker->numberBetween(500, 2000);
                 $montantPaye = $this->faker->numberBetween(300, $montant);
+                $reste = $montant - $montantPaye;
+                $modePaiement = $this->faker->randomElement(['especes', 'cheque', 'virement', 'carte']);
+                $datePaiement = $this->faker->dateTimeBetween('-6 months', 'now');
+                $moisPeriode = $datePaiement->format('Y-m');
+                $statut = $montantPaye >= $montant ? 'paye' : 'partiel';
                 
-                Paiement::factory()->create([
+                $assistant = $users->isNotEmpty() ? $users->random() : null;
+                
+                $paiementData = [
                     'etudiant_id' => $etudiant->id,
-                    'user_id' => $users->random()->id,
+                    'eleve_id' => $etudiant->id, // Same as etudiant_id for backward compatibility
+                    'matiere_id' => $matieres->isNotEmpty() ? $matieres->random()->id : null,
+                    'assistant_id' => $assistant ? $assistant->id : null,
+                    'user_id' => $assistant ? $assistant->id : 1, // Use assistant's ID or default to admin (ID 1)
                     'montant' => $montant,
-                    'montant_paye' => $montantPaye,
-                    'reste_a_payer' => $montant - $montantPaye,
-                    'mode_paiement' => $this->faker->randomElement(['espèces', 'chèque', 'virement', 'carte bancaire']),
-                    'date_paiement' => $this->faker->dateTimeBetween('-6 months', 'now'),
-                    'mois_paiement' => $this->faker->dateTimeBetween('-6 months', 'now')->format('Y-m'),
-                    'annee_scolaire' => (date('Y') - 1) . '-' . date('Y'),
-                    'statut' => $montantPaye >= $montant ? 'payé' : 'partiel',
-                ]);
+                    'montant_paye' => $montant, // Set montant_paye to full amount for now
+                    'reste' => 0, // No remaining amount since we're paying in full
+                    'mode_paiement' => $modePaiement,
+                    'reference_paiement' => 'PAY-' . strtoupper(uniqid()),
+                    'date_paiement' => $datePaiement->format('Y-m-d'),
+                    'statut' => 'valide',
+                    'commentaires' => $this->faker->sentence(),
+                    'mois_periode' => $moisPeriode,
+                ];
+                
+                // Create the paiement directly without using the factory
+                Paiement::create($paiementData);
             }
         }
     }
@@ -350,6 +439,12 @@ class TestDataSeeder extends Seeder
             3  // ASSISTANT = 3
         ])->get();
         
+        // If no cours exist, skip creating absences
+        if ($cours->isEmpty() || $users->isEmpty()) {
+            $this->command->info('Skipping absences creation: No cours or users available.');
+            return;
+        }
+        
         // Créer environ 3 absences par étudiant
         foreach ($etudiants as $etudiant) {
             $nbAbsences = $this->faker->numberBetween(0, 5);
@@ -359,7 +454,7 @@ class TestDataSeeder extends Seeder
                 $dateAbsence = $this->faker->dateTimeBetween('-3 months', 'now');
                 $justifie = $this->faker->boolean(30); // 30% de chance d'être justifié
                 
-                Absence::factory()->create([
+                Absence::create([
                     'etudiant_id' => $etudiant->id,
                     'cours_id' => $coursAbsent->id,
                     'user_id' => $users->random()->id,
@@ -389,21 +484,33 @@ class TestDataSeeder extends Seeder
                 $title = $this->generateNotificationTitle($type);
                 $message = $this->generateNotificationMessage($title);
                 
-                // Pour les étudiants, ajouter un élève aléatoire comme référence
-                $eleveId = $user->role === RoleType::ELEVE->value ? null : User::where('role', RoleType::ELEVE->value)->inRandomOrder()->first()?->id;
-                
-                Notification::create([
+                // Generate notification data
+                $isRead = $this->faker->boolean(70);
+                $notificationData = [
+                    'titre' => $title,
+                    'contenu' => $message,
                     'user_id' => $user->id,
-                    'eleve_id' => $eleveId,
                     'type' => $type,
-                    'message' => $message,
-                    'status' => $this->faker->boolean(70) ? 'lu' : 'non_lu',
-                    'data' => [
+                    'est_lu' => $isRead,
+                    'date_lecture' => $isRead ? $this->faker->dateTimeBetween('-3 months', 'now') : null,
+                    'lien' => $this->faker->optional(0.7)->url,
+                    'donnees' => [
+                        'type' => $type,
                         'title' => $title,
-                        'lien' => $this->faker->optional(0.7)->url,
                     ],
                     'created_at' => $this->faker->dateTimeBetween('-3 months', 'now'),
-                ]);
+                    'updated_at' => $this->faker->dateTimeBetween('-3 months', 'now'),
+                ];
+                
+                // Only add eleve_id if the user is not a student
+                if ($user->role !== RoleType::ELEVE->value) {
+                    $eleve = User::where('role', RoleType::ELEVE->value)->inRandomOrder()->first();
+                    if ($eleve) {
+                        $notificationData['donnees']['eleve_id'] = $eleve->id;
+                    }
+                }
+                
+                Notification::create($notificationData);
             }
         }
     }

@@ -86,11 +86,20 @@ class InitialDataSeeder extends Seeder
      */
     private function createFilieres(): void
     {
+        // Get the niveau for baccalaureate (1BAC)
+        $niveauBac1 = Niveau::where('code', '1BAC')->first();
+        $niveauBac2 = Niveau::where('code', '2BAC')->first();
+        
+        if (!$niveauBac1 || !$niveauBac2) {
+            throw new \RuntimeException('Required niveaux (1BAC/2BAC) not found. Please run createNiveaux first.');
+        }
+        
         $filieres = [
             [
                 'code' => 'SM', 
                 'nom' => 'Sciences Mathématiques', 
                 'description' => 'Filière Sciences Mathématiques',
+                'niveau_id' => $niveauBac1->id,
                 'duree_annees' => 2,
                 'frais_inscription' => 1500,
                 'frais_mensuel' => 800,
@@ -100,6 +109,7 @@ class InitialDataSeeder extends Seeder
                 'code' => 'SPC', 
                 'nom' => 'Sciences Physiques', 
                 'description' => 'Filière Sciences Physiques et Chimie',
+                'niveau_id' => $niveauBac1->id,
                 'duree_annees' => 2,
                 'frais_inscription' => 1400,
                 'frais_mensuel' => 750,
@@ -109,6 +119,7 @@ class InitialDataSeeder extends Seeder
                 'code' => 'SVT', 
                 'nom' => 'Sciences Vie et Terre', 
                 'description' => 'Filière Sciences de la Vie et de la Terre',
+                'niveau_id' => $niveauBac1->id,
                 'duree_annees' => 2,
                 'frais_inscription' => 1300,
                 'frais_mensuel' => 700,
@@ -118,6 +129,7 @@ class InitialDataSeeder extends Seeder
                 'code' => 'LET', 
                 'nom' => 'Lettres', 
                 'description' => 'Filière Littéraire',
+                'niveau_id' => $niveauBac1->id,
                 'duree_annees' => 2,
                 'frais_inscription' => 1200,
                 'frais_mensuel' => 650,
@@ -127,6 +139,7 @@ class InitialDataSeeder extends Seeder
                 'code' => 'ECO', 
                 'nom' => 'Sciences Économiques', 
                 'description' => 'Filière Sciences Économiques',
+                'niveau_id' => $niveauBac1->id,
                 'duree_annees' => 2,
                 'frais_inscription' => 1400,
                 'frais_mensuel' => 750,
@@ -136,6 +149,7 @@ class InitialDataSeeder extends Seeder
                 'code' => 'SH', 
                 'nom' => 'Sciences Humaines', 
                 'description' => 'Filière Sciences Humaines',
+                'niveau_id' => $niveauBac1->id,
                 'duree_annees' => 2,
                 'frais_inscription' => 1300,
                 'frais_mensuel' => 700,
@@ -144,7 +158,16 @@ class InitialDataSeeder extends Seeder
         ];
 
         foreach ($filieres as $filiere) {
-            Filiere::firstOrCreate(['code' => $filiere['code']], $filiere);
+            // Check if filiere exists by code
+            $existingFiliere = Filiere::where('code', $filiere['code'])->first();
+            
+            if ($existingFiliere) {
+                // Update existing filiere with the new data
+                $existingFiliere->update($filiere);
+            } else {
+                // Create new filiere
+                Filiere::create($filiere);
+            }
         }
     }
 
@@ -161,8 +184,7 @@ class InitialDataSeeder extends Seeder
                 'description' => 'Mathématiques', 
                 'type' => 'scientifique', 
                 'prix' => 300, 
-                'prix_prof' => 150,
-                'est_actif' => true
+                'prix_prof' => 150
             ],
             [
                 'code' => 'PHYS', 
@@ -170,8 +192,7 @@ class InitialDataSeeder extends Seeder
                 'description' => 'Physique', 
                 'type' => 'scientifique', 
                 'prix' => 280, 
-                'prix_prof' => 140,
-                'est_actif' => true
+                'prix_prof' => 140
             ],
             [
                 'code' => 'CHIM', 
@@ -179,8 +200,7 @@ class InitialDataSeeder extends Seeder
                 'description' => 'Chimie', 
                 'type' => 'scientifique', 
                 'prix' => 260, 
-                'prix_prof' => 130,
-                'est_actif' => true
+                'prix_prof' => 130
             ],
             [
                 'code' => 'SVT', 
@@ -188,8 +208,7 @@ class InitialDataSeeder extends Seeder
                 'description' => 'SVT', 
                 'type' => 'scientifique', 
                 'prix' => 250, 
-                'prix_prof' => 125,
-                'est_actif' => true
+                'prix_prof' => 125
             ],
             
             // Matières littéraires
@@ -199,8 +218,7 @@ class InitialDataSeeder extends Seeder
                 'description' => 'Langue Française', 
                 'type' => 'litteraire', 
                 'prix' => 200, 
-                'prix_prof' => 100,
-                'est_actif' => true
+                'prix_prof' => 100
             ],
             [
                 'code' => 'EN', 
@@ -208,8 +226,7 @@ class InitialDataSeeder extends Seeder
                 'description' => 'Langue Anglaise', 
                 'type' => 'litteraire', 
                 'prix' => 180, 
-                'prix_prof' => 90,
-                'est_actif' => true
+                'prix_prof' => 90
             ],
             [
                 'code' => 'AR', 
@@ -217,8 +234,7 @@ class InitialDataSeeder extends Seeder
                 'description' => 'Langue Arabe', 
                 'type' => 'litteraire', 
                 'prix' => 180, 
-                'prix_prof' => 90,
-                'est_actif' => true
+                'prix_prof' => 90
             ],
             [
                 'code' => 'PHILO', 
@@ -226,8 +242,7 @@ class InitialDataSeeder extends Seeder
                 'description' => 'Philosophie', 
                 'type' => 'litteraire', 
                 'prix' => 200, 
-                'prix_prof' => 100,
-                'est_actif' => true
+                'prix_prof' => 100
             ],
             [
                 'code' => 'HISTGEO', 
@@ -235,8 +250,7 @@ class InitialDataSeeder extends Seeder
                 'description' => 'Histoire et Géographie', 
                 'type' => 'litteraire', 
                 'prix' => 180, 
-                'prix_prof' => 90,
-                'est_actif' => true
+                'prix_prof' => 90
             ],
             
             // Autres matières
@@ -246,8 +260,7 @@ class InitialDataSeeder extends Seeder
                 'description' => 'Éducation Islamique', 
                 'type' => 'autre', 
                 'prix' => 150, 
-                'prix_prof' => 75,
-                'est_actif' => true
+                'prix_prof' => 75
             ],
             [
                 'code' => 'EPS', 
@@ -255,8 +268,7 @@ class InitialDataSeeder extends Seeder
                 'description' => 'EPS', 
                 'type' => 'technique', 
                 'prix' => 100, 
-                'prix_prof' => 50,
-                'est_actif' => true
+                'prix_prof' => 50
             ],
             [
                 'code' => 'INFO', 
@@ -264,8 +276,7 @@ class InitialDataSeeder extends Seeder
                 'description' => 'Informatique et Programmation', 
                 'type' => 'scientifique', 
                 'prix' => 250, 
-                'prix_prof' => 125,
-                'est_actif' => true
+                'prix_prof' => 125
             ],
             
             // Matières économiques
@@ -275,8 +286,7 @@ class InitialDataSeeder extends Seeder
                 'description' => 'Économie Générale', 
                 'type' => 'autre', 
                 'prix' => 280, 
-                'prix_prof' => 140,
-                'est_actif' => true
+                'prix_prof' => 140
             ],
             [
                 'code' => 'COMPTA', 
@@ -284,8 +294,7 @@ class InitialDataSeeder extends Seeder
                 'description' => 'Comptabilité et Gestion', 
                 'type' => 'autre', 
                 'prix' => 260, 
-                'prix_prof' => 130,
-                'est_actif' => true
+                'prix_prof' => 130
             ],
             [
                 'code' => 'STAT', 
@@ -293,8 +302,7 @@ class InitialDataSeeder extends Seeder
                 'description' => 'Statistiques et Probabilités', 
                 'type' => 'scientifique', 
                 'prix' => 240, 
-                'prix_prof' => 120,
-                'est_actif' => true
+                'prix_prof' => 120
             ],
         ];
 

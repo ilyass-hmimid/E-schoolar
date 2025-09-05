@@ -60,9 +60,8 @@ class EtudiantSeeder extends Seeder
                         'name' => "$prenom $nom",
                         'email' => $email,
                         'password' => Hash::make('password'),
-                        'address' => rand(1, 200) . ' Rue ' . $nom . ', ' . $ville,
                         'phone' => $telephone,
-                        'role' => RoleType::ELEVE,
+                        'role' => RoleType::ELEVE->value,
                         'is_active' => true,
                         'email_verified_at' => now(),
                     ]
@@ -80,15 +79,12 @@ class EtudiantSeeder extends Seeder
                     [
                         'user_id' => $user->id,
                         'classe_id' => $classe->id,
-                        'niveau_id' => $classe->niveau_id,
-                        'filiere_id' => $classe->filiere_id,
                         'code_etudiant' => $codeEtudiant,
-                        // Extraire le prénom et le nom du champ name
                         'nom' => $nom,
                         'prenom' => $prenom,
                         'email' => $user->email,
                         'telephone' => $telephone,
-                        'adresse' => $user->address,
+                        'adresse' => rand(1, 200) . ' Rue ' . $nom . ', ' . $ville,
                         'ville' => $ville,
                         'pays' => 'Maroc',
                         'date_naissance' => now()->subYears(rand(15, 20))->subMonths(rand(0, 11))->subDays(rand(0, 30))->format('Y-m-d'),

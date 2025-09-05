@@ -61,15 +61,25 @@ class CoursSeeder extends Seeder
                     $heureFin = $heureDebut + 1; // Cours d'une heure
                     
                     // Créer le cours
+                    $date = now()->addDays(rand(1, 30));
+                    $heureDebut = now()->setTime(rand(8, 16), 0, 0);
+                    $heureFin = (clone $heureDebut)->addHours(1);
+                    
                     Cours::create([
-                        'niveau_id' => $classe->niveau_id,
+                        'classe_id' => $classe->id,
                         'matiere_id' => $matiere->id,
-                        'professeur_id' => $professeur->id,
-                        'titre' => $matiere->libelle . ' - ' . $classe->nom,
-                        'description' => 'Cours de ' . $matiere->libelle . ' pour la classe ' . $classe->nom,
-                        'duree' => 60, // Durée en minutes
-                        'prix' => rand(50, 200), // Prix aléatoire entre 50 et 200
-                        'est_actif' => true
+                        'enseignant_id' => $professeur->id,
+                        'date' => $date->format('Y-m-d'),
+                        'heure_debut' => $heureDebut->format('H:i:s'),
+                        'heure_fin' => $heureFin->format('H:i:s'),
+                        'salle' => 'Salle ' . rand(1, 20),
+                        'statut' => 'planifie',
+                        'contenu' => 'Contenu du cours de ' . $matiere->libelle . ' pour la classe ' . $classe->nom,
+                        'devoirs' => 'Devoirs à faire pour le prochain cours',
+                        'notes' => 'Notes importantes pour ce cours',
+                        'est_valide' => rand(0, 1),
+                        'valide_par' => $professeur->id,
+                        'valide_le' => now()->format('Y-m-d H:i:s')
                     ]);
                     
                     $this->command->info("Création d'un cours de {$matiere->libelle} pour la classe {$classe->nom} avec le professeur {$professeur->name}");

@@ -9,6 +9,7 @@
 
         <div class="bg-white rounded-lg shadow-md p-6">
             <form wire:submit.prevent="update">
+                @include('partials.errors')
                 <!-- Section Informations de base -->
                 <div class="mb-8">
                     <h2 class="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Informations de base</h2>
@@ -17,14 +18,12 @@
                         <div class="form-group">
                             <label for="name" class="form-label">Nom complet <span class="text-red-500">*</span></label>
                             <input type="text" id="name" wire:model="name" class="form-control" required>
-                            @error('name') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
                         <!-- Email -->
                         <div class="form-group">
                             <label for="email" class="form-label">Email <span class="text-red-500">*</span></label>
                             <input type="email" id="email" wire:model="email" class="form-control" required>
-                            @error('email') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
                         <!-- Mot de passe -->
@@ -32,7 +31,6 @@
                             <label for="password" class="form-label">Nouveau mot de passe</label>
                             <input type="password" id="password" wire:model="password" class="form-control">
                             <p class="text-xs text-gray-500 mt-1">Laissez vide pour ne pas modifier</p>
-                            @error('password') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
                         <!-- Confirmation du mot de passe -->
@@ -46,10 +44,9 @@
                             <label for="role" class="form-label">Rôle <span class="text-red-500">*</span></label>
                             <select id="role" wire:model="role" class="form-select" required>
                                 @foreach($roles as $role)
-                                    <option value="{{ $role['value'] }}">{{ $role['label'] }}</option>
+                                    <option value="{{ $role['value'] }}" {{ $role['value'] === $role ? 'selected' : '' }}>{{ $role['label'] }}</option>
                                 @endforeach
                             </select>
-                            @error('role') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
                         </div>
 
                         <!-- Statut -->
@@ -157,7 +154,6 @@
                             <label for="photo" class="btn btn-secondary cursor-pointer">
                                 <i class="fas fa-upload mr-2"></i> Changer la photo
                             </label>
-                            @error('photo') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
                             <p class="text-sm text-gray-500 mt-2">Taille maximale : 2MB. Formats acceptés : JPG, PNG, GIF</p>
                         </div>
                     </div>

@@ -24,6 +24,7 @@
         <div class="border-t border-gray-200 px-4 py-5 sm:p-6">
             <form action="{{ route('eleve.devoirs.rendre', $devoir->id) }}" method="POST" enctype="multipart/form-data">
                 @csrf
+                @include('partials.errors')
                 
                 <div class="mb-6">
                     <label for="contenu" class="block text-sm font-medium text-gray-700 mb-1">
@@ -32,9 +33,6 @@
                     <textarea id="contenu" name="contenu" rows="8" 
                         class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-300 rounded-md p-2"
                         placeholder="Décrivez votre travail ici..." required></textarea>
-                    @error('contenu')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
                 </div>
                 
                 <div class="mb-6">
@@ -53,9 +51,6 @@
                     <p class="mt-1 text-xs text-gray-500">
                         Formats acceptés: PDF, DOC, DOCX, ODT, TXT. Taille maximale: 10MB
                     </p>
-                    @error('fichier')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
                 </div>
                 
                 <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">

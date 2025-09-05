@@ -1695,8 +1695,16 @@
             }
         });
 
-        // Smooth scrolling for anchor links
+        // Smooth scrolling for anchor links (only for internal page anchors)
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            // Skip if it's not an internal page anchor (e.g., starts with # but has route)
+            if (anchor.getAttribute('href').includes('{{ route(') || 
+                anchor.getAttribute('href').startsWith('http') ||
+                anchor.getAttribute('href').startsWith('mailto:') ||
+                anchor.getAttribute('href').startsWith('tel:')) {
+                return;
+            }
+            
             anchor.addEventListener('click', function(e) {
                 e.preventDefault();
                 const targetId = this.getAttribute('href');
@@ -1708,6 +1716,13 @@
                         top: targetElement.offsetTop - 80,
                         behavior: 'smooth'
                     });
+                    
+                    // Update URL without page reload
+                    if (history.pushState) {
+                        history.pushState(null, null, targetId);
+                    } else {
+                        location.hash = targetId;
+                    }
                 }
             });
         });
