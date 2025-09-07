@@ -57,7 +57,8 @@ class EtudiantSeeder extends Seeder
                 $user = User::firstOrCreate(
                     ['email' => $email],
                     [
-                        'name' => "$prenom $nom",
+                        'name' => $nom,
+                        'prenom' => $prenom,
                         'email' => $email,
                         'password' => Hash::make('password'),
                         'phone' => $telephone,
@@ -67,10 +68,8 @@ class EtudiantSeeder extends Seeder
                     ]
                 );
                 
-                // Attribuer le rôle étudiant
-                if (!$user->hasRole('eleve')) {
-                    $user->assignRole('eleve');
-                }
+                // Le rôle est déjà défini lors de la création de l'utilisateur
+                // via le champ 'role' => RoleType::ELEVE->value
                 
                 // Créer le profil étudiant
                 $codeEtudiant = 'ETU' . $user->id . '_' . time() . rand(10, 99);

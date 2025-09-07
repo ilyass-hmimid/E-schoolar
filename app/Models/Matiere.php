@@ -8,63 +8,112 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Matiere extends Model
 {
+    /**
+     * Les matières fixes du système
+     */
+    const MATHS = 'Mathématiques';
+    const SVT = 'SVT';
+    const PHYSIQUE = 'Physique';
+    const COMMUNICATION_FR = 'Communication Française';
+    const COMMUNICATION_ANG = 'Communication Anglaise';
+
+    /**
+     * Les attributs qui sont assignables en masse.
+     *
+     * @var array
+     */
     protected $fillable = [
         'nom',
-        'code',
         'description',
-        'coefficient',
-        'niveau_id',
-        'est_obligatoire',
-        'volume_horaire',
-        'couleur',
+        'prix_mensuel',  // Prix mensuel par élève pour cette matière
+        'couleur',       // Pour l'affichage dans le calendrier/interface
     ];
 
+    /**
+     * Les attributs qui doivent être convertis en types natifs.
+     *
+     * @var array
+     */
     protected $casts = [
-        'coefficient' => 'integer',
-        'volume_horaire' => 'integer',
-        'est_obligatoire' => 'boolean',
+        'prix_mensuel' => 'decimal:2',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
-    protected $appends = [
-        'nom_complet',
-    ];
+    /**
+     * Relation avec les élèves inscrits à cette matière
+     */
+    public function eleves(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'eleve_matiere', 'matiere_id', 'eleve_id')
+            ->where('role', User::ROLE_ELEVE)
+            ->withTimestamps();
+    }
 
+    /**
+     * Relation avec les professeurs qui enseignent cette matière
+     */
     public function professeurs(): BelongsToMany
     {
-        return $this->belongsToMany(Professeur::class, 'enseignements', 'matiere_id', 'professeur_id');
+        return $this->belongsToMany(User::class, 'professeur_matiere', 'matiere_id', 'professeur_id')
+            ->where('role', User::ROLE_PROFESSEUR)
+            ->withPivot('est_responsable')
+            ->withTimestamps();
     }
 
-    public function classes(): BelongsToMany
-    {
-        return $this->belongsToMany(Classe::class, 'enseignements', 'matiere_id', 'classe_id');
-    }
-
+    /**
+     * Relation avec les absences pour cette matière
+     */
     public function absences(): HasMany
     {
-        return $this->hasMany(Absence::class, 'matiere_id');
+        return $this->hasMany(Absence::class);
     }
 
-    public function niveau()
+    /**
+     * Obtenir le professeur responsable de cette matière
+     */
+    public function getProfesseurResponsableAttribute()
     {
-        return $this->belongsTo(Niveau::class);
+        return $this->professeurs()
+            ->wherePivot('est_responsable', true)
+            ->first();
     }
 
-    public function getNomCompletAttribute(): string
+    /**
+     * Obtenir le nombre d'élèves inscrits à cette matière
+     */
+    public function getNombreElevesAttribute(): int
     {
-        $nom = $this->nom;
-        if ($this->niveau) {
-            $nom = "{$this->niveau->nom} - {$nom}";
-        }
-        return $nom;
+        return $this->eleves()->count();
     }
 
-    public function scopeObligatoires($query)
+    /**
+     * Obtenir le chiffre d'affaires mensuel pour cette matière
+     */
+    public function getChiffreAffairesMensuelAttribute(): float
     {
-        return $query->where('est_obligatoire', true);
+        return $this->nombre_eleves * $this->prix_mensuel;
     }
 
-    public function scopePourNiveau($query, $niveauId)
+    /**
+     * Obtenir la liste des matières fixes
+     */
+    public static function getMatieresFixes(): array
     {
-        return $query->where('niveau_id', $niveauId);
+        return [
+            self::MATHS,
+            self::SVT,
+            self::PHYSIQUE,
+            self::COMMUNICATION_FR,
+            self::COMMUNICATION_ANG,
+        ];
+    }
+
+    /**
+     * Vérifie si la matière est une matière fixe
+     */
+    public function isMatiereFixe(): bool
+    {
+        return in_array($this->nom, self::getMatieresFixes());
     }
 }

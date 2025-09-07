@@ -3,10 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\User;
-use App\Enums\RoleType;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DatabaseSeeder extends Seeder
 {
@@ -20,80 +18,43 @@ class DatabaseSeeder extends Seeder
 
         // Vider les tables si nécessaire (en développement uniquement)
         if (app()->environment('local', 'testing')) {
-            $this->truncateTables([
-                'users', 'eleves', 'professeurs', 'classes', 'paiements', 
-                'absences', 'niveaux', 'filieres', 'matieres', 'packs',
-                'model_has_roles', 'roles', 'permissions', 'model_has_permissions',
-                'role_has_permissions', 'sessions'
-            ]);
+            Schema::disableForeignKeyConstraints();
+            
+            $tables = [
+                'eleve_matiere',
+                'professeur_matiere',
+                'paiements',
+                'absences',
+                'salaires',
+                'matieres',
+                'users',
+            ];
+
+            foreach ($tables as $table) {
+                if (Schema::hasTable($table)) {
+                    DB::table($table)->truncate();
+                }
+            }
+
+            Schema::enableForeignKeyConstraints();
         }
 
         // Exécuter les seeders des données de base
         $this->call([
-            RolePermissionSeeder::class,  // Rôles et permissions de base
-            PermissionSeeder::class,      // Permissions du système
-            NiveauTableSeeder::class,     // Niveaux scolaires
-            FiliereTableSeeder::class,    // Filières
-            MatiereTableSeeder::class,    // Matières
-            AdminUserSeeder::class,       // Utilisateur admin
-            ClasseSeeder::class,          // Classes
-            EleveSeeder::class,           // Élèves
-            ProfesseurSeeder::class,      // Professeurs
-            AbsenceSeeder::class,         // Absences
-            PaiementSeeder::class,        // Paiements
+            MatiereSeeder::class,      // Les 5 matières fixes
+            AdminUserSeeder::class,    // Compte administrateur
+            TestUsersSeeder::class,    // Comptes de test (professeur et élève)
         ]);
 
-        // Créer l'administrateur principal s'il n'existe pas
-        $admin = User::firstOrCreate(
-            ['email' => 'admin@allotawjih.com'],
-            [
-                'name' => 'Administrateur',
-                'password' => Hash::make('password'),
-                'role' => RoleType::ADMIN,
-                'phone' => '0612345678',
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ]
-        );
-
-        // Attribuer le rôle admin à l'utilisateur admin
-        if ($admin->wasRecentlyCreated) {
-            $admin->assignRole('admin');
-        }
-
-        // Créer des données de test pour le développement
-        if (app()->environment('local', 'testing')) {
-            $this->call([
-                UserSeeder::class,
-                ClasseSeeder::class,
-                EtudiantSeeder::class,
-                CoursSeeder::class,
-                PaiementSeeder::class,
-                AbsenceSeeder::class,
-                NotificationSeeder::class,
-            ]);
-        } else {
-            // En production, créer uniquement les comptes de base
-            $this->createTestUsers();
-        }
-
         // Réactiver les contraintes de clé étrangère
-        \DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
-        $this->command->info('Données de base créées avec succès !');
-        $this->command->info('Compte admin: admin@allotawjih.com / password');
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        
+        $this->command->info('✅ Base de données initialisée avec succès!');
     }
-
-    /**
-     * Vider les tables spécifiées.
-     *
-     * @param array $tables
-     * @return void
-     */
     private function truncateTables(array $tables): void
     {
         foreach ($tables as $table) {
-            \DB::table($table)->truncate();
+            DB::table($table)->truncate();
         }
     }
 

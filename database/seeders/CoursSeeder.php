@@ -17,21 +17,65 @@ class CoursSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->command->info('Début du seeder CoursSeeder...');
+        
+        // Vérifier le nombre de cours avant la suppression
+        $countBefore = DB::table('cours')->count();
+        $this->command->info("1. Nombre de cours avant suppression: $countBefore");
+        
         // Désactiver temporairement les contraintes de clé étrangère
+        $this->command->info('2. Désactivation des contraintes de clé étrangère...');
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         
+        // Vérifier les contraintes de clé étrangère
+        $foreignKeyStatus = DB::select("SELECT @@FOREIGN_KEY_CHECKS as status")[0]->status;
+        $this->command->info("   - FOREIGN_KEY_CHECKS = $foreignKeyStatus");
+        
         // Vider la table des cours
-        DB::table('cours')->truncate();
+        $this->command->info('3. Vidage de la table cours...');
+        
+        // Afficher les informations sur la table avant suppression
+        $countBefore = DB::table('cours')->count();
+        $this->command->info(sprintf(
+            '   - Avant suppression: %d enregistrements',
+            $countBefore
+        ));
+        
+        // Utiliser DELETE au lieu de TRUNCATE
+        if ($countBefore > 0) {
+            $deleted = DB::table('cours')->delete();
+            $this->command->info(sprintf('   - %d enregistrements supprimés', $deleted));
+            
+            // Réinitialiser l'auto-incrément
+            DB::statement('ALTER TABLE cours AUTO_INCREMENT = 1');
+        }
+        
+        // Vérifier que la table est vide
+        $countAfterDelete = DB::table('cours')->count();
+        $this->command->info(sprintf(
+            '4. Après suppression: %d enregistrements',
+            $countAfterDelete
+        ));
         
         // Réactiver les contraintes de clé étrangère
+        $this->command->info('5. Réactivation des contraintes de clé étrangère...');
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        
+        $foreignKeyStatus = DB::select("SELECT @@FOREIGN_KEY_CHECKS as status")[0]->status;
+        $this->command->info("   - FOREIGN_KEY_CHECKS = $foreignKeyStatus");
 
         // Récupérer les classes, matières et professeurs
+        $this->command->info('6. Récupération des classes, matières et professeurs...');
         $classes = Classe::with('niveau', 'filiere')->get();
         $matieres = Matiere::all();
-        $professeurs = User::whereHas('roles', function($q) {
-            $q->where('name', 'professeur');
-        })->get();
+        $professeurs = User::where('role', 2)->get(); // 2 = PROFESSEUR dans RoleType
+        
+        $this->command->info(sprintf(
+            '7. Données récupérées: %d classes, %d matières, %d professeurs',
+            $classes->count(),
+            $matieres->count(),
+            $professeurs->count()
+        ));
 
         if ($classes->isEmpty() || $matieres->isEmpty() || $professeurs->isEmpty()) {
             $this->command->error('Veuillez d\'abord exécuter les seeders pour les classes, matières et professeurs.');
@@ -65,24 +109,51 @@ class CoursSeeder extends Seeder
                     $heureDebut = now()->setTime(rand(8, 16), 0, 0);
                     $heureFin = (clone $heureDebut)->addHours(1);
                     
-                    Cours::create([
-                        'classe_id' => $classe->id,
-                        'matiere_id' => $matiere->id,
-                        'enseignant_id' => $professeur->id,
-                        'date' => $date->format('Y-m-d'),
-                        'heure_debut' => $heureDebut->format('H:i:s'),
-                        'heure_fin' => $heureFin->format('H:i:s'),
-                        'salle' => 'Salle ' . rand(1, 20),
-                        'statut' => 'planifie',
-                        'contenu' => 'Contenu du cours de ' . $matiere->libelle . ' pour la classe ' . $classe->nom,
-                        'devoirs' => 'Devoirs à faire pour le prochain cours',
-                        'notes' => 'Notes importantes pour ce cours',
-                        'est_valide' => rand(0, 1),
-                        'valide_par' => $professeur->id,
-                        'valide_le' => now()->format('Y-m-d H:i:s')
-                    ]);
+                    try {
+                        $cours = new Cours([
+                            'classe_id' => $classe->id,
+                            'matiere_id' => $matiere->id,
+                            'enseignant_id' => $professeur->id,
+                            'date' => $date->format('Y-m-d'),
+                            'heure_debut' => $heureDebut->format('H:i:s'),
+                            'heure_fin' => $heureFin->format('H:i:s'),
+                            'salle' => 'Salle ' . rand(1, 20),
+                            'statut' => 'planifie',
+                            'contenu' => 'Contenu du cours de ' . $matiere->nom . ' pour la classe ' . $classe->nom,
+                            'devoirs' => 'Devoirs à faire pour le prochain cours',
+                            'notes' => 'Notes importantes pour ce cours',
+                            'est_valide' => rand(0, 1),
+                            'valide_par' => $professeur->id,
+                            'valide_le' => now()->format('Y-m-d H:i:s')
+                        ]);
+                        
+                        $saved = $cours->save();
+                        if (!$saved) {
+                            $this->command->error("Échec de l'enregistrement du cours: " . json_encode($cours->toArray()));
+                        } else {
+                            $this->command->info("Cours enregistré avec l'ID: " . $cours->id);
+                        }
+                    } catch (\Exception $e) {
+                        $this->command->error("Erreur lors de la création du cours: " . $e->getMessage());
+                        $this->command->error("Détails: " . json_encode([
+                            'classe_id' => $classe->id,
+                            'matiere_id' => $matiere->id,
+                            'enseignant_id' => $professeur->id,
+                            'date' => $date->format('Y-m-d'),
+                            'heure_debut' => $heureDebut->format('H:i:s'),
+                            'heure_fin' => $heureFin->format('H:i:s')
+                        ]));
+                    }
                     
-                    $this->command->info("Création d'un cours de {$matiere->libelle} pour la classe {$classe->nom} avec le professeur {$professeur->name}");
+                    $this->command->info(sprintf(
+                        "Création d'un cours de %s (ID: %d) pour la classe %s (ID: %d) avec le professeur %s (ID: %d)",
+                        $matiere->nom ?? 'Inconnu',
+                        $matiere->id,
+                        $classe->nom ?? 'Inconnu',
+                        $classe->id,
+                        $professeur->name,
+                        $professeur->id
+                    ));
                 }
             }
         }

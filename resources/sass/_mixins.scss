@@ -414,35 +414,6 @@
   }
 }
 
-// Mixin pour les notifications
-@mixin notification-variant($background, $border, $color) {
-  background-color: $background;
-  border-color: $border;
-  color: $color;
-  
-  .notification-close {
-    color: $color;
-    opacity: 0.8;
-    
-    &:hover, &:focus {
-      color: $color;
-      opacity: 1;
-    }
-  }
-  
-  .notification-title {
-    color: $color;
-  }
-  
-  .notification-message {
-    color: rgba($color, 0.9);
-  }
-  
-  .notification-icon {
-    color: $color;
-  }
-}
-
 // Mixin pour les cartes de profil
 @mixin profile-card-variant($background, $border, $color) {
   background-color: $background;

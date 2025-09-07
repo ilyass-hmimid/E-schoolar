@@ -3,74 +3,66 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Carbon\Carbon;
 
 class Paiement extends Model
 {
-    use SoftDeletes;
-
-    protected $fillable = [
-        'eleve_id',
-        'etudiant_id',
-        'matiere_id',
-        'pack_id',
-        'assistant_id',
-        'type',
-        'montant',
-        'montant_paye',
-        'reste',
-        'mode_paiement',
-        'reference_paiement',
-        'date_paiement',
-        'statut',
-        'commentaires',
-        'notes',
-        'mois_periode',
-        'created_by',
-        'updated_by',
-    ];
-
-    protected $casts = [
-        'montant' => 'decimal:2',
-        'montant_paye' => 'decimal:2',
-        'reste' => 'decimal:2',
-        'date_paiement' => 'date',
-        'mois_periode' => 'date',
-    ];
-
-    protected $appends = [
-        'statut_libelle',
-        'mois_periode_formate',
-    ];
-
     // Statuts possibles pour un paiement
     public const STATUT_PAYE = 'paye';
     public const STATUT_IMPAYE = 'impaye';
     public const STATUT_EN_RETARD = 'en_retard';
-    public const STATUT_ANNULE = 'annule';
+
+    // Types de paiement
+    public const TYPE_INSCRIPTION = 'inscription';
+    public const TYPE_MENSUALITE = 'mensualite';
+    public const TYPE_AUTRE = 'autre';
 
     // Modes de paiement possibles
     public const MODE_ESPECES = 'especes';
     public const MODE_VIREMENT = 'virement';
     public const MODE_CHEQUE = 'cheque';
-    public const MODE_PRELEVEMENT = 'prelevement';
+    public const MODE_CMI = 'cmi';
 
     /**
-     * Relation avec l'élève concerné (nouvelle relation)
+     * Les attributs qui sont assignables en masse.
+     *
+     * @var array
+     */
+    protected $fillable = [
+        'eleve_id',
+        'matiere_id',
+        'type',
+        'montant',
+        'mode_paiement',
+        'reference_paiement',
+        'date_paiement',
+        'mois_couvre',          // Mois couvert par le paiement (pour les mensualités)
+        'annee_scolaire',       // Année scolaire (ex: 2023-2024)
+        'statut',
+        'commentaire',
+        'preuve_paiement',      // Chemin vers le fichier de preuve (reçu, capture d'écran, etc.)
+        'enregistre_par',       // ID de l'admin qui a enregistré le paiement
+    ];
+
+    /**
+     * Les attributs qui doivent être convertis en types natifs.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'montant' => 'decimal:2',
+        'date_paiement' => 'date',
+        'mois_couvre' => 'date',
+    ];
+
+    /**
+     * Relation avec l'élève concerné
      */
     public function eleve(): BelongsTo
     {
-        return $this->belongsTo(Eleve::class, 'eleve_id')->withTrashed();
-    }
-
-    /**
-     * Relation avec l'étudiant (ancienne relation)
-     */
-    public function etudiant(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'etudiant_id')->withTrashed();
+        return $this->belongsTo(User::class, 'eleve_id')
+            ->where('role', User::ROLE_ELEVE);
     }
 
     /**
@@ -78,23 +70,103 @@ class Paiement extends Model
      */
     public function matiere(): BelongsTo
     {
-        return $this->belongsTo(Matiere::class, 'matiere_id');
+        return $this->belongsTo(Matiere::class);
     }
 
     /**
-     * Relation avec le pack
+     * Relation avec l'admin qui a enregistré le paiement
      */
-    public function pack(): BelongsTo
+    public function enregistrePar(): BelongsTo
     {
-        return $this->belongsTo(Pack::class, 'pack_id');
+        return $this->belongsTo(User::class, 'enregistre_par')
+            ->where('role', User::ROLE_ADMIN);
     }
 
     /**
-     * Relation avec l'assistant
+     * Vérifie si le paiement est complet
      */
-    public function assistant(): BelongsTo
+    public function getEstPayeAttribute(): bool
     {
-        return $this->belongsTo(User::class, 'assistant_id')->withTrashed();
+        return $this->statut === self::STATUT_PAYE;
+    }
+
+    /**
+     * Vérifie si le paiement est en retard
+     */
+    public function getEstEnRetardAttribute(): bool
+    {
+        return $this->statut === self::STATUT_EN_RETARD;
+    }
+
+    /**
+     * Marquer le paiement comme payé
+     */
+    public function marquerCommePaye(string $reference, string $modePaiement, ?string $commentaire = null): void
+    {
+        $this->update([
+            'statut' => self::STATUT_PAYE,
+            'reference_paiement' => $reference,
+            'mode_paiement' => $modePaiement,
+            'commentaire' => $commentaire,
+            'date_paiement' => now(),
+        ]);
+    }
+
+    /**
+     * Scope pour les paiements d'un élève donné
+     */
+    public function scopePourEleve($query, int $eleveId)
+    {
+        return $query->where('eleve_id', $eleveId);
+    }
+
+    /**
+     * Scope pour les paiements d'une matière donnée
+     */
+    public function scopePourMatiere($query, int $matiereId)
+    {
+        return $query->where('matiere_id', $matiereId);
+    }
+
+    /**
+     * Scope pour les paiements d'un type donné
+     */
+    public function scopeDeType($query, string $type)
+    {
+        return $query->where('type', $type);
+    }
+
+    /**
+     * Scope pour les paiements d'une année scolaire donnée
+     */
+    public function scopePourAnneeScolaire($query, string $anneeScolaire)
+    {
+        return $query->where('annee_scolaire', $anneeScolaire);
+    }
+
+    /**
+     * Obtenir le libellé du statut
+     */
+    public function getLibelleStatutAttribute(): string
+    {
+        return [
+            self::STATUT_PAYE => 'Payé',
+            self::STATUT_IMPAYE => 'Impayé',
+            self::STATUT_EN_RETARD => 'En retard',
+        ][$this->statut] ?? 'Inconnu';
+    }
+
+    /**
+     * Obtenir le libellé du mode de paiement
+     */
+    public function getLibelleModePaiementAttribute(): string
+    {
+        return [
+            self::MODE_ESPECES => 'Espèces',
+            self::MODE_VIREMENT => 'Virement',
+            self::MODE_CHEQUE => 'Chèque',
+            self::MODE_CMI => 'Paiement en ligne (CMI)',
+        ][$this->mode_paiement] ?? 'Non spécifié';
     }
 
     /**

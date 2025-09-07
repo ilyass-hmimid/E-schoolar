@@ -19,8 +19,8 @@ use App\Http\Controllers\Api\PaiementApiController;
 |
 */
 
-// Routes API protégées par authentification
-Route::middleware(['auth:sanctum', 'active'])->group(function () {
+// Routes API protégées par authentification et vérification de rôle
+Route::middleware(['auth:sanctum', 'active', 'role:admin'])->group(function () {
     // ============================================================================
     // ROUTES API GESTION DES ÉLÈVES
     // ============================================================================

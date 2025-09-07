@@ -10,41 +10,80 @@ use App\Models\Matiere;
 use App\Enums\RoleType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Inertia\Inertia;
-use Spatie\Permission\Traits\HasRoles;
-
-class EleveController extends Controller
+class EleveController extends BaseAdminController
 {
-    use HasRoles;
     /**
      * Affiche la liste des élèves
      */
     public function index()
     {
-        $eleves = User::role('eleve')
-            ->with(['niveau:id,nom', 'filiere:id,nom'])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function($eleve) {
-                return [
-                    'id' => $eleve->id,
-                    'name' => $eleve->name,
-                    'email' => $eleve->email,
-                    'phone' => $eleve->phone,
-                    'address' => $eleve->address,
-                    'niveau' => $eleve->niveau ? $eleve->niveau->nom : null,
-                    'filiere' => $eleve->filiere ? $eleve->filiere->nom : null,
-                    'somme_a_payer' => $eleve->somme_a_payer,
-                    'date_debut' => $eleve->date_debut ? $eleve->date_debut->format('d/m/Y') : null,
-                    'created_at' => $eleve->created_at->format('d/m/Y'),
-                    'is_active' => $eleve->is_active,
-                ];
+        // Initialiser la requête pour les élèves
+        $query = User::where('role', 'eleve')
+            ->with(['niveau:id,nom']);
+            
+        // Gestion du tri
+        $sort = request('sort', 'name');
+        $direction = request('direction', 'asc');
+        
+        // Vérifier si le tri est valide pour éviter les injections SQL
+        $validSorts = ['name', 'email', 'cne', 'status', 'niveau_id'];
+        $sort = in_array($sort, $validSorts) ? $sort : 'name';
+        $direction = in_array(strtolower($direction), ['asc', 'desc']) ? $direction : 'asc';
+        
+        $query->orderBy($sort, $direction);
+            
+        // Filtre par recherche
+        $search = request('search');
+        if (!empty($search)) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('cne', 'like', "%{$search}%");
             });
-
-        return Inertia::render('Admin/Eleves/Index', [
+        }
+        
+        // Filtre par statut
+        if ($status = request('status')) {
+            $query->where('status', $status);
+        }
+        
+        // Pagination avec 20 éléments par page
+        $eleves = $query->paginate(20);
+        // Ajouter les paramètres de requête à la pagination
+        $eleves->appends(request()->except('page'));
+        
+        // Statistiques
+        $stats = [
+            'total_eleves' => User::where('role', 'eleve')->count(),
+            'eleves_actifs' => User::where('role', 'eleve')->where('status', 'actif')->count(),
+            'nouveaux_eleves' => User::where('role', 'eleve')
+                ->where('created_at', '>=', now()->subDays(30))
+                ->count(),
+            'taux_absences' => 0, // À implémenter avec la logique des absences
+        ];
+        
+        return view('admin.eleves.index', [
             'eleves' => $eleves,
+            'search' => $search,
+            'stats' => $stats,
+            'sort' => $sort,
+            'direction' => $direction
+        ]);
+    }
+
+    /**
+     * Get the common data for all views
+     *
+     * @return array
+     */
+    protected function getCommonData()
+    {
+        $data = parent::getCommonData();
+        
+        return array_merge($data, [
             'niveaux' => Niveau::select('id', 'nom')->orderBy('nom')->get(),
             'filieres' => Filiere::select('id', 'nom')->orderBy('nom')->get(),
+            'matieres' => Matiere::orderBy('nom')->get(),
         ]);
     }
 
@@ -53,83 +92,69 @@ class EleveController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Admin/Eleves/Create', [
-            'niveaux' => Niveau::select('id', 'nom')->orderBy('nom')->get(),
-            'filieres' => Filiere::select('id', 'nom')->orderBy('nom')->get(),
-            'matieres' => Matiere::select('id', 'nom')->orderBy('nom')->get(),
-        ]);
+        $data = $this->getCommonData();
+        $data['classes'] = \App\Models\Classe::select('id', 'nom')->orderBy('nom')->get();
+        return view('admin.eleves.create', $data);
     }
 
     /**
-     * Enregistre un nouvel élève
+     * Enregistre un nouvel élève (version simplifiée)
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'phone' => 'nullable|string|max:20',
-            'niveau_id' => 'required|exists:niveaux,id',
-            'filiere_id' => 'required|exists:filieres,id',
-            'matieres' => 'required|array|min:1',
-            'matieres.*' => 'exists:matieres,id',
-            'somme_a_payer' => 'nullable|numeric|min:0',
-        ]);
-
-        // Démarrer une transaction pour s'assurer que tout se passe bien
-        return \DB::transaction(function () use ($validated) {
-            // Créer l'utilisateur
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => Hash::make($validated['password']),
-                'phone' => $validated['phone'] ?? null,
-                'niveau_id' => $validated['niveau_id'],
-                'filiere_id' => $validated['filiere_id'],
-                'somme_a_payer' => $validated['somme_a_payer'] ?? 0,
-                'date_debut' => now(),
-                'role' => RoleType::ELEVE->value,
-                'is_active' => true,
+        try {
+            // Validation minimale
+            $validated = $request->validate([
+                'nom' => 'required|string|max:255',
+                'prenom' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email',
+                'telephone' => 'required|string|max:20',
+                'classe_id' => 'required|exists:classes,id',
             ]);
-            
-            // Assigner le rôle à l'utilisateur
-            $user->assignRole(RoleType::ELEVE->name);
 
-            // Créer les inscriptions pour chaque matière
-            foreach ($validated['matieres'] as $matiereId) {
-                Inscription::create([
-                    'etudiant_id' => $user->id,
-                    'matiere_id' => $matiereId,
-                    'niveau_id' => $validated['niveau_id'],
-                    'filiere_id' => $validated['filiere_id'],
-                    'date_inscription' => now(),
-                    'annee_scolaire' => now()->format('Y') . '/' . (now()->year + 1),
-                    'statut' => 'actif',
-                    'montant' => $validated['somme_a_payer'] ?? 0,
-                ]);
-            }
+            // Récupérer la classe pour le niveau et la filière
+            $classe = \App\Models\Classe::findOrFail($validated['classe_id']);
+            
+            // Créer l'utilisateur avec des valeurs par défaut
+            $user = User::create([
+                'name' => $validated['prenom'] . ' ' . $validated['nom'],
+                'prenom' => $validated['prenom'],
+                'email' => $validated['email'],
+                'telephone' => $validated['telephone'],
+                'password' => Hash::make('password123'),
+                'classe_id' => (int)$validated['classe_id'],
+                'niveau_id' => $classe->niveau_id,
+                'filiere_id' => $classe->filiere_id,
+                'role' => 'eleve',
+                'is_active' => true,
+                'date_inscription' => now()->format('Y-m-d'),
+                'date_debut' => now()->format('Y-m-d'),
+                'somme_a_payer' => 0.00,
+            ]);
 
             return redirect()->route('admin.eleves.index')
-                ->with('success', 'Élève créé avec succès');
-        });
+                ->with('success', 'Élève créé avec succès avec le mot de passe: password123');
+                
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Erreur lors de la création: ' . $e->getMessage());
+        }
     }
 
     /**
      * Affiche les détails d'un élève
      */
-    public function show(User $eleve)
+    public function show($id)
     {
-        $this->authorize('view', $eleve);
+        $eleve = User::with(['niveau', 'filiere', 'notes.matiere', 'absences.matiere'])->findOrFail($id);
         
-        $eleve->load(['niveau', 'filiere', 'notes.matiere', 'absences.matiere']);
-        
-        return Inertia::render('Eleves/Show', [
+        return view('admin.eleves.show', [
             'eleve' => $eleve,
             'notes' => $eleve->notes->map(function($note) {
                 return [
                     'id' => $note->id,
-                    'matiere' => $note->matiere->nom,
+                    'matiere' => $note->matiere ? $note->matiere->nom : 'Matière inconnue',
                     'valeur' => $note->note,
                     'type' => $note->type,
                     'date' => $note->created_at->format('d/m/Y'),
@@ -138,50 +163,38 @@ class EleveController extends Controller
             'absences' => $eleve->absences->map(function($absence) {
                 return [
                     'id' => $absence->id,
-                    'matiere' => $absence->matiere->nom,
+                    'matiere' => $absence->matiere ? $absence->matiere->nom : 'Matière inconnue',
                     'date' => $absence->date_absence->format('d/m/Y'),
                     'justifiee' => $absence->justifiee,
                     'commentaire' => $absence->commentaire,
                 ];
-            }),
+            })
         ]);
     }
 
     /**
      * Affiche le formulaire de modification d'un élève
      */
-    public function edit(User $eleve)
+    public function edit($id)
     {
-        $this->authorize('update', $eleve);
+        $eleve = User::findOrFail($id);
+        $data = $this->getCommonData();
+        $data['eleve'] = $eleve;
+        $data['eleve_matieres'] = $eleve->matieresEleve->pluck('id')->toArray();
         
-        return Inertia::render('Eleves/Edit', [
-            'eleve' => [
-                'id' => $eleve->id,
-                'name' => $eleve->name,
-                'email' => $eleve->email,
-                'phone' => $eleve->phone,
-                'address' => $eleve->address,
-                'niveau_id' => $eleve->niveau_id,
-                'filiere_id' => $eleve->filiere_id,
-                'date_debut' => $eleve->date_debut,
-                'somme_a_payer' => $eleve->somme_a_payer,
-                'is_active' => $eleve->is_active,
-            ],
-            'niveaux' => Niveau::select('id', 'nom')->orderBy('nom')->get(),
-            'filieres' => Filiere::select('id', 'nom')->orderBy('nom')->get(),
-        ]);
+        return view('admin.eleves.edit', $data);
     }
 
     /**
      * Met à jour un élève
      */
-    public function update(Request $request, User $eleve)
+    public function update(Request $request, $id)
     {
-        $this->authorize('update', $eleve);
-
+        $eleve = User::findOrFail($id);
+        
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $eleve->id,
+            'email' => 'required|string|email|max:255|unique:users,email,' . $id,
             'password' => 'nullable|string|min:8|confirmed',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',

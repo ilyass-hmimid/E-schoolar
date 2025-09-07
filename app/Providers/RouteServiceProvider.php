@@ -17,23 +17,11 @@ class RouteServiceProvider extends ServiceProvider
      *
      * @var string
      */
-    public const HOME = '/';
+    public const HOME = '/dashboard';
     public const LOGIN = '/login';
     
     /**
-     * The path to redirect to after authentication based on user role.
-     *
-     * @var array
-     */
-    public const ROLE_HOMES = [
-        'admin' => '/admin/dashboard',
-        'professeur' => '/professeur/dashboard',
-        'eleve' => '/eleve/dashboard',
-        'assistant' => '/assistant/dashboard',
-    ];
-    
-    /**
-     * Get the path the user should be redirected to based on their role.
+     * Get the path the user should be redirected to after login.
      *
      * @param  \App\Models\User  $user
      * @return string
@@ -44,23 +32,7 @@ class RouteServiceProvider extends ServiceProvider
             return self::HOME;
         }
         
-        // Check user roles in order of priority
-        if ($user->hasRole('admin')) {
-            return self::ROLE_HOMES['admin'];
-        }
-        
-        if ($user->hasRole('professeur')) {
-            return self::ROLE_HOMES['professeur'];
-        }
-        
-        if ($user->hasRole('eleve')) {
-            return self::ROLE_HOMES['eleve'];
-        }
-        
-        if ($user->hasRole('assistant')) {
-            return self::ROLE_HOMES['assistant'];
-        }
-        
+        // Redirection unique vers le tableau de bord
         return self::HOME;
     }
 
@@ -80,11 +52,7 @@ class RouteServiceProvider extends ServiceProvider
                 ->group(base_path('routes/api.php'));
 
             Route::middleware('web')
-                ->group(function () {
-                    require base_path('routes/web.php');
-                    require base_path('routes/admin_users.php');
-                    require base_path('routes/admin.php');
-                });
+                ->group(base_path('routes/web.php'));
         });
     }
 }

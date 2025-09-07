@@ -2,7 +2,7 @@
 // ==  Animations SCSS - Système de Design       ==
 // ================================================
 
-// Animation de pulsation (pour les badges de notification)
+// Animation de pulsation (pour les éléments importants)
 @keyframes pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(theme-color('primary'), 0.7);
@@ -80,7 +80,7 @@
   }
 }
 
-// Animation de rebond (pour les notifications)
+// Animation de rebond (pour les éléments d'interface)
 @keyframes bounceIn {
   from, 20%, 40%, 60%, 80%, to {
     animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);

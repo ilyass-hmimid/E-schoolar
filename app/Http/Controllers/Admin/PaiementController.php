@@ -4,629 +4,356 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Paiement;
-use App\Models\Pack;
-use App\Models\Tarif;
 use App\Models\User;
 use App\Models\Matiere;
-use App\Enums\RoleType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Carbon;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class PaiementController extends Controller
 {
     /**
-     * Afficher le formulaire de création d'un paiement
-     */
-    public function create()
-    {
-        // Check if the request is for student payments
-        if (request()->is('admin/paiements/eleves*')) {
-            $eleves = User::where('is_active', true)
-                ->where('role', 'eleve')
-                ->select('id', 'name', 'email')
-                ->orderBy('name')
-                ->get()
-                ->map(function($eleve) {
-                    return [
-                        'id' => $eleve->id,
-                        'name' => $eleve->name,
-                        'email' => $eleve->email
-                    ];
-                });
-
-            return view('admin.paiements.eleves.create', [
-                'eleves' => $eleves,
-                'paiement' => new \App\Models\Paiement()
-            ]);
-        }
-
-        // Récupérer les données nécessaires pour les formulaires
-        $etudiants = User::where('is_active', true)
-            ->whereIn('role', [RoleType::ELEVE->value])
-            ->select('id', 'name', 'email')
-            ->orderBy('name')
-            ->get();
-
-        $matieres = Matiere::where('is_active', true)
-            ->select('id', 'nom')
-            ->orderBy('nom')
-            ->get();
-
-        $packs = Pack::where('is_active', true)
-            ->select('id', 'nom', 'prix')
-            ->orderBy('nom')
-            ->get();
-
-        $tarifs = Tarif::where('is_active', true)
-            ->select('id', 'nom', 'montant', 'pack_id')
-            ->orderBy('nom')
-            ->get();
-
-        return Inertia::render('Admin/Paiements/Create', [
-            'etudiants' => $etudiants,
-            'matieres' => $matieres,
-            'packs' => $packs,
-            'tarifs' => $tarifs,
-        ]);
-    }
-
-    /**
-     * Afficher les détails d'un paiement
-     */
-    public function show(Paiement $paiement)
-    {
-        $paiement->load([
-            'etudiant',
-            'matiere',
-            'pack',
-            'tarif',
-            'assistant'
-        ]);
-
-        return Inertia::render('Admin/Paiements/Show', [
-            'paiement' => $paiement
-        ]);
-    }
-
-    /**
-     * Afficher le formulaire d'édition d'un paiement
-     */
-    public function edit(Paiement $paiement)
-    {
-        $paiement->load(['etudiant', 'matiere', 'pack', 'tarif']);
-        
-        // Récupérer les données nécessaires pour les formulaires
-        $etudiants = User::where('is_active', true)
-            ->whereIn('role', [RoleType::ELEVE->value])
-            ->select('id', 'name', 'email')
-            ->orderBy('name')
-            ->get();
-
-        $matieres = Matiere::where('is_active', true)
-            ->select('id', 'nom')
-            ->orderBy('nom')
-            ->get();
-
-        $packs = Pack::where('is_active', true)
-            ->select('id', 'nom', 'prix')
-            ->orderBy('nom')
-            ->get();
-
-        $tarifs = Tarif::where('is_active', true)
-            ->select('id', 'nom', 'montant', 'pack_id')
-            ->orderBy('nom')
-            ->get();
-
-        return Inertia::render('Admin/Paiements/Edit', [
-            'paiement' => $paiement,
-            'etudiants' => $etudiants,
-            'matieres' => $matieres,
-            'packs' => $packs,
-            'tarifs' => $tarifs,
-        ]);
-    }
-
-    /**
-     * Mettre à jour un paiement existant
-     */
-    public function update(Request $request, Paiement $paiement)
-    {
-        $validated = $request->validate([
-            'etudiant_id' => 'required|exists:users,id',
-            'matiere_id' => 'nullable|exists:matieres,id',
-            'pack_id' => 'nullable|exists:packs,id',
-            'tarif_id' => 'nullable|exists:tarifs,id',
-            'montant' => 'required|numeric|min:0',
-            'mode_paiement' => 'required|in:especes,cheque,virement,carte',
-            'reference_paiement' => 'nullable|string|max:255',
-            'date_paiement' => 'required|date',
-            'statut' => 'required|in:en_attente,valide,annule',
-            'commentaires' => 'nullable|string',
-            'mois_periode' => 'nullable|date_format:Y-m',
-        ]);
-
-        // Si un tarif est spécifié, on utilise le montant du tarif
-        if (!empty($validated['tarif_id'])) {
-            $tarif = Tarif::findOrFail($validated['tarif_id']);
-            $validated['montant'] = $tarif->montant;
-        }
-
-        try {
-            DB::beginTransaction();
-
-            // Mettre à jour le paiement
-            $paiement->update($validated);
-
-            // Mettre à jour l'inscription si nécessaire
-            if ($paiement->pack_id) {
-                $this->updateInscriptionPack($paiement);
-            }
-
-            DB::commit();
-
-            return redirect()->route('admin.paiements.show', $paiement)
-                ->with('success', 'Paiement mis à jour avec succès.');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Erreur lors de la mise à jour du paiement: ' . $e->getMessage());
-            
-            return back()->with('error', 'Une erreur est survenue lors de la mise à jour du paiement.');
-        }
-    }
-
-    /**
-     * Supprimer un paiement
-     */
-    public function destroy(Paiement $paiement)
-    {
-        try {
-            DB::beginTransaction();
-            
-            // Vérifier si le paiement peut être supprimé
-            if ($paiement->statut === 'valide') {
-                return back()->with('error', 'Impossible de supprimer un paiement validé.');
-            }
-
-            // Supprimer le paiement
-            $paiement->delete();
-            
-            DB::commit();
-            
-            return redirect()->route('admin.paiements.index')
-                ->with('success', 'Paiement supprimé avec succès.');
-                
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Erreur lors de la suppression du paiement: ' . $e->getMessage());
-            
-            return back()->with('error', 'Une erreur est survenue lors de la suppression du paiement.');
-        }
-    }
-
-    /**
-     * Mettre à jour le statut d'un paiement
-     */
-    public function updateStatus(Request $request, Paiement $paiement)
-    {
-        $request->validate([
-            'statut' => 'required|in:en_attente,valide,annule'
-        ]);
-
-        try {
-            $paiement->update(['statut' => $request->statut]);
-            
-            return back()->with('success', 'Statut du paiement mis à jour avec succès.');
-            
-        } catch (\Exception $e) {
-            \Log::error('Erreur lors de la mise à jour du statut du paiement: ' . $e->getMessage());
-            return back()->with('error', 'Une erreur est survenue lors de la mise à jour du statut.');
-        }
-    }
-
-    /**
-     * Générer un reçu de paiement
-     */
-    public function generateReceipt(Paiement $paiement)
-    {
-        $paiement->load(['etudiant', 'pack', 'matiere']);
-        
-        $pdf = \PDF::loadView('pdf.receipt', [
-            'paiement' => $paiement
-        ]);
-        
-        return $pdf->download('recu-paiement-' . $paiement->id . '.pdf');
-    }
-    
-    /**
-     * Récupérer la liste des étudiants pour le formulaire
-     */
-    public function getEtudiants()
-    {
-        $etudiants = User::where('is_active', true)
-            ->where('role', RoleType::ELEVE->value)
-            ->select('id', 'name', 'email')
-            ->orderBy('name')
-            ->get();
-            
-        return response()->json($etudiants);
-    }
-    
-    /**
-     * Récupérer la liste des matières pour le formulaire
-     */
-    public function getMatieres()
-    {
-        $matieres = Matiere::where('is_active', true)
-            ->select('id', 'nom')
-            ->orderBy('nom')
-            ->get();
-            
-        return response()->json($matieres);
-    }
-    
-    /**
-     * Récupérer la liste des packs pour le formulaire
-     */
-    public function getPacks()
-    {
-        $packs = Pack::where('is_active', true)
-            ->select('id', 'nom', 'prix')
-            ->orderBy('nom')
-            ->get();
-            
-        return response()->json($packs);
-    }
-    
-    /**
-     * Récupérer la liste des tarifs pour le formulaire
-     */
-    public function getTarifs()
-    {
-        $tarifs = Tarif::where('is_active', true)
-            ->select('id', 'nom', 'montant', 'pack_id')
-            ->with('pack:id,nom')
-            ->orderBy('nom')
-            ->get();
-            
-        return response()->json($tarifs);
-    }
-
-    /**
-     * Afficher la liste des paiements
+     * Affiche la liste des paiements
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
      */
     public function index(Request $request)
     {
-        $query = Paiement::with(['etudiant', 'matiere', 'pack', 'tarif', 'assistant'])
+        $query = Paiement::with(['eleve', 'matiere', 'enregistrePar'])
             ->latest('date_paiement');
-
-        // Filtres
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->whereHas('etudiant', function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
+            
+        // Filtrage par élève
+        if ($request->has('eleve_id') && $request->eleve_id) {
+            $query->where('eleve_id', $request->eleve_id);
         }
-
-        if ($request->filled('statut')) {
-            $query->where('statut', $request->input('statut'));
-        }
-
-        if ($request->filled('date_debut')) {
-            $query->whereDate('date_paiement', '>=', $request->input('date_debut'));
-        }
-
-        if ($request->filled('date_fin')) {
-            $query->whereDate('date_paiement', '<=', $request->input('date_fin'));
-        }
-
-        $paiements = $query->paginate(15)->withQueryString();
-
-        return Inertia::render('Admin/Paiements/Index', [
-            'paiements' => $paiements,
-            'filters' => $request->only(['search', 'statut', 'date_debut', 'date_fin'])
-        ]);
-    }
-
-    /**
-     * Calculer le salaire d'un professeur sur une période donnée
-     */
-    public function calculateSalaire(Request $request, User $professeur)
-    {
-        $request->validate([
-            'date_debut' => 'required|date',
-            'date_fin' => 'required|date|after_or_equal:date_debut',
-        ]);
-
-        $dateDebut = Carbon::parse($request->input('date_debut'))->startOfDay();
-        $dateFin = Carbon::parse($request->input('date_fin'))->endOfDay();
-
-        // Récupérer les paiements liés aux matières enseignées par le professeur
-        $paiements = Paiement::whereHas('matiere', function($query) use ($professeur) {
-                $query->where('professeur_id', $professeur->id);
-            })
-            ->whereBetween('date_paiement', [$dateDebut, $dateFin])
-            ->where('statut', 'valide')
-            ->with(['matiere', 'etudiant'])
-            ->get();
-
-        // Calculer le total des paiements
-        $total = $paiements->sum('montant');
         
-        // Calculer la part du professeur (par exemple 70% du montant total)
-        $pourcentageProfesseur = 70; // À définir dans la configuration
-        $salaire = $total * ($pourcentageProfesseur / 100);
-
-        return response()->json([
-            'professeur' => $professeur->only(['id', 'name', 'email']),
-            'periode' => [
-                'debut' => $dateDebut->format('Y-m-d'),
-                'fin' => $dateFin->format('Y-m-d'),
-            ],
-            'nombre_paiements' => $paiements->count(),
-            'total_paiements' => $total,
-            'pourcentage_professeur' => $pourcentageProfesseur,
-            'salaire_brut' => $salaire,
-            'details_paiements' => $paiements->map(function($paiement) {
-                return [
-                    'id' => $paiement->id,
-                    'date' => $paiement->date_paiement->format('d/m/Y'),
-                    'etudiant' => $paiement->etudiant->name,
-                    'matiere' => $paiement->matiere->nom,
-                    'montant' => $paiement->montant,
-                ];
-            })
-        ]);
+        // Filtrage par matière
+        if ($request->has('matiere_id') && $request->matiere_id) {
+            $query->where('matiere_id', $request->matiere_id);
+        }
+        
+        // Filtrage par type de paiement
+        if ($request->has('type') && $request->type) {
+            $query->where('type', $request->type);
+        }
+        
+        // Filtrage par statut
+        if ($request->has('statut') && $request->statut) {
+            $query->where('statut', $request->statut);
+        }
+        
+        // Filtrage par date
+        if ($request->has('date_debut') && $request->date_debut) {
+            $query->whereDate('date_paiement', '>=', $request->date_debut);
+        }
+        
+        if ($request->has('date_fin') && $request->date_fin) {
+            $query->whereDate('date_paiement', '<=', $request->date_fin);
+        }
+        
+        $paiements = $query->paginate(20);
+        $eleves = User::where('role', 'eleve')->orderBy('name')->get();
+        $matieres = Matiere::orderBy('nom')->get();
+        
+        return view('admin.paiements.index', compact('paiements', 'eleves', 'matieres'));
     }
 
     /**
-     * Enregistrer un nouveau paiement
+     * Affiche le formulaire de création d'un paiement
+     *
+     * @return \Illuminate\View\View
+     */
+    public function create()
+    {
+        $eleves = User::where('role', 'eleve')
+            ->where('status', 'actif')
+            ->orderBy('name')
+            ->get();
+            
+        $matieres = Matiere::orderBy('nom')->get();
+        
+        return view('admin.paiements.create', compact('eleves', 'matieres'));
+    }
+
+    /**
+     * Enregistre un nouveau paiement
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'etudiant_id' => 'required|exists:users,id',
-            'matiere_id' => 'nullable|exists:matieres,id',
-            'pack_id' => 'nullable|exists:packs,id',
-            'tarif_id' => 'nullable|exists:tarifs,id',
+            'eleve_id' => 'required|exists:users,id',
+            'matiere_id' => 'required|exists:matieres,id',
+            'type' => 'required|in:inscription,mensualite,autre',
             'montant' => 'required|numeric|min:0',
-            'mode_paiement' => 'required|in:especes,cheque,virement,carte',
-            'reference_paiement' => 'nullable|string|max:255',
-            'date_paiement' => 'required|date',
-            'statut' => 'required|in:en_attente,valide,annule',
-            'commentaires' => 'nullable|string',
-            'mois_periode' => 'nullable|date_format:Y-m',
+            'date_paiement' => 'required|date|before_or_equal:today',
+            'mois_couvre' => 'nullable|date',
+            'mode_paiement' => 'required|in:especes,virement,cheque,cmi',
+            'reference' => 'nullable|string|max:100',
+            'commentaire' => 'nullable|string|max:1000',
         ]);
-
-        // Si un tarif est spécifié, on utilise le montant du tarif
-        if (!empty($validated['tarif_id'])) {
-            $tarif = Tarif::findOrFail($validated['tarif_id']);
-            $validated['montant'] = $tarif->montant;
+        
+        // Vérifier que l'élève est bien actif
+        $eleve = User::findOrFail($validated['eleve_id']);
+        if ($eleve->role !== 'eleve' || $eleve->status !== 'actif') {
+            return back()->with('error', 'Seuls les élèves actifs peuvent effectuer des paiements.');
+        }
+        
+        // Vérifier que la matière existe
+        $matiere = Matiere::findOrFail($validated['matiere_id']);
+        
+        // Vérifier que l'élève est inscrit à la matière pour les mensualités
+        if ($validated['type'] === 'mensualite' && !$eleve->matieres->contains($matiere->id)) {
+            return back()->with('error', 'L\'élève n\'est pas inscrit à cette matière.');
+        }
+        
+        // Vérifier les doublons pour les mensualités
+        if ($validated['type'] === 'mensualite' && $validated['mois_couvre']) {
+            $moisCouvre = Carbon::parse($validated['mois_couvre']);
+            $debutMois = $moisCouvre->copy()->startOfMonth();
+            $finMois = $moisCouvre->copy()->endOfMonth();
             
-            // Si le tarif est lié à un pack, on s'assure que le pack est cohérent
-            if ($tarif->pack_id && $validated['pack_id'] !== $tarif->pack_id) {
-                return back()->withErrors([
-                    'tarif_id' => 'Le tarif sélectionné ne correspond pas au pack choisi.'
-                ]);
+            $paiementExistant = Paiement::where('eleve_id', $eleve->id)
+                ->where('matiere_id', $matiere->id)
+                ->where('type', 'mensualite')
+                ->whereDate('mois_couvre', '>=', $debutMois)
+                ->whereDate('mois_couvre', '<=', $finMois)
+                ->exists();
+                
+            if ($paiementExistant) {
+                return back()->with('error', 'Un paiement existe déjà pour cette matière et cette période.');
             }
         }
-
-        // Vérifier si l'utilisateur a le rôle d'assistant
-        $user = $request->user();
-        if ($user->hasRole('assistant')) {
-            $validated['assistant_id'] = $user->id;
-            $validated['statut'] = 'en_attente'; // Les paiements des assistants sont en attente de validation
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $paiement = Paiement::create($validated);
-
-            // Mettre à jour le statut de l'inscription si nécessaire
-            if ($validated['pack_id']) {
-                $this->updateInscriptionPack($paiement);
-            }
-
-            DB::commit();
-
-            return redirect()->route('admin.paiements.index')
-                ->with('success', 'Paiement enregistré avec succès.');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Erreur lors de l\'enregistrement du paiement: ' . $e->getMessage());
-            
-            return back()->with('error', 'Une erreur est survenue lors de l\'enregistrement du paiement.');
-        }
+        
+        // Créer le paiement
+        $paiement = new Paiement([
+            'eleve_id' => $validated['eleve_id'],
+            'matiere_id' => $validated['matiere_id'],
+            'type' => $validated['type'],
+            'montant' => $validated['montant'],
+            'date_paiement' => $validated['date_paiement'],
+            'mois_couvre' => $validated['mois_couvre'] ?? null,
+            'mode_paiement' => $validated['mode_paiement'],
+            'reference' => $validated['reference'] ?? null,
+            'commentaire' => $validated['commentaire'] ?? null,
+            'statut' => 'valide',
+            'enregistre_par' => Auth::id(),
+        ]);
+        
+        $paiement->save();
+        
+        return redirect()->route('admin.paiements.show', $paiement)
+            ->with('success', 'Paiement enregistré avec succès.');
     }
 
     /**
-     * Afficher la liste des paiements des élèves
+     * Affiche les détails d'un paiement
+     *
+     * @param  \App\Models\Paiement  $paiement
+     * @return \Illuminate\View\View
      */
-    public function indexEleves()
+    public function show(Paiement $paiement)
     {
-        $eleves = User::where('is_active', true)
-            ->where('role', 'eleve')
-            ->with(['paiements' => function($query) {
-                $query->orderBy('date_paiement', 'desc');
-            }])
+        $paiement->load(['eleve', 'matiere', 'enregistrePar']);
+        return view('admin.paiements.show', compact('paiement'));
+    }
+
+    /**
+     * Affiche le formulaire d'édition d'un paiement
+     *
+     * @param  \App\Models\Paiement  $paiement
+     * @return \Illuminate\View\View
+     */
+    public function edit(Paiement $paiement)
+    {
+        $eleves = User::where('role', 'eleve')
+            ->where('status', 'actif')
             ->orderBy('name')
             ->get();
             
-        return view('admin.paiements.eleves.index', compact('eleves'));
+        $matieres = Matiere::orderBy('nom')->get();
+        
+        return view('admin.paiements.edit', compact('paiement', 'eleves', 'matieres'));
     }
-    
+
     /**
-     * Afficher le formulaire de création d'un paiement d'élève
+     * Met à jour un paiement
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\Paiement  $paiement
+     * @return \Illuminate\Http\RedirectResponse
      */
-    public function createEleve()
-    {
-        $eleves = User::where('is_active', true)
-            ->where('role', 'eleve')
-            ->select('id', 'name', 'email')
-            ->orderBy('name')
-            ->get();
-            
-        return view('admin.paiements.eleves.create', [
-            'eleves' => $eleves,
-            'paiement' => new \App\Models\Paiement()
-        ]);
-    }
-    
-    /**
-     * Enregistrer un nouveau paiement d'élève
-     */
-    public function storeEleve(Request $request)
+    public function update(Request $request, Paiement $paiement)
     {
         $validated = $request->validate([
             'eleve_id' => 'required|exists:users,id',
+            'matiere_id' => 'required|exists:matieres,id',
+            'type' => 'required|in:inscription,mensualite,autre',
             'montant' => 'required|numeric|min:0',
-            'mode_paiement' => 'required|in:especes,cheque,virement,carte',
-            'reference_paiement' => 'nullable|string|max:255',
             'date_paiement' => 'required|date',
+            'mois_couvre' => 'nullable|date',
+            'mode_paiement' => 'required|in:especes,virement,cheque,cmi',
+            'reference' => 'nullable|string|max:100',
+            'commentaire' => 'nullable|string|max:1000',
             'statut' => 'required|in:en_attente,valide,annule',
-            'notes' => 'nullable|string',
         ]);
         
-        try {
-            DB::beginTransaction();
-            
-            $paiement = new Paiement($validated);
-            $paiement->type = 'eleve';
-            $paiement->save();
-            
-            DB::commit();
-            
-            return redirect()->route('admin.paiements.eleves.index')
-                ->with('success', 'Paiement enregistré avec succès.');
-                
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Erreur lors de l\'enregistrement du paiement: ' . $e->getMessage());
-            
-            return back()->with('error', 'Une erreur est survenue lors de l\'enregistrement du paiement.');
+        // Vérifier que l'élève est bien actif
+        $eleve = User::findOrFail($validated['eleve_id']);
+        if ($eleve->role !== 'eleve' || $eleve->status !== 'actif') {
+            return back()->with('error', 'Seuls les élèves actifs peuvent effectuer des paiements.');
         }
-    }
-    
-    /**
-     * Afficher les détails d'un paiement d'élève
-     */
-    public function showEleve(Paiement $paiement)
-    {
-        $paiement->load('eleve');
-        return view('admin.paiements.eleves.show', compact('paiement'));
-    }
-    
-    /**
-     * Afficher le formulaire d'édition d'un paiement d'élève
-     */
-    public function editEleve(Paiement $paiement)
-    {
-        $eleves = User::where('is_active', true)
-            ->where('role', 'eleve')
-            ->select('id', 'name', 'email')
-            ->orderBy('name')
-            ->get();
+        
+        // Vérifier que la matière existe
+        $matiere = Matiere::findOrFail($validated['matiere_id']);
+        
+        // Vérifier que l'élève est inscrit à la matière pour les mensualités
+        if ($validated['type'] === 'mensualite' && !$eleve->matieres->contains($matiere->id)) {
+            return back()->with('error', 'L\'élève n\'est pas inscrit à cette matière.');
+        }
+        
+        // Vérifier les doublons pour les mensualités (sauf pour le paiement actuel)
+        if ($validated['type'] === 'mensualite' && $validated['mois_couvre']) {
+            $moisCouvre = Carbon::parse($validated['mois_couvre']);
+            $debutMois = $moisCouvre->copy()->startOfMonth();
+            $finMois = $moisCouvre->copy()->endOfMonth();
             
-        return view('admin.paiements.eleves.edit', [
-            'paiement' => $paiement,
-            'eleves' => $eleves
-        ]);
-    }
-    
-    /**
-     * Mettre à jour un paiement d'élève
-     */
-    public function updateEleve(Request $request, Paiement $paiement)
-    {
-        $validated = $request->validate([
-            'eleve_id' => 'required|exists:users,id',
-            'montant' => 'required|numeric|min:0',
-            'mode_paiement' => 'required|in:especes,cheque,virement,carte',
-            'reference_paiement' => 'nullable|string|max:255',
-            'date_paiement' => 'required|date',
-            'statut' => 'required|in:en_attente,valide,annule',
-            'notes' => 'nullable|string',
+            $paiementExistant = Paiement::where('id', '!=', $paiement->id)
+                ->where('eleve_id', $eleve->id)
+                ->where('matiere_id', $matiere->id)
+                ->where('type', 'mensualite')
+                ->whereDate('mois_couvre', '>=', $debutMois)
+                ->whereDate('mois_couvre', '<=', $finMois)
+                ->exists();
+                
+            if ($paiementExistant) {
+                return back()->with('error', 'Un autre paiement existe déjà pour cette matière et cette période.');
+            }
+        }
+        
+        // Mettre à jour le paiement
+        $paiement->update([
+            'eleve_id' => $validated['eleve_id'],
+            'matiere_id' => $validated['matiere_id'],
+            'type' => $validated['type'],
+            'montant' => $validated['montant'],
+            'date_paiement' => $validated['date_paiement'],
+            'mois_couvre' => $validated['mois_couvre'] ?? null,
+            'mode_paiement' => $validated['mode_paiement'],
+            'reference' => $validated['reference'] ?? null,
+            'commentaire' => $validated['commentaire'] ?? null,
+            'statut' => $validated['statut'],
         ]);
         
-        try {
-            DB::beginTransaction();
-            
-            $paiement->update($validated);
-            
-            DB::commit();
-            
-            return redirect()->route('admin.paiements.eleves.show', $paiement)
-                ->with('success', 'Paiement mis à jour avec succès.');
-                
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Erreur lors de la mise à jour du paiement: ' . $e->getMessage());
-            
-            return back()->with('error', 'Une erreur est survenue lors de la mise à jour du paiement.');
-        }
+        return redirect()->route('admin.paiements.show', $paiement)
+            ->with('success', 'Paiement mis à jour avec succès.');
     }
-    
-    /**
-     * Supprimer un paiement d'élève
-     */
-    public function destroyEleve(Paiement $paiement)
-    {
-        try {
-            DB::beginTransaction();
-            
-            $paiement->delete();
-            
-            DB::commit();
-            
-            return redirect()->route('admin.paiements.eleves.index')
-                ->with('success', 'Paiement supprimé avec succès.');
-                
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Erreur lors de la suppression du paiement: ' . $e->getMessage());
-            
-            return back()->with('error', 'Une erreur est survenue lors de la suppression du paiement.');
-        }
-    }
-    
-    /**
-     * Mettre à jour le statut de l'inscription liée au pack
-     */
-    protected function updateInscriptionPack(Paiement $paiement)
-    {
-        // Vérifier s'il existe déjà une inscription active pour cet étudiant et ce pack
-        $inscription = \App\Models\Inscription::where('etudiant_id', $paiement->etudiant_id)
-            ->where('pack_id', $paiement->pack_id)
-            ->where('date_fin', '>=', now())
-            ->first();
 
-        if ($inscription) {
-            // Prolonger l'inscription existante
-            $dateDebut = Carbon::parse($inscription->date_fin);
-            $dateFin = $dateDebut->copy()->addDays($paiement->pack->duree_jours);
-            
-            $inscription->update([
-                'date_fin' => $dateFin,
-                'statut' => 'actif',
-            ]);
-        } else {
-            // Créer une nouvelle inscription
-            $dateDebut = now();
-            $dateFin = $dateDebut->copy()->addDays($paiement->pack->duree_jours);
-            
-            \App\Models\Inscription::create([
-                'etudiant_id' => $paiement->etudiant_id,
-                'pack_id' => $paiement->pack_id,
-                'date_debut' => $dateDebut,
-                'date_fin' => $dateFin,
-                'statut' => 'actif',
-                'paiement_id' => $paiement->id,
-            ]);
+    /**
+     * Annule un paiement
+     *
+     * @param  \App\Models\Paiement  $paiement
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function annuler(Paiement $paiement)
+    {
+        if ($paiement->statut === 'annule') {
+            return back()->with('error', 'Ce paiement est déjà annulé.');
         }
+        
+        $paiement->update([
+            'statut' => 'annule',
+            'commentaire' => $paiement->commentaire . "\n\nAnnulé le " . now()->format('d/m/Y H:i') . ' par ' . Auth::user()->name,
+        ]);
+        
+        return back()->with('success', 'Le paiement a été annulé avec succès.');
+    }
+
+    /**
+     * Affiche le formulaire d'import de paiements
+     *
+     * @return \Illuminate\View\View
+     */
+    public function showImportForm()
+    {
+        return view('admin.paiements.import');
+    }
+
+    /**
+     * Traite l'import de paiements
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function import(Request $request)
+    {
+        $request->validate([
+            'fichier' => 'required|file|mimes:csv,txt|max:1024',
+        ]);
+        
+        // Logique d'import à implémenter
+        
+        return back()->with('success', 'Import des paiements en cours...');
+    }
+    
+    /**
+     * Affiche le rapport des paiements
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
+     */
+    public function rapport(Request $request)
+    {
+        $query = Paiement::with(['eleve', 'matiere'])
+            ->select(
+                'paiements.*',
+                DB::raw('YEAR(date_paiement) as annee'),
+                DB::raw('MONTH(date_paiement) as mois')
+            )
+            ->where('statut', 'valide')
+            ->orderBy('date_paiement', 'desc');
+            
+        // Filtrage par année
+        $annee = $request->input('annee', date('Y'));
+        $query->whereYear('date_paiement', $annee);
+        
+        // Filtrage par mois
+        if ($request->has('mois') && $request->mois) {
+            $query->whereMonth('date_paiement', $request->mois);
+        }
+        
+        // Filtrage par type
+        if ($request->has('type') && $request->type) {
+            $query->where('type', $request->type);
+        }
+        
+        // Filtrage par matière
+        if ($request->has('matiere_id') && $request->matiere_id) {
+            $query->where('matiere_id', $request->matiere_id);
+        }
+        
+        $paiements = $query->get();
+        
+        // Calcul des totaux
+        $totalGeneral = $paiements->sum('montant');
+        $totalParMatiere = $paiements->groupBy('matiere.nom')->map->sum('montant');
+        $totalParType = $paiements->groupBy('type')->map->sum('montant');
+        
+        $matieres = Matiere::orderBy('nom')->get();
+        $annees = range(date('Y') - 5, date('Y') + 1);
+        
+        return view('admin.paiements.rapport', compact(
+            'paiements',
+            'totalGeneral',
+            'totalParMatiere',
+            'totalParType',
+            'matieres',
+            'annees',
+            'annee'
+        ));
     }
 }

@@ -68,14 +68,18 @@ class EleveSeeder extends Seeder
             // Créer l'utilisateur
             $user = User::create([
                 'name' => $prenom . ' ' . $nom,
+                'prenom' => $prenom,
                 'email' => $email,
                 'password' => Hash::make('password'),
                 'role' => 'eleve',
-                'phone' => '06' . $faker->numberBetween(10000000, 99999999),
-                'address' => $faker->streetAddress . ', ' . $ville,
+                'telephone' => '06' . $faker->numberBetween(10000000, 99999999),
+                'adresse' => $faker->streetAddress . ', ' . $ville,
                 'classe_id' => $classe->id,
                 'is_active' => true,
-                'email_verified_at' => now(),
+                'sexe' => $estFille ? 'Femme' : 'Homme',
+                'date_inscription' => now(),
+                'somme_a_payer' => 0,
+                'date_debut' => now(),
             ]);
 
             // Créer l'élève avec des données réalistes

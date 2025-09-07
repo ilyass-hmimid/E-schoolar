@@ -134,7 +134,7 @@
                             </li>
                             <li class="flex items-start">
                                 <i class="fas fa-chevron-right text-xs mt-1 text-primary-500 mr-2"></i>
-                                <span>Paramètres de notification</span>
+                                <span>Préférences du compte</span>
                             </li>
                             <li class="flex items-start">
                                 <i class="fas fa-chevron-right text-xs mt-1 text-primary-500 mr-2"></i>

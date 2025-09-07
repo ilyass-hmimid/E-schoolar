@@ -62,7 +62,6 @@
 - [ ] Gestion des paiements avec validation
 - [ ] Marquage des absences en temps réel
 - [ ] Calcul automatique des salaires
-- [ ] Système de notifications
 - [ ] Graphiques et rapports
 - [ ] Exports PDF/Excel
 

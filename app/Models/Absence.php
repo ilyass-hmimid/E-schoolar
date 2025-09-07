@@ -3,60 +3,67 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
 
 class Absence extends Model
 {
-    use SoftDeletes;
-
-    // Types d'absence
-    public const TYPE_COURS = 'cours';
-    public const TYPE_EXAMEN = 'examen';
-    public const TYPE_AUTRE = 'autre';
-
     // Statuts d'absence
     public const STATUT_JUSTIFIEE = 'justifiee';
     public const STATUT_NON_JUSTIFIEE = 'non_justifiee';
     public const STATUT_EN_ATTENTE = 'en_attente';
 
+    /**
+     * Les attributs qui sont assignables en masse.
+     *
+     * @var array
+     */
     protected $fillable = [
         'eleve_id',
         'matiere_id',
-        'professeur_id',
         'date_absence',
-        'type',
+        'heures_manquees', // Durée en heures (ex: 1.5 pour 1h30)
         'statut',
         'motif',
         'justificatif',
-        'duree',
         'commentaire',
-        'created_by',
-        'updated_by',
-    ];
-
-    protected $casts = [
-        'date_absence' => 'date',
-        'duree' => 'integer', // Durée en minutes
-    ];
-
-    protected $appends = [
-        'duree_formatee',
-        'est_justifiee',
+        'traite_par',      // ID de l'admin qui a traité la justification
+        'date_traitement', // Date de traitement de la justification
+        'commentaire_refus', // Si la justification est refusée
     ];
 
     /**
-     * Relation avec l'élève
+     * Les attributs qui doivent être convertis en types natifs.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'date_absence' => 'date',
+        'date_traitement' => 'datetime',
+        'heures_manquees' => 'decimal:1', // 1 chiffre après la virgule (ex: 1.5)
+    ];
+
+    /**
+     * Les attributs calculés qui doivent être ajoutés au tableau du modèle.
+     *
+     * @var array
+     */
+    protected $appends = [
+        'est_justifiee',
+        'est_en_attente',
+    ];
+
+    /**
+     * Relation avec l'élève absent
      */
     public function eleve(): BelongsTo
     {
-        return $this->belongsTo(Eleve::class);
+        return $this->belongsTo(User::class, 'eleve_id')
+            ->where('role', User::ROLE_ELEVE);
     }
 
     /**
-     * Relation avec la matière
+     * Relation avec la matière concernée
      */
     public function matiere(): BelongsTo
     {
@@ -64,35 +71,85 @@ class Absence extends Model
     }
 
     /**
-     * Relation avec le professeur
+     * Relation avec l'utilisateur qui a traité la justification
      */
-    public function professeur(): BelongsTo
+    public function traitePar(): BelongsTo
     {
-        return $this->belongsTo(Professeur::class);
+        return $this->belongsTo(User::class, 'traite_par');
     }
 
     /**
-     * Relation avec la classe via l'élève
+     * Vérifie si l'absence est justifiée
      */
-    public function classe()
+    public function getEstJustifieeAttribute(): bool
     {
-        return $this->eleve->classe();
+        return $this->statut === self::STATUT_JUSTIFIEE;
     }
 
     /**
-     * Relation avec l'utilisateur qui a créé l'absence
+     * Vérifie si la justification est en attente de traitement
      */
-    public function createdBy()
+    public function getEstEnAttenteAttribute(): bool
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->statut === self::STATUT_EN_ATTENTE;
     }
 
     /**
-     * Relation avec l'utilisateur qui a mis à jour l'absence
+     * Marquer l'absence comme justifiée
      */
-    public function updatedBy()
+    public function marquerCommeJustifiee(int $userId, ?string $commentaire = null): void
     {
-        return $this->belongsTo(User::class, 'updated_by');
+        $this->update([
+            'statut' => self::STATUT_JUSTIFIEE,
+            'traite_par' => $userId,
+            'date_traitement' => now(),
+            'commentaire' => $commentaire,
+        ]);
+    }
+
+    /**
+     * Marquer l'absence comme non justifiée
+     */
+    public function marquerCommeNonJustifiee(int $userId, string $raison): void
+    {
+        $this->update([
+            'statut' => self::STATUT_NON_JUSTIFIEE,
+            'traite_par' => $userId,
+            'date_traitement' => now(),
+            'commentaire_refus' => $raison,
+        ]);
+    }
+
+    /**
+     * Scope pour les absences d'un élève donné
+     */
+    public function scopePourEleve($query, int $eleveId)
+    {
+        return $query->where('eleve_id', $eleveId);
+    }
+
+    /**
+     * Scope pour les absences d'une matière donnée
+     */
+    public function scopePourMatiere($query, int $matiereId)
+    {
+        return $query->where('matiere_id', $matiereId);
+    }
+
+    /**
+     * Scope pour les absences dans une période donnée
+     */
+    public function scopeEntreDates($query, string $dateDebut, string $dateFin)
+    {
+        return $query->whereBetween('date_absence', [$dateDebut, $dateFin]);
+    }
+
+    /**
+     * Scope pour les absences non justifiées
+     */
+    public function scopeNonJustifiees($query)
+    {
+        return $query->where('statut', self::STATUT_NON_JUSTIFIEE);
     }
 
     /**

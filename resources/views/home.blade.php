@@ -70,6 +70,11 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 1.5rem 0;
+        }
+
+        .auth-buttons {
+            margin-left: 2rem;
         }
 
         .logo {
@@ -959,6 +964,39 @@
         .footer-bottom a:hover {
             color: var(--primary);
         }
+        
+        /* Style pour le bouton de connexion */
+        .login-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            background: var(--primary);
+            color: var(--darker);
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            font-size: 1rem;
+            margin-right: 1rem;
+        }
+        
+        .login-btn i {
+            margin-left: 8px;
+            font-size: 0.9em;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.3);
+            text-decoration: none;
+        }
+        
+        .login-btn:active {
+            transform: translateY(-1px);
+        }
 
         /* Animations */
         @keyframes fadeInUp {
@@ -1311,7 +1349,7 @@
     <!-- Header -->
     <header id="header">
         <div class="container header-container">
-            <a href="#" class="logo">
+            <a href="{{ url('/') }}" class="logo">
                 Allo<span>TAWJIH</span>
             </a>
 
@@ -1339,9 +1377,9 @@
                     <h1 class="typing-text"></h1>
                     <p>Découvrez une nouvelle façon d'apprendre et de vous épanouir avec Allo TAWJIH. Notre plateforme éducative innovante vous accompagne à chaque étape de votre parcours d'apprentissage.</p>
                     <div class="hero-buttons">
-                        <a href="{{ route('login') }}" class="btn">
+                        <a href="{{ route('login') }}" class="login-btn" id="loginButton">
                             <span>Se connecter</span>
-                            <i class="fas fa-arrow-right" style="margin-left: 8px; font-size: 0.9em;"></i>
+                            <i class="fas fa-arrow-right"></i>
                         </a>
                         <a href="#about" class="btn-outline">
                             <span>Découvrir plus</span>
@@ -1666,6 +1704,8 @@
     </footer>
 
     <script>
+        // Le bouton de connexion fonctionnera avec le comportement par défaut du navigateur
+
         // Mobile Menu Toggle
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
         const nav = document.getElementById('nav');
@@ -1698,10 +1738,17 @@
         // Smooth scrolling for anchor links (only for internal page anchors)
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             // Skip if it's not an internal page anchor (e.g., starts with # but has route)
-            if (anchor.getAttribute('href').includes('{{ route(') || 
-                anchor.getAttribute('href').startsWith('http') ||
-                anchor.getAttribute('href').startsWith('mailto:') ||
-                anchor.getAttribute('href').startsWith('tel:')) {
+            const href = anchor.getAttribute('href');
+            @php
+                $loginUrl = route('login');
+                echo "const loginUrl = '{$loginUrl}';\n";
+            @endphp
+            
+            if (href === '#' || 
+                href.startsWith('http') ||
+                href.startsWith('mailto:') ||
+                href.startsWith('tel:') ||
+                href === loginUrl) {
                 return;
             }
             
@@ -1911,7 +1958,20 @@
 
         // Add ripple effect to buttons
         function createRipple(event) {
+            // Ne pas empêcher le comportement par défaut pour les liens de navigation
+            const target = event.currentTarget;
+            const isNavLink = target.tagName === 'A' && 
+                           target.getAttribute('href') && 
+                           !target.getAttribute('href').startsWith('#');
+            
+            // Ne pas empêcher la navigation pour les liens normaux
+            if (isNavLink) {
+                return; // Sortir de la fonction pour les liens de navigation
+            }
+            
+            // Pour les autres éléments, empêcher le comportement par défaut
             event.preventDefault();
+            
             const button = event.currentTarget;
             
             // Créer l'élément ripple
@@ -1962,8 +2022,8 @@
             }, 600);
         }
 
-        // Add ripple effect to all buttons
-        const buttons = document.querySelectorAll('.btn, .service-card, .team-member, .member-social a');
+        // Add ripple effect to all buttons except the login button and navigation links
+        const buttons = document.querySelectorAll('.btn:not(#loginButton):not([href^="/"]):not([href^="http"]):not([href*="login"]), .service-card:not(#loginButton), .team-member:not(#loginButton), .member-social a:not(#loginButton)');
         buttons.forEach(button => {
             // Préparer le bouton pour l'effet ripple
             button.style.position = 'relative';
@@ -1973,15 +2033,18 @@
             // Ajouter l'écouteur d'événement
             button.addEventListener('mousedown', createRipple);
             
-            // Empêcher le comportement par défaut du clic si c'est un lien
+            // Empêcher le comportement par défaut du clic uniquement pour les ancres vides ou avec #
             if (button.tagName === 'A') {
                 button.addEventListener('click', (e) => {
-                    if (button.getAttribute('href') === '#') {
+                    const href = button.getAttribute('href');
+                    if (href === '#' || href === '') {
                         e.preventDefault();
                     }
                 });
             }
         });
+        
+        // Le bouton de connexion utilise maintenant le comportement par défaut sans effets supplémentaires
 
         // Parallax effect for hero section
         const hero = document.getElementById('hero');
@@ -1992,19 +2055,26 @@
             });
         }
 
-        // Add smooth scroll to all links
+        // Add smooth scroll to all anchor links (only those starting with #)
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            // Ne pas ajouter l'écouteur aux liens qui ne sont pas des ancres
+            if (anchor.getAttribute('href') === '#') return;
+            
+            // Ne pas ajouter l'écouteur au bouton de connexion
+            if (anchor.id === 'loginButton') return;
+            
             anchor.addEventListener('click', function(e) {
-                e.preventDefault();
                 const targetId = this.getAttribute('href');
-                if (targetId === '#') return;
-                
-                const targetElement = document.querySelector(targetId);
-                if (targetElement) {
-                    window.scrollTo({
-                        top: targetElement.offsetTop - 80,
-                        behavior: 'smooth'
-                    });
+                // Vérifier si c'est une ancre sur la même page
+                if (targetId.startsWith('#')) {
+                    e.preventDefault();
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        window.scrollTo({
+                            top: targetElement.offsetTop - 80,
+                            behavior: 'smooth'
+                        });
+                    }
                 }
             });
         });

@@ -30,7 +30,8 @@ class UserSeeder extends Seeder
         $admin1 = User::firstOrCreate(
             ['email' => 'admin1@example.com'],
             [
-                'name' => 'Admin Principal',
+                'name' => 'Admin',
+                'prenom' => 'Principal',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => Str::random(10),
@@ -40,13 +41,16 @@ class UserSeeder extends Seeder
             ]
         );
         if ($admin1->wasRecentlyCreated) {
-            $admin1->assignRole('admin');
+            $admin1->is_admin = true;
+            $admin1->role = RoleType::ADMIN->value;
+            $admin1->save();
         }
 
         $admin2 = User::firstOrCreate(
             ['email' => 'admin2@example.com'],
             [
-                'name' => 'Admin Secondaire',
+                'name' => 'Admin',
+                'prenom' => 'Secondaire',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => Str::random(10),
@@ -56,14 +60,17 @@ class UserSeeder extends Seeder
             ]
         );
         if ($admin2->wasRecentlyCreated) {
-            $admin2->assignRole('admin');
+            $admin2->is_admin = true;
+            $admin2->role = RoleType::ADMIN->value;
+            $admin2->save();
         }
 
         // Création des professeurs (2)
         $professeur1 = User::firstOrCreate(
             ['email' => 'prof1@example.com'],
             [
-                'name' => 'Ahmed Alami',
+                'name' => 'Alami',
+                'prenom' => 'Ahmed',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => Str::random(10),
@@ -73,13 +80,16 @@ class UserSeeder extends Seeder
             ]
         );
         if ($professeur1->wasRecentlyCreated) {
-            $professeur1->assignRole('professeur');
+            $professeur1->is_admin = false;
+            $professeur1->role = RoleType::PROFESSEUR->value;
+            $professeur1->save();
         }
 
         $professeur2 = User::firstOrCreate(
             ['email' => 'prof2@example.com'],
             [
-                'name' => 'Fatima Zahra',
+                'name' => 'Zahra',
+                'prenom' => 'Fatima',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => Str::random(10),
@@ -89,14 +99,17 @@ class UserSeeder extends Seeder
             ]
         );
         if ($professeur2->wasRecentlyCreated) {
-            $professeur2->assignRole('professeur');
+            $professeur2->is_admin = false;
+            $professeur2->role = RoleType::PROFESSEUR->value;
+            $professeur2->save();
         }
 
         // Création des étudiants (2)
         $etudiant1 = User::firstOrCreate(
             ['email' => 'etudiant1@example.com'],
             [
-                'name' => 'Youssef Benali',
+                'name' => 'Benali',
+                'prenom' => 'Youssef',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => Str::random(10),
@@ -107,14 +120,17 @@ class UserSeeder extends Seeder
             ]
         );
         if ($etudiant1->wasRecentlyCreated) {
-            $etudiant1->assignRole('eleve');
+            $etudiant1->is_admin = false;
+            $etudiant1->role = RoleType::ELEVE->value;
+            $etudiant1->save();
         }
         
 
         $etudiant2 = User::firstOrCreate(
             ['email' => 'etudiant2@example.com'],
             [
-                'name' => 'Leila El Mansouri',
+                'name' => 'Alaoui',
+                'prenom' => 'Leila',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => Str::random(10),
@@ -125,14 +141,17 @@ class UserSeeder extends Seeder
             ]
         );
         if ($etudiant2->wasRecentlyCreated) {
-            $etudiant2->assignRole('eleve');
+            $etudiant2->is_admin = false;
+            $etudiant2->role = RoleType::ELEVE->value;
+            $etudiant2->save();
         }
 
         // Création des assistants (2)
         $assistant1 = User::firstOrCreate(
             ['email' => 'assistant1@example.com'],
             [
-                'name' => 'Assistante1',
+                'name' => 'Assistant',
+                'prenom' => 'Numero1',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => Str::random(10),
@@ -142,13 +161,16 @@ class UserSeeder extends Seeder
             ]
         );
         if ($assistant1->wasRecentlyCreated) {
-            $assistant1->assignRole('assistant');
+            $assistant1->is_admin = false;
+            $assistant1->role = RoleType::ASSISTANT->value;
+            $assistant1->save();
         }
 
         $assistant2 = User::firstOrCreate(
             ['email' => 'assistant2@example.com'],
             [
-                'name' => 'Assistante2',
+                'name' => 'Assistant',
+                'prenom' => 'Numero2',
                 'email_verified_at' => now(),
                 'password' => Hash::make('password'),
                 'remember_token' => Str::random(10),
@@ -158,7 +180,9 @@ class UserSeeder extends Seeder
             ]
         );
         if ($assistant2->wasRecentlyCreated) {
-            $assistant2->assignRole('assistant');
+            $assistant2->is_admin = false;
+            $assistant2->role = RoleType::ASSISTANT->value;
+            $assistant2->save();
         }
 
         // Désactivation de la création d'utilisateurs supplémentaires pour le moment

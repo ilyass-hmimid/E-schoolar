@@ -26,7 +26,7 @@ class ProfesseurSeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         // Créer 10 professeurs
-        $professeurs = User::where('role', RoleType::PROFESSEUR)->get();
+        $professeurs = User::where('role', RoleType::PROFESSEUR->value)->get();
         
         if ($professeurs->isEmpty()) {
             $this->command->info('Aucun utilisateur avec le rôle professeur trouvé. Création de 10 professeurs...');
@@ -35,16 +35,18 @@ class ProfesseurSeeder extends Seeder
                 // Créer l'utilisateur
                 $user = User::create([
                     'name' => 'Professeur ' . $i,
+                    'prenom' => 'Professeur ' . $i,
                     'email' => 'professeur' . $i . '@allotawjih.com',
                     'password' => Hash::make('password'),
-                    'role' => RoleType::PROFESSEUR,
-                    'phone' => '06' . str_pad(mt_rand(0, 99999999), 8, '0', STR_PAD_LEFT),
-                    'address' => 'Adresse du professeur ' . $i,
+                    'role' => RoleType::PROFESSEUR->value,
+                    'telephone' => '06' . str_pad(mt_rand(0, 99999999), 8, '0', STR_PAD_LEFT),
+                    'adresse' => 'Adresse du professeur ' . $i,
                     'is_active' => true,
-                    'email_verified_at' => now(),
+                    'sexe' => $i % 2 === 0 ? 'Femme' : 'Homme',
+                    'date_inscription' => now(),
+                    'somme_a_payer' => 0,
+                    'date_debut' => now(),
                 ]);
-                
-                $user->assignRole('professeur');
                 
                 // Créer le profil professeur avec tous les champs requis
                 $dateNaissance = now()->subYears(rand(25, 60))->subMonths(rand(0, 11))->format('Y-m-d');

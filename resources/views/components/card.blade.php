@@ -57,7 +57,7 @@
         $footerClass,
     ];
     $footerClass = implode(' ', array_filter($footerClasses));
-@endif
+@endphp
 
 <div {{ $attributes->merge(['class' => $cardClass]) }}>
     @if($header || $title)

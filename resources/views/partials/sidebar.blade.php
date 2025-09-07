@@ -23,7 +23,7 @@
             
             <!-- Professeurs -->
             <li>
-                <a href="{{ route('admin.professeurs.index') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group {{ request()->routeIs('admin.professeurs.*') ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
+                <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
                     <i class="fas fa-chalkboard-teacher w-6 h-6 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-white"></i>
                     <span class="ml-3">Professeurs</span>
                 </a>
@@ -31,7 +31,7 @@
             
             <!-- Paiements -->
             <li>
-                <a href="{{ route('admin.paiements.index') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group {{ request()->routeIs('admin.paiements.*') ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
+                <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
                     <i class="fas fa-credit-card w-6 h-6 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-white"></i>
                     <span class="ml-3">Paiements</span>
                 </a>
@@ -39,7 +39,7 @@
             
             <!-- Absences -->
             <li>
-                <a href="{{ route('admin.absences.index') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group {{ request()->routeIs('admin.absences.*') ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
+                <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
                     <i class="fas fa-calendar-times w-6 h-6 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-white"></i>
                     <span class="ml-3">Absences</span>
                 </a>
@@ -47,7 +47,7 @@
             
             <!-- Matières -->
             <li>
-                <a href="{{ route('admin.matieres.index') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group {{ request()->routeIs('admin.matieres.*') ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
+                <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
                     <i class="fas fa-book w-6 h-6 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-white"></i>
                     <span class="ml-3">Matières</span>
                 </a>
@@ -55,7 +55,7 @@
             
             <!-- Classes -->
             <li>
-                <a href="{{ route('admin.classes.index') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group {{ request()->routeIs('admin.classes.*') ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
+                <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
                     <i class="fas fa-school w-6 h-6 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-white"></i>
                     <span class="ml-3">Classes</span>
                 </a>
@@ -63,7 +63,7 @@
             
             <!-- Utilisateurs -->
             <li>
-                <a href="{{ route('admin.users.index') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group {{ request()->routeIs('admin.users.*') ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
+                <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
                     <i class="fas fa-users-cog w-6 h-6 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-white"></i>
                     <span class="ml-3">Utilisateurs</span>
                 </a>
@@ -71,7 +71,7 @@
             
             <!-- Paramètres -->
             <li class="mt-auto">
-                <a href="{{ route('admin.settings') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group {{ request()->routeIs('admin.settings') ? 'bg-gray-100 dark:bg-gray-700' : '' }}">
+                <a href="#" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
                     <i class="fas fa-cog w-6 h-6 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-white"></i>
                     <span class="ml-3">Paramètres</span>
                 </a>
@@ -83,37 +83,28 @@
 <!-- Script pour la gestion du menu mobile -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const toggleButton = document.getElementById('toggleSidebar');
         const sidebar = document.getElementById('sidebar');
         const mobileMenuBackdrop = document.getElementById('mobileMenuBackdrop');
         
-        if (mobileMenuBtn && sidebar) {
-            mobileMenuBtn.addEventListener('click', () => {
-                const isHidden = sidebar.classList.contains('-translate-x-full');
-                
-                if (isHidden) {
-                    // Ouvrir le menu
-                    sidebar.classList.remove('-translate-x-full');
-                    document.body.classList.add('overflow-hidden');
-                    mobileMenuBackdrop.classList.remove('hidden');
-                } else {
-                    // Fermer le menu
-                    sidebar.classList.add('-translate-x-full');
-                    document.body.classList.remove('overflow-hidden');
-                    mobileMenuBackdrop.classList.add('hidden');
-                }
+        if (toggleButton && sidebar) {
+            // Gestion du clic sur le bouton de bascule
+            toggleButton.addEventListener('click', function() {
+                sidebar.classList.toggle('-translate-x-full');
+                mobileMenuBackdrop.classList.toggle('hidden');
+                document.body.classList.toggle('overflow-hidden', !sidebar.classList.contains('-translate-x-full'));
             });
             
-            // Fermer le menu en cliquant sur le backdrop
+            // Gestion du clic sur le fond pour fermer le menu
             if (mobileMenuBackdrop) {
-                mobileMenuBackdrop.addEventListener('click', () => {
+                mobileMenuBackdrop.addEventListener('click', function() {
                     sidebar.classList.add('-translate-x-full');
-                    document.body.classList.remove('overflow-hidden');
                     mobileMenuBackdrop.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
                 });
             }
             
-            // Fermer le menu en redimensionnant l'écran
+            // Gestion du redimensionnement de l'écran
             function handleResize() {
                 if (window.innerWidth >= 768) {
                     sidebar.classList.remove('-translate-x-full');
@@ -124,7 +115,10 @@
                 }
             }
             
+            // Ajouter l'écouteur d'événement de redimensionnement
             window.addEventListener('resize', handleResize);
+            
+            // Appeler handleResize au chargement
             handleResize();
         }
     });

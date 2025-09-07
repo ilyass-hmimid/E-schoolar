@@ -109,7 +109,6 @@ Route::get('{view}', ApplicationController::class)->where('view', '(.*)');
 │   ├── Gestion des paiements
 │   ├── Gestion des absences
 │   ├── Gestion des salaires
-│   ├── Gestion des notifications
 │   ├── Gestion des rapports
 │   └── Routes de test (dev uniquement)
 └── ROUTE CATCH-ALL (Inertia.js)

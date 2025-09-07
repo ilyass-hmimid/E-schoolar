@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Providers\RouteServiceProvider;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,34 +22,23 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
-                $user = Auth::guard($guard)->user();
-                
-                // Check if user is active
-                if (!$user->is_active) {
-                    Auth::guard($guard)->logout();
-                    $request->session()->invalidate();
-                    $request->session()->regenerateToken();
-                    
-                    return redirect()->route('login')->withErrors([
-                        'email' => 'Votre compte a été désactivé. Veuillez contacter l\'administrateur.',
-                    ]);
+                // Si l'utilisateur est déjà authentifié et accède à la page de connexion,
+                // le rediriger vers le tableau de bord
+                if ($request->is('login') || $request->is('auth/login')) {
+                    return redirect()->route('admin.dashboard');
                 }
                 
-                return $this->redirectToRoleBasedDashboard($user);
+                // Pour toutes les autres requêtes, continuer normalement
+                return $next($request);
             }
         }
 
+        // Si l'utilisateur n'est pas authentifié et essaie d'accéder à une zone protégée
+        // le rediriger vers la page de connexion
+        if ($request->is('admin/*') || $request->is('admin')) {
+            return redirect()->route('login');
+        }
+
         return $next($request);
-    }
-    
-    /**
-     * Redirect user to their role-based dashboard
-     *
-     * @param  \App\Models\User  $user
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    protected function redirectToRoleBasedDashboard($user)
-    {
-        return redirect(RouteServiceProvider::getHomeForUser($user));
     }
 }

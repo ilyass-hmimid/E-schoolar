@@ -17,27 +17,27 @@ class PaiementPolicy
     public function viewAny(User $user, string $type = 'eleve'): bool
     {
         // Les administrateurs peuvent tout voir
-        if ($user->hasRole('admin')) {
+        if ($user->role === 'admin') {
             return true;
         }
         
         // Les assistants peuvent voir les paiements des élèves
-        if ($user->hasRole('assistant') && $type === 'eleve') {
+        if ($user->role === 'assistant' && $type === 'eleve') {
             return true;
         }
         
         // Les professeurs peuvent voir leurs propres paiements
-        if ($user->hasRole('professeur') && $type === 'professeur') {
+        if ($user->role === 'professeur' && $type === 'professeur') {
             return true;
         }
         
         // Les élèves peuvent voir leurs propres paiements
-        if ($user->hasRole('eleve') && $type === 'eleve') {
+        if ($user->role === 'eleve' && $type === 'eleve') {
             return true;
         }
         
         // La direction peut voir tous les paiements
-        if ($user->hasRole('direction')) {
+        if ($user->role === 'direction') {
             return true;
         }
         
@@ -50,17 +50,17 @@ class PaiementPolicy
     public function viewEleve(User $user, Paiement $paiement): bool
     {
         // Un élève peut voir ses propres paiements
-        if ($user->hasRole('eleve') && $paiement->eleve_id === $user->id) {
+        if ($user->role === 'eleve' && $paiement->eleve_id === $user->id) {
             return true;
         }
         
         // Un parent peut voir les paiements de ses enfants
-        if ($user->hasRole('parent') && $user->enfants->contains('id', $paiement->eleve_id)) {
+        if ($user->role === 'parent' && $user->enfants->contains('id', $paiement->eleve_id)) {
             return true;
         }
         
         // Admin, assistant et direction peuvent voir tous les paiements
-        return $user->hasAnyRole(['admin', 'assistant', 'direction']);
+        return in_array($user->role, ['admin', 'assistant', 'direction']);
     }
     
     /**
@@ -69,12 +69,12 @@ class PaiementPolicy
     public function viewProfesseur(User $user, PaiementProfesseur $paiement): bool
     {
         // Un professeur peut voir ses propres paiements
-        if ($user->hasRole('professeur') && $paiement->professeur_id === $user->id) {
+        if ($user->role === 'professeur' && $paiement->professeur_id === $user->id) {
             return true;
         }
         
         // Admin et direction peuvent voir tous les paiements
-        return $user->hasAnyRole(['admin', 'direction']);
+        return in_array($user->role, ['admin', 'direction']);
     }
 
     /**
@@ -83,7 +83,7 @@ class PaiementPolicy
     public function createEleve(User $user): bool
     {
         // Seuls les administrateurs et les assistants peuvent créer des paiements élèves
-        return $user->hasAnyRole(['admin', 'assistant', 'direction']);
+        return in_array($user->role, ['admin', 'assistant', 'direction']);
     }
     
     /**
@@ -92,7 +92,7 @@ class PaiementPolicy
     public function createProfesseur(User $user): bool
     {
         // Seuls les administrateurs peuvent créer des paiements professeurs
-        return $user->hasRole('admin') || $user->hasRole('direction');
+        return in_array($user->role, ['admin', 'direction']);
     }
 
     /**
@@ -101,7 +101,7 @@ class PaiementPolicy
     public function updateEleve(User $user, Paiement $paiement): bool
     {
         // Seuls les administrateurs et les assistants peuvent mettre à jour les paiements élèves
-        return $user->hasAnyRole(['admin', 'assistant', 'direction']);
+        return in_array($user->role, ['admin', 'assistant', 'direction']);
     }
     
     /**
@@ -110,7 +110,7 @@ class PaiementPolicy
     public function updateProfesseur(User $user, PaiementProfesseur $paiement): bool
     {
         // Seuls les administrateurs peuvent mettre à jour les paiements professeurs
-        return $user->hasRole('admin') || $user->hasRole('direction');
+        return in_array($user->role, ['admin', 'direction']);
     }
 
     /**
@@ -119,7 +119,7 @@ class PaiementPolicy
     public function deleteEleve(User $user, Paiement $paiement): bool
     {
         // Seuls les administrateurs peuvent supprimer des paiements élèves
-        return $user->hasRole('admin') || $user->hasRole('direction');
+        return in_array($user->role, ['admin', 'direction']);
     }
     
     /**
@@ -128,7 +128,7 @@ class PaiementPolicy
     public function deleteProfesseur(User $user, PaiementProfesseur $paiement): bool
     {
         // Seuls les administrateurs peuvent supprimer des paiements professeurs
-        return $user->hasRole('admin') || $user->hasRole('direction');
+        return in_array($user->role, ['admin', 'direction']);
     }
 
     /**
@@ -137,7 +137,7 @@ class PaiementPolicy
     public function valider(User $user, Paiement $paiement): bool
     {
         // Seul un admin peut valider un paiement
-        return $user->hasRole('admin');
+        return $user->role === 'admin';
     }
 
     /**
@@ -146,7 +146,7 @@ class PaiementPolicy
     public function annuler(User $user, Paiement $paiement): bool
     {
         // Seul un admin peut annuler un paiement
-        return $user->hasRole('admin');
+        return $user->role === 'admin';
     }
 
     /**
@@ -155,12 +155,12 @@ class PaiementPolicy
     public function genererFacture(User $user, Paiement $paiement): bool
     {
         // L'étudiant peut voir sa propre facture
-        if ($user->hasRole('etudiant') && $paiement->eleve_id === $user->id) {
+        if ($user->role === 'etudiant' && $paiement->eleve_id === $user->id) {
             return true;
         }
         
         // Le secrétariat peut voir toutes les factures
-        return $user->hasAnyRole(['admin', 'assistant', 'comptable']);
+        return in_array($user->role, ['admin', 'assistant', 'comptable']);
     }
     
     /**
@@ -168,7 +168,7 @@ class PaiementPolicy
      */
     public function export(User $user): bool
     {
-        return $user->hasAnyRole(['admin', 'assistant', 'comptable', 'direction']) && 
+        return in_array($user->role, ['admin', 'assistant', 'comptable', 'direction']) && 
                $user->can('export_paiements');
     }
     
@@ -177,7 +177,7 @@ class PaiementPolicy
      */
     public function viewStatistics(User $user): bool
     {
-        return $user->hasAnyRole(['admin', 'direction', 'comptable']) && 
+        return in_array($user->role, ['admin', 'direction', 'comptable']) && 
                $user->can('view_paiement_statistics');
     }
     
@@ -187,7 +187,7 @@ class PaiementPolicy
     public function sendReminder(User $user, Paiement $paiement): bool
     {
         // Seuls les administrateurs et les assistants peuvent envoyer des rappels
-        if (!$user->hasAnyRole(['admin', 'assistant'])) {
+        if (!in_array($user->role, ['admin', 'assistant'])) {
             return false;
         }
         
@@ -210,11 +210,11 @@ class PaiementPolicy
     public function viewReceipt(User $user, Paiement $paiement): bool
     {
         // L'étudiant peut voir son propre reçu
-        if ($user->hasRole('etudiant') && $paiement->eleve_id === $user->id) {
+        if ($user->role === 'etudiant' && $paiement->eleve_id === $user->id) {
             return true;
         }
         
         // Le secrétariat peut voir tous les reçus
-        return $user->hasAnyRole(['admin', 'assistant', 'comptable']);
+        return in_array($user->role, ['admin', 'assistant', 'comptable']);
     }
 }

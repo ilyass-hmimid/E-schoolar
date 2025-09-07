@@ -43,7 +43,6 @@ resources/js/Pages/
 ├── Filieres/                # Gestion des filières
 ├── Niveaux/                 # Gestion des niveaux
 ├── Enseignements/           # Gestion des enseignements
-├── Notifications/           # Gestion des notifications
 ├── Rapports/                # Gestion des rapports
 ├── Profile/                 # Profil utilisateur
 └── Welcome.vue              # Page d'accueil

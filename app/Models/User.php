@@ -2,23 +2,25 @@
 
 namespace App\Models;
 
-use App\Enums\RoleType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Spatie\Permission\Traits\HasRoles;
-use Spatie\Activitylog\Traits\LogsActivity;
-use Spatie\Activitylog\LogOptions;
-use Illuminate\Support\Facades\Hash;
-use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles, LogsActivity;
+    use HasApiTokens, HasFactory, SoftDeletes;
     
+    const ROLE_ADMIN = 'admin';
+    const ROLE_PROFESSEUR = 'professeur';
+    const ROLE_ELEVE = 'eleve';
+
+    const STATUS_ACTIF = 'actif';
+    const STATUS_INACTIF = 'inactif';
+    const STATUS_SUSPENDU = 'suspendu';
+
     /**
      * Les attributs qui sont assignables en masse.
      *
@@ -29,15 +31,48 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'phone',
-        'address',
-        'classe_id',
-        'is_active',
-        'email_verified_at'
+        'status',
+        'date_naissance',
+        'adresse',
+        'telephone',
+        'pourcentage_remuneration', // Pour les professeurs uniquement
+        'date_embauche',           // Pour les professeurs
+        'cne',                     // Pour les élèves
+        'nom_pere',                // Pour les élèves
+        'telephone_pere',          // Pour les élèves
+        'nom_mere',                // Pour les élèves
+        'telephone_mere'           // Pour les élèves
     ];
     
     /**
-     * Les attributs qui doivent être cachés pour la sérialisation.
+     * Les attributs qui doivent être convertis en types natifs.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'date_naissance' => 'date',
+        'date_embauche' => 'date',
+        'pourcentage_remuneration' => 'decimal:2',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
+    ];
+
+    /**
+     * Les valeurs par défaut des attributs du modèle.
+     *
+     * @var array
+     */
+    protected $attributes = [
+        'role' => self::ROLE_ELEVE,
+        'status' => self::STATUS_ACTIF,
+        'pourcentage_remuneration' => 30.00, // Valeur par défaut pour les professeurs
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
      *
      * @var array<int, string>
      */
@@ -45,6 +80,110 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
+    /**
+     * Vérifie si l'utilisateur est un administrateur
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN;
+    }
+
+    /**
+     * Vérifie si l'utilisateur est un professeur
+     */
+    public function isProfesseur(): bool
+    {
+        return $this->role === self::ROLE_PROFESSEUR;
+    }
+
+    /**
+     * Vérifie si l'utilisateur est un élève
+     */
+    public function isEleve(): bool
+    {
+        return $this->role === self::ROLE_ELEVE;
+    }
+
+    /**
+     * Relation avec les matières de l'élève
+     */
+    public function matieres(): BelongsToMany
+    {
+        return $this->belongsToMany(Matiere::class, 'eleve_matiere')
+            ->withTimestamps();
+    }
+
+    /**
+     * Relation avec les matières enseignées (pour les professeurs)
+     */
+    public function matieresEnseignees(): BelongsToMany
+    {
+        return $this->belongsToMany(Matiere::class, 'professeur_matiere')
+            ->withPivot('est_responsable')
+            ->withTimestamps();
+    }
+
+    /**
+     * Relation avec les absences (pour les élèves)
+     */
+    public function absences(): HasMany
+    {
+        return $this->hasMany(Absence::class, 'eleve_id');
+    }
+
+    /**
+     * Relation avec les paiements (pour les élèves)
+     */
+    public function paiements(): HasMany
+    {
+        return $this->hasMany(Paiement::class, 'eleve_id');
+    }
+
+    /**
+     * Relation avec les paiements (pour les professeurs)
+     */
+    public function salaires(): HasMany
+    {
+        return $this->hasMany(Salaire::class, 'professeur_id');
+    }
+
+    /**
+     * Get the user's role.
+     *
+     * @return string
+     */
+    public function role()
+    {
+        return $this->attributes['role'] ?? null;
+    }
+    
+    /**
+     * Vérifie si l'utilisateur a un rôle spécifique
+     *
+     * @param string|array $role
+     * @return bool
+     */
+    /**
+     * Vérifie si l'utilisateur a le rôle spécifié
+     *
+     * @param string|array $role Rôle ou tableau de rôles à vérifier
+     * @return bool
+     */
+    public function hasRole($role): bool
+    {
+        // Si l'utilisateur est admin, il a automatiquement tous les rôles
+        if ($this->is_admin === true) {
+            return true;
+        }
+        
+        if (is_array($role)) {
+            return in_array($this->role, $role);
+        }
+        
+        // Vérifier si le rôle demandé correspond au rôle de l'utilisateur
+        return $this->role === $role;
+    }
 
     /**
      * The accessors to append to the model's array form.
@@ -55,32 +194,6 @@ class User extends Authenticatable
         'role_label'
     ];
     
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
-        'notification_preferences' => 'array',
-        'somme_a_payer' => 'decimal:2',
-        'date_debut' => 'date',
-        'is_active' => 'boolean',
-        'date_naissance' => 'date',
-    ];
-    
-    /**
-     * Configuration du journal d'activité
-     */
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logOnly(['name', 'email', 'role', 'is_active'])
-            ->logOnlyDirty()
-            ->dontSubmitEmptyLogs()
-            ->setDescriptionForEvent(fn(string $eventName) => "L'utilisateur a été {$eventName}");
-    }
     
     /**
      * Get the classe that the user belongs to.
@@ -368,15 +481,27 @@ class User extends Authenticatable
     /**
      * Obtenir les enseignements du professeur
      */
-    public function enseignements(): HasMany
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function enseignements()
     {
-        return $this->hasMany(Enseignement::class, 'professeur_id');
+        return $this->hasMany(\App\Models\Enseignement::class, 'professeur_id');
     }
 
     /**
      * Obtenir les matières enseignées par le professeur
      */
-    public function matieresEnseignees(): BelongsToMany
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    public function matieresEnseignees()
     {
         return $this->belongsToMany(Matiere::class, 'enseignements', 'professeur_id', 'matiere_id')
             ->withPivot(['niveau_id', 'filiere_id', 'nombre_heures_semaine'])
@@ -407,7 +532,10 @@ class User extends Authenticatable
     /**
      * Obtenir les absences de l'élève
      */
-    public function absences(): HasMany
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function absences()
     {
         return $this->hasMany(Absence::class, 'etudiant_id')
             ->orderBy('date_debut', 'desc');
@@ -452,63 +580,15 @@ class User extends Authenticatable
         ];
     }
 
-
     /**
-     * Obtenir les notes de l'élève
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function notes()
-    {
-        return $this->hasMany(Note::class, 'etudiant_id');
-    }
-    
     /**
-     * Obtenir les devoirs créés par le professeur
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function devoirsCrees()
+    public function inscriptions()
     {
-        return $this->hasMany(Devoir::class, 'professeur_id');
-    }
-    
-    /**
-     * Obtenir les devoirs assignés à l'élève
-     */
-    public function devoirsAssignes()
-    {
-        return $this->belongsToMany(Devoir::class, 'devoir_eleve', 'eleve_id', 'devoir_id')
-            ->withPivot(['note', 'fichier_soumis', 'date_soumission', 'statut', 'commentaire'])
-            ->withTimestamps();
-    }
-    
-    /**
-     * Relation avec le profil enseignant (si l'utilisateur est un enseignant)
-     */
-    public function enseignant()
-    {
-        return $this->hasOne(Enseignant::class, 'user_id');
-    }
-    
-    /**
-     * Relation avec le profil étudiant (si l'utilisateur est un étudiant)
-     */
-    public function etudiant()
-    {
-        return $this->hasOne(Etudiant::class, 'user_id');
-    }
-    
-    /**
-     * Récupérer les présences de l'élève
-     */
-    public function presences()
-    {
-        return $this->hasMany(Presence::class, 'etudiant_id');
-    }
-
-    /**
-     * Obtenir les inscriptions de l'élève
-     */
-    public function inscriptions(): HasMany
-    {
-        return $this->hasMany(Inscription::class, 'etudiant_id');
+        return $this->hasMany(\App\Models\Inscription::class, 'etudiant_id');
     }
 
     // Relations pour les assistants
@@ -545,9 +625,18 @@ class User extends Authenticatable
     /**
      * Obtenir les paiements validés par l'assistant
      */
-    public function paiementsValides(): HasMany
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function paiementsValides()
     {
-        return $this->hasMany(Paiement::class, 'assistant_id')
+        return $this->hasMany(\App\Models\Paiement::class, 'assistant_id')
             ->where('statut', 'valide')
             ->orderBy('date_paiement', 'desc');
     }
@@ -561,12 +650,13 @@ class User extends Authenticatable
      */
     public function matieres()
     {
-        if ($this->isProfesseur()) {
+        if ($this->isEleve()) {
+            return $this->matieresEleve();
+        } elseif ($this->isProfesseur()) {
             return $this->belongsToMany(Matiere::class, 'enseignements', 'professeur_id', 'matiere_id')
                 ->withPivot(['niveau_id', 'filiere_id'])
                 ->withTimestamps();
         }
-        
         if ($this->isEleve()) {
             return $this->belongsToMany(Matiere::class, 'inscriptions', 'etudiant_id', 'matiere_id')
                 ->withPivot(['niveau_id', 'filiere_id', 'annee_scolaire'])
@@ -579,14 +669,18 @@ class User extends Authenticatable
     /**
      * Obtenir les salaires (pour les professeurs)
      */
-    public function salaires(): HasMany
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function salaires()
     {
-        // Utiliser Salaires si le modèle Salaire n'existe pas
-        if (class_exists(Salaire::class)) {
-            return $this->hasMany(Salaire::class, 'professeur_id');
-        }
-        
-        return $this->hasMany(Salaires::class, 'professeur_id');
+        return $this->hasMany(\App\Models\Salaire::class, 'professeur_id');
     }
 
     /**

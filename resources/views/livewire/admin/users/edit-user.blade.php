@@ -211,21 +211,12 @@
     @push('scripts')
     <script>
         document.addEventListener('livewire:initialized', () => {
-            // Gestion des notifications
+            // Gestion des mises à jour d'utilisateur
             window.addEventListener('user-updated', (event) => {
-                // Afficher une notification
-                const toast = window.Swal.mixin({
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 3000,
-                    timerProgressBar: true,
-                });
-                
-                toast.fire({
-                    icon: event.detail.type,
-                    title: event.detail.message
-                });
+                // Rafraîchir la page après la mise à jour
+                if (event.detail.type === 'success') {
+                    window.location.reload();
+                }
             });
         });
     </script>

@@ -16,15 +16,21 @@ class EnsureUserIsActive
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::check() && !Auth::user()->is_active) {
+        if (!Auth::check()) {
+            return $next($request);
+        }
+
+        if (!Auth::user()->is_active) {
+            if ($request->is('login') || $request->is('admin/login')) {
+                return response('Compte désactivé', 403);
+            }
+
             Auth::logout();
-            
             $request->session()->invalidate();
             $request->session()->regenerateToken();
             
-            return redirect()->route('login')->withErrors([
-                'email' => 'Votre compte a été désactivé. Veuillez contacter l\'administrateur.',
-            ]);
+            return redirect()->route('login')
+                ->with('error', 'Votre compte a été désactivé. Contactez l\'administrateur.');
         }
 
         return $next($request);

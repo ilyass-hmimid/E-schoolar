@@ -303,7 +303,7 @@
             <div class="w-full max-w-md p-10 rounded-2xl bg-gray-900/90 backdrop-blur-sm border border-gray-800/50">
                 <div class="text-center mb-10">
                     <h2 class="text-3xl font-bold text-white mb-2">Connexion</h2>
-                    <p class="text-gray-400">Entrez vos identifiants pour accéder à votre compte</p>
+                    <p class="text-gray-400">Entrez vos identifiants pour accéder à l'administration</p>
                 </div>
 
                 @if (session('status'))
@@ -340,6 +340,10 @@
 
                 <form method="POST" action="{{ route('login') }}" class="space-y-6">
                     @csrf
+                    
+                    @if(request()->has('redirect'))
+                        <input type="hidden" name="redirect" value="{{ request('redirect') }}">
+                    @endif
 
                     <!-- Email -->
                     <div class="space-y-2">

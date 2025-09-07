@@ -44,7 +44,7 @@
         <div class="flex-1 flex items-center justify-center p-8">
             <div class="w-full max-w-md">
                 <div class="flex justify-center mb-8">
-                    <img src="{{ asset('images/logo.png') }}" alt="Allo Tawjih" class="h-16" onerror="this.style.display='none'">
+                    <img src="{{ asset('logo.png') }}" alt="Allo Tawjih" class="h-16" onerror="this.style.display='none'">
                 </div>
                 
                 <div class="text-center mb-8">

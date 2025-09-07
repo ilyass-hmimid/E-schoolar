@@ -25,12 +25,10 @@ class ClasseSeeder extends Seeder
         // Réactiver les contraintes de clé étrangère
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
-        // Récupérer les niveaux et filières
+        // Récupérer les niveaux, filières et professeurs
         $niveaux = Niveau::all();
         $filieres = Filiere::all();
-        $professeurs = User::whereHas('roles', function($q) {
-            $q->where('name', 'professeur');
-        })->get();
+        $professeurs = User::where('role', 'professeur')->get();
 
         if ($niveaux->isEmpty() || $filieres->isEmpty()) {
             $this->command->error('Veuillez d\'abord exécuter InitialDataSeeder pour créer les niveaux et filières.');

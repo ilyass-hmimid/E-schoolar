@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Carbon\Carbon;
 
 class Eleve extends Model
@@ -93,6 +94,15 @@ class Eleve extends Model
     }
 
     /**
+     * Relation avec les matières de l'élève
+     */
+    public function matieres(): BelongsToMany
+    {
+        return $this->belongsToMany(Matiere::class, 'eleve_matiere', 'eleve_id', 'matiere_id')
+            ->withTimestamps();
+    }
+
+    /**
      * Accessor pour l'âge
      */
     public function getAgeAttribute(): ?int
@@ -101,7 +111,7 @@ class Eleve extends Model
             return null;
         }
         
-        return $this->date_naissance->age;
+        return Carbon::parse($this->date_naissance)->age;
     }
 
     /**

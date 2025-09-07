@@ -3,6 +3,23 @@
 @section('title', 'Tableau de bord')
 
 @push('styles')
+    <style>
+        .stat-card {
+            @apply bg-white dark:bg-gray-800 rounded-lg shadow p-6 transition-all duration-300 hover:shadow-lg;
+        }
+        .stat-card.primary {
+            @apply border-l-4 border-primary-500;
+        }
+        .stat-card.success {
+            @apply border-l-4 border-green-500;
+        }
+        .stat-card.warning {
+            @apply border-l-4 border-yellow-500;
+        }
+        .stat-card.danger {
+            @apply border-l-4 border-red-500;
+        }
+    </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/apexcharts@3.35.0/dist/apexcharts.min.css">
     <style>
         :root {
@@ -22,6 +39,16 @@
 
         .min-h-content {
             min-height: calc(100vh - 4rem);
+        }
+        
+        /* Ensure main content has proper spacing */
+        @media (min-width: 768px) {
+            .main-content {
+                margin-left: 16rem; /* Same as sidebar width */
+                width: calc(100% - 16rem);
+                position: relative;
+                z-index: 10;
+            }
         }
         
         /* Enhanced Stat Cards */
@@ -135,7 +162,7 @@
     @include('admin.partials.sidebar')
     
     <!-- Main Content -->
-    <div class="md:pl-64 flex flex-col flex-1 min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div class="main-content flex flex-col flex-1 min-h-screen bg-gray-50 dark:bg-gray-900">
         <!-- Top Navigation -->
         @include('admin.partials.top-navigation')
         
@@ -280,8 +307,8 @@
                             <div class="relative px-6 py-8 sm:px-8 sm:py-10">
                                 <div class="flex flex-col md:flex-row md:items-center md:justify-between">
                                     <div class="max-w-2xl">
-                                        <h2 class="text-2xl font-bold text-white">Bon retour, {{ Auth::user()->name }}! 👋</h2>
-                                        <p class="mt-2 text-blue-100">Voici un aperçu de votre journée du {{ now()->locale('fr')->isoFormat('dddd D MMMM YYYY') }}</p>
+                                        <h2 class="text-2xl font-bold text-white">Bienvenue, {{ Auth::user()->name }}! </h2>
+                                        <p class="mt-2 text-blue-100">Tableau de bord - {{ now()->locale('fr')->isoFormat('dddd D MMMM YYYY') }}</p>
                                         
                                         <div class="mt-4 flex flex-wrap gap-3">
                                             <div class="flex items-center text-sm text-blue-100 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full">
@@ -295,40 +322,26 @@
                                             </div>
                                             @endif
                                         </div>
-                                    </div>
-                                    
-                                    <div class="mt-6 flex-shrink-0 md:mt-0 md:ml-6">
-                                        <div class="flex space-x-3">
-                                            <a href="{{ route('admin.taches.create') }}" class="inline-flex items-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
-                                                <i class="fas fa-plus mr-2"></i>
-                                                Nouvelle action
-                                            </a>
-                                            <a href="{{ route('admin.calendrier') }}" class="inline-flex items-center px-4 py-2.5 border border-white/20 text-sm font-medium rounded-lg text-white bg-transparent hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 transition-colors duration-200">
-                                                <i class="far fa-calendar-alt mr-2"></i>
-                                                Voir l'agenda
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Quick stats -->
-                                <div class="mt-8 pt-6 border-t border-white/10">
-                                    <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                                        <div class="text-center">
-                                            <p class="text-sm font-medium text-blue-100">Nouvelles absences</p>
-                                            <p class="mt-1 text-xl font-semibold text-white">{{ $stats['nouvelles_absences'] ?? 0 }}</p>
-                                        </div>
+                                        
+                                        <!-- Quick stats -->
+                                        <div class="mt-8 pt-6 border-t border-white/10">
+                                            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                                                <div class="text-center">
+                                                    <p class="text-sm font-medium text-blue-100">Nouvelles absences</p>
+                                                    <p class="mt-1 text-xl font-semibold text-white">{{ $stats['nouvelles_absences'] ?? 0 }}</p>
+                                                </div>
                                         <div class="text-center">
                                             <p class="text-sm font-medium text-blue-100">Messages non lus</p>
                                             <p class="mt-1 text-xl font-semibold text-white">{{ $stats['messages_non_lus'] ?? 0 }}</p>
                                         </div>
-                                        <div class="text-center">
-                                            <p class="text-sm font-medium text-blue-100">Tâches en attente</p>
-                                            <p class="mt-1 text-xl font-semibold text-white">{{ $stats['taches_en_attente'] ?? 0 }}</p>
-                                        </div>
+                                        <!-- Tâches en attente supprimé -->
                                         <div class="text-center">
                                             <p class="text-sm font-medium text-blue-100">Alertes</p>
                                             <p class="mt-1 text-xl font-semibold text-white">{{ $stats['alertes'] ?? 0 }}</p>
+                                        </div>
+                                        <div class="text-center">
+                                            <p class="text-sm font-medium text-blue-100">Élèves actifs</p>
+                                            <p class="mt-1 text-xl font-semibold text-white">{{ $stats['eleves_actifs'] ?? 0 }}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -381,11 +394,8 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="px-6 py-3 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700 text-right">
-                                    <a href="{{ route('admin.export.absences') }}" class="inline-flex items-center text-xs font-medium text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 transition-colors">
-                                        Exporter les données
-                                        <i class="fas fa-download ml-1"></i>
-                                    </a>
+                                <!-- Lien d'export supprimé -->
+                                <div class="px-6 py-3 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700">
                                 </div>
                             </div>
 
@@ -486,52 +496,6 @@
                             </div>
                         </div>
 
-                        <!-- Upcoming Events -->
-                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
-                            <div class="p-6">
-                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-                                    <div>
-                                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Événements à venir</h2>
-                                        <p class="text-sm text-gray-500 dark:text-gray-400">Prochains événements et échéances</p>
-                                    </div>
-                                    <a href="{{ route('admin.evenements.index') }}" class="mt-2 sm:mt-0 inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 group transition-colors duration-200">
-                                        Voir tout
-                                        <svg class="w-4 h-4 ml-1 transition-transform duration-200 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                                        </svg>
-                                    </a>
-                                </div>
-                                <div class="space-y-3">
-                                    @forelse($upcomingEvents as $event)
-                                        <div class="group flex items-start p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-200 hover:shadow-sm">
-                                            <div class="flex-shrink-0 h-12 w-12 rounded-full bg-{{ $event['color'] }}-100 dark:bg-{{ $event['color'] }}-900/20 flex items-center justify-center text-{{ $event['color'] }}-600 dark:text-{{ $event['color'] }}-400">
-                                                <i class="fas {{ $event['icon'] }} text-lg"></i>
-                                            </div>
-                                            <div class="ml-4 flex-1 min-w-0">
-                                                <div class="flex items-center justify-between">
-                                                    <h3 class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $event['title'] }}</h3>
-                                                    <span class="ml-2 flex-shrink-0 text-xs font-medium text-{{ $event['color'] }}-600 dark:text-{{ $event['color'] }}-400">
-                                                        {{ $event['date']->isoFormat('DD MMM') }}
-                                                    </span>
-                                                </div>
-                                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">{{ $event['description'] ?? '' }}</p>
-                                                <div class="mt-2 flex items-center text-xs text-gray-500 dark:text-gray-400">
-                                                    <i class="far fa-clock mr-1"></i>
-                                                    <span>{{ $event['date']->format('H:i') }} • {{ $event['date']->diffForHumans() }}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @empty
-                                        <div class="text-center py-8">
-                                            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 mb-3">
-                                                <i class="far fa-calendar-alt text-xl"></i>
-                                            </div>
-                                            <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-1">Aucun événement à venir</h3>
-                                            <p class="text-sm text-gray-500 dark:text-gray-400">Tout est à jour pour le moment.</p>
-                                        </div>
-                                    @endforelse
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -541,12 +505,29 @@
 </div>
 
 @push('scripts')
+    <!-- Load ApexCharts -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/dist/tippy-bundle.umd.min.js"></script>
+    
+    <!-- Load Tippy.js with Popper.js -->
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize tooltips
-            initTooltips();
+            // Initialize tooltips if Tippy is available
+            if (typeof tippy !== 'undefined') {
+                tippy('[data-tooltip]', {
+                    content: (reference) => reference.getAttribute('data-tooltip'),
+                    placement: 'top',
+                    animation: 'fade',
+                    theme: 'light',
+                    arrow: true,
+                    delay: [100, 200],
+                    duration: [200, 150],
+                    interactive: true,
+                    appendTo: () => document.body
+                });
+            }
             
             // Initialize charts with loading state
             initAbsencesChart();
@@ -578,71 +559,109 @@
             });
         });
 
-        function initTooltips() {
-            tippy('[data-tooltip]', {
-                content(reference) {
-                    return reference.getAttribute('data-tooltip');
-                },
-                placement: 'top',
-                theme: 'light-border',
-                animation: 'scale',
-                arrow: true,
-                delay: [100, 0],
-                duration: [200, 200],
-                hideOnClick: false,
-                touch: ['hold', 500],
-                appendTo: document.body
-            });
-        }
-
         function justifyAbsence(absenceId, button) {
             // Show loading state
             const originalHTML = button.innerHTML;
             button.innerHTML = '<i class="fas fa-spinner fa-spin h-3 w-3"></i>';
             button.disabled = true;
             
-            // Simulate API call - replace with actual fetch call
-            setTimeout(() => {
-                // In a real app, you would make an API call here
-                // fetch(`/admin/absences/${absenceId}/justify`, { method: 'POST' })
-                //     .then(response => response.json())
-                //     .then(data => {
-                //         if (data.success) {
-                //             updateAbsenceUI(absenceId, true);
-                //         }
-                //     });
-                
-                // Simulate success
-                updateAbsenceUI(absenceId, true);
-                
-                // Show success message
-                showNotification('Absence justifiée avec succès', 'success');
-            }, 800);
+            // Get CSRF token from meta tag
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
+            // Make API call to justify absence
+            fetch(`/admin/absences/${absenceId}/justify`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    _method: 'PATCH',
+                    justified: true
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Update the UI to reflect the justified absence
+                    updateAbsenceUI(absenceId, true);
+                    // Show success message
+                    showNotification('Absence justifiée avec succès', 'success');
+                } else {
+                    throw new Error(data.message || 'Erreur lors de la justification de l\'absence');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Show error message
+                showNotification(error.message || 'Une erreur est survenue', 'error');
+                // Reset button state
+                button.innerHTML = originalHTML;
+                button.disabled = false;
+            });
         }
         
+        /**
+         * Update the UI after an absence is justified
+         * @param {string} absenceId - The ID of the absence
+         * @param {boolean} isJustified - Whether the absence is justified
+         */
         function updateAbsenceUI(absenceId, isJustified) {
-            // Find the row with this absence ID
-            const row = document.querySelector(`[data-absence-id="${absenceId}"]`).closest('tr');
-            if (!row) return;
+            // Find the absence row
+            const absenceRow = document.querySelector(`[data-absence-id="${absenceId}"]`).closest('tr');
             
-            // Update the status cell
-            const statusCell = row.querySelector('td:nth-child(3)');
-            if (statusCell) {
-                statusCell.innerHTML = `
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                        <i class="fas fa-check-circle mr-1"></i>
-                        Justifiée
-                    </span>
-                `;
-            }
-            
-            // Remove the justify button
-            const justifyButton = row.querySelector(`[data-absence-id="${absenceId}"]`);
-            if (justifyButton) {
-                justifyButton.closest('div').removeChild(justifyButton);
+            if (absenceRow) {
+                // Update status cell
+                const statusCell = absenceRow.querySelector('.status-cell') || absenceRow.querySelector('td:nth-child(3)');
+                if (statusCell) {
+                    statusCell.innerHTML = isJustified ? 
+                        '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Justifiée</span>' :
+                        '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Non justifiée</span>';
+                }
+                
+                // Update action buttons
+                const actionButtons = absenceRow.querySelectorAll('button');
+                actionButtons.forEach(button => {
+                    if (button.getAttribute('data-tooltip') === 'Justifier l\'absence') {
+                        // Remove the justify button
+                        button.remove();
+                    }
+                });
+                
+                // Add a checkmark icon to confirm justification
+                const actionCell = absenceRow.querySelector('td:last-child');
+                if (actionCell) {
+                    // Remove any existing checkmark
+                    const existingCheck = actionCell.querySelector('.justification-checkmark');
+                    if (!existingCheck) {
+                        actionCell.innerHTML += `
+                            <span class="ml-2 text-green-500 justification-checkmark">
+                                <i class="fas fa-check-circle"></i>
+                            </span>
+                        `;
+                    }
+                }
+                
+                // Remove the justify button
+                const justifyButton = absenceRow.querySelector(`[data-absence-id="${absenceId}"]`);
+                if (justifyButton) {
+                    justifyButton.remove();
+                }
             }
         }
         
+        /**
+         * Show a notification message
+         * @param {string} message - The message to display
+         * @param {string} type - The type of notification (success, error, warning, info)
+         */
         function showNotification(message, type = 'info') {
             const notification = document.createElement('div');
             const types = {

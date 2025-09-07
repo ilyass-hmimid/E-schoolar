@@ -14,86 +14,59 @@ class RoleMiddleware
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  \Closure  $next
-     * @param  string|array  ...$roles
-     * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
+     * @param  string  $role
+     * @return mixed
      */
-    public function handle(Request $request, Closure $next, ...$roles): mixed
+    public function handle(Request $request, Closure $next, string $role = 'admin')
     {
         $user = $request->user();
 
         // Vérifier si l'utilisateur est connecté
         if (!$user) {
-            return $this->unauthorized($request);
+            return redirect()->route('login')->with('error', 'Veuillez vous connecter pour accéder à cette page.');
         }
 
-        // Normaliser les rôles (s'assurer que c'est un tableau plat)
-        $roles = is_array($roles) ? array_map('strtolower', $roles) : [strtolower($roles)];
-        $roles = array_map('trim', $roles);
-        $roles = array_unique($roles);
-
-        // Si l'utilisateur a le rôle admin, on lui donne accès
-        if ($user->hasRole('admin')) {
+        // Vérifier si l'utilisateur a le rôle requis
+        if ($user->role === $role) {
             return $next($request);
         }
 
-        // Vérifier si l'utilisateur a l'un des rôles requis
-        $userRoles = $user->getRoleNames()->map(fn($role) => strtolower(trim($role)));
-        
-        foreach ($roles as $requiredRole) {
-            if ($userRoles->contains($requiredRole)) {
-                return $next($request);
-            }
+        // Si l'utilisateur est déjà sur la page d'accueil, éviter la boucle
+        if ($request->is('admin/dashboard') || $request->is('admin')) {
+            return $next($request);
         }
 
         // Journaliser la tentative d'accès non autorisée
-        $this->logUnauthorizedAccess($request, $user, $roles);
-
-        return $this->unauthorized($request);
-    }
-
-    /**
-     * Journaliser une tentative d'accès non autorisée
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\User  $user
-     * @param  array  $requiredRoles
-     * @return void
-     */
-    private function logUnauthorizedAccess($request, $user, array $requiredRoles): void
-    {
-        Log::warning('Tentative d\'accès non autorisée', [
+        Log::warning('Accès refusé - Rôle insuffisant', [
             'user_id' => $user->id,
-            'email' => $user->email,
-            'user_roles' => $user->getRoleNames(),
-            'required_roles' => $requiredRoles,
+            'user_role' => $user->role,
+            'required_role' => $role,
             'route' => $request->route()?->getName(),
-            'method' => $request->method(),
-            'url' => $request->fullUrl(),
-            'ip' => $request->ip(),
-            'user_agent' => $request->userAgent(),
+            'ip' => $request->ip()
         ]);
+
+        // Rediriger vers le tableau de bord avec un message d'erreur
+        return redirect()->route('admin.dashboard')
+            ->with('error', 'Vous n\'avez pas les autorisations nécessaires pour accéder à cette page.');
     }
 
     /**
      * Gérer une réponse non autorisée
      *
      * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
      */
-    private function unauthorized($request)
+    protected function unauthorized(Request $request)
     {
-        $message = 'Accès non autorisé. Vous n\'avez pas les permissions nécessaires pour accéder à cette ressource.';
-        
-        if ($request->expectsJson() || $request->is('api/*')) {
-            return response()->json([
-                'success' => false,
-                'message' => $message,
-                'code' => 403
-            ], 403);
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
         }
-
-        return redirect()
-            ->route('home')
-            ->with('error', $message);
+        
+        // Éviter les redirections en boucle
+        if ($request->is('login') || $request->is('admin/login')) {
+            return response()->json(['message' => 'Unauthorized.'], 401);
+        }
+        
+        return redirect()->route('login')->with('error', 'Accès non autorisé.');
     }
 }

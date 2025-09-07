@@ -46,40 +46,15 @@
     // Add data attributes
     $dataAttributes = '';
     foreach ($data as $key => $value) {
-        $dataAttributes .= " data-{$key}=\"{{ $value }}\"";
+        $dataAttributes .= ' data-' . $key . '="' . e($value) . '"';
     }
-    
-    // Handle old input
-    $oldValue = old($name);
-    $value = $oldValue ?? $value;
-    
-    // Handle min/max for date inputs
-    $minAttr = $min ? "min=\"{{ $min }}\"" : '';
-    $maxAttr = $max ? "max=\"{{ $max }}\"" : '';
-    
-    // Handle pattern and title for validation
-    $patternAttr = $pattern ? "pattern=\"{{ $pattern }}\"" : '';
-    $titleAttr = $pattern && isset($data['pattern-message']) ? "title=\"{{ $data['pattern-message'] }}\"" : '';
-    
-    // Required attribute
-    $requiredAttr = $required ? 'required' : '';
-    
-    // Disabled/Readonly attributes
-    $disabledAttr = $disabled ? 'disabled' : '';
-    $readonlyAttr = $readonly ? 'readonly' : '';
-    
-    // Autocomplete attribute
-    $autocompleteAttr = $autocomplete ? "autocomplete=\"{{ $autocomplete }}\"" : '';
-    
-    // Maxlength attribute
-    $maxlengthAttr = $maxlength ? "maxlength=\"{{ $maxlength }}\"" : '';
-    
-    // Step attribute for number inputs
-    $stepAttr = $step ? "step=\"{{ $step }}\"" : '';
     
     // Input group classes
     $inputGroupClass = $addon ? 'flex rounded-md shadow-sm' : '';
     $addonClass = $addon ? 'inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-600 bg-dark-700 text-gray-300 sm:text-sm' : '';
+    
+    // Get title attribute for pattern validation
+    $titleAttr = ($pattern && isset($data['pattern-message'])) ? e($data['pattern-message']) : '';
 @endphp
 
 <div class="space-y-1 {{ $class }}">
@@ -104,21 +79,21 @@
                 type="{{ $type }}"
                 name="{{ $name }}"
                 id="{{ $inputId }}"
-                value="{{ $value }}"
-                {{ $requiredAttr }}
-                {{ $disabledAttr }}
-                {{ $readonlyAttr }}
-                {{ $autocompleteAttr }}
-                {{ $patternAttr }}
-                {{ $titleAttr }}
-                {{ $minAttr }}
-                {{ $maxAttr }}
-                {{ $stepAttr }}
-                {{ $maxlengthAttr }}
+                value="{{ old($name, $value) }}"
+                @if($required) required @endif
+                @if($disabled) disabled @endif
+                @if($readonly) readonly @endif
+                @if($autocomplete) autocomplete="{{ $autocomplete }}" @endif
+                @if($pattern) pattern="{{ $pattern }}" @endif
+                @if($titleAttr) {!! $titleAttr !!} @endif
+                @if($min) min="{{ $min }}" @endif
+                @if($max) max="{{ $max }}" @endif
+                @if($step) step="{{ $step }}" @endif
+                @if($maxlength) maxlength="{{ $maxlength }}" @endif
                 {!! $dataAttributes !!}
                 class="{{ implode(' ', $inputClasses) }}"
                 placeholder="{{ $placeholder }}"
-                {{ $attributes->except(['id', 'class', 'type', 'value', 'required', 'disabled', 'readonly', 'placeholder', 'autocomplete', 'pattern', 'min', 'max', 'step', 'maxlength'])->merge(['class' => '']) }}
+                {{ $attributes->except(['id', 'class', 'type', 'value', 'required', 'disabled', 'readonly', 'placeholder', 'autocomplete', 'pattern', 'min', 'max', 'step', 'maxlength']) }}
             >
             
             @if($addon)

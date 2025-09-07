@@ -3,236 +3,247 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Classe;
-use App\Models\Eleve;
-use App\Models\Niveau;
+use App\Models\User;
+use App\Models\Matiere;
+use App\Models\Paiement;
+use App\Models\Absence;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Carbon\Carbon;
 
 class EleveController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Affiche la liste des élèves
+     *
+     * @return \Illuminate\View\View
      */
-    public function index(Request $request)
+    public function index()
     {
-        try {
-            $query = Eleve::with(['classe', 'classe.niveau']);
+        $eleves = User::where('role', 'eleve')
+            ->withCount(['absences', 'paiements'])
+            ->latest()
+            ->paginate(15);
             
-            // Search functionality
-            if ($request->has('search')) {
-                $search = $request->input('search');
-                $query->where(function($q) use ($search) {
-                    $q->where('nom', 'like', "%{$search}%")
-                      ->orWhere('prenom', 'like', "%{$search}%")
-                      ->orWhere('cni', 'like', "%{$search}%")
-                      ->orWhere('cne', 'like', "%{$search}%");
-                });
-            }
-            
-            // Filter by class
-            if ($request->has('classe_id')) {
-                $query->where('classe_id', $request->input('classe_id'));
-            }
-            
-            // Filter by status
-            if ($request->has('status')) {
-                $query->where('status', $request->input('status'));
-            }
-            
-            $eleves = $query->latest()->paginate(20);
-            $classes = Classe::active()->with('niveau')->get();
-            
-            // Debug: Check if view exists
-            if (!view()->exists('admin.eleves.index')) {
-                \Log::error('View not found: admin.eleves.index');
-                return redirect()->route('admin.dashboard')->with('error', 'La vue des élèves est introuvable.');
-            }
-            
-            return view('admin.eleves.index', compact('eleves', 'classes'));
-            
-        } catch (\Exception $e) {
-            \Log::error('Error in EleveController@index: ' . $e->getMessage());
-            return redirect()->route('admin.dashboard')->with('error', 'Une erreur est survenue lors du chargement de la liste des élèves.');
-        }
+        return view('admin.eleves.index', compact('eleves'));
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Affiche le formulaire de création d'un élève
+     *
+     * @return \Illuminate\View\View
      */
     public function create()
     {
-        $classes = Classe::active()
-            ->with('niveau')
-            ->get()
-            ->groupBy('niveau.nom');
-            
-        return view('admin.eleves.create', compact('classes'));
+        $matieres = Matiere::orderBy('nom')->get();
+        return view('admin.eleves.create', compact('matieres'));
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Enregistre un nouvel élève
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'cni' => ['nullable', 'string', 'max:20', 'unique:eleves,cni'],
-            'cne' => ['required', 'string', 'max:20', 'unique:eleves,cne'],
-            'nom' => ['required', 'string', 'max:50'],
-            'prenom' => ['required', 'string', 'max:50'],
-            'date_naissance' => ['required', 'date'],
-            'lieu_naissance' => ['required', 'string', 'max:100'],
-            'adresse' => ['required', 'string', 'max:255'],
-            'telephone' => ['required', 'string', 'max:20'],
-            'email' => ['nullable', 'email', 'max:100'],
-            'sexe' => ['required', 'in:Homme,Femme'],
-            'classe_id' => ['required', 'exists:classes,id'],
-            'date_inscription' => ['required', 'date'],
-            'nom_pere' => ['required', 'string', 'max:100'],
-            'profession_pere' => ['nullable', 'string', 'max:100'],
-            'telephone_pere' => ['nullable', 'string', 'max:20'],
-            'nom_mere' => ['required', 'string', 'max:100'],
-            'profession_mere' => ['nullable', 'string', 'max:100'],
-            'telephone_mere' => ['nullable', 'string', 'max:20'],
-            'adresse_parents' => ['required', 'string', 'max:255'],
-            'status' => ['required', 'in:actif,inactif,abandonne,diplome'],
-            'remarques' => ['nullable', 'string'],
+            'nom' => 'required|string|max:255',
+            'prenom' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email',
+            'telephone' => 'required|string|max:20',
+            'adresse' => 'required|string|max:500',
+            'date_naissance' => 'required|date|before:today',
+            'cne' => 'required|string|max:50|unique:users,cne',
+            'nom_pere' => 'required|string|max:255',
+            'telephone_pere' => 'required|string|max:20',
+            'nom_mere' => 'required|string|max:255',
+            'telephone_mere' => 'required|string|max:20',
+            'matieres' => 'required|array',
+            'matieres.*' => 'exists:matieres,id',
         ]);
-        
-        try {
-            DB::beginTransaction();
-            
-            // Generate a unique code for the student
-            $code = 'ELV-' . strtoupper(Str::random(8));
-            while (Eleve::where('code', $code)->exists()) {
-                $code = 'ELV-' . strtoupper(Str::random(8));
-            }
-            
-            $validated['code'] = $code;
-            $validated['created_by'] = auth()->id();
-            
-            $eleve = Eleve::create($validated);
-            
-            DB::commit();
-            
-            return redirect()
-                ->route('admin.eleves.show', $eleve->id)
-                ->with('success', 'Élève ajouté avec succès');
-                
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()
-                ->withInput()
-                ->with('error', 'Une erreur est survenue lors de la création de l\'élève: ' . $e->getMessage());
-        }
+
+        // Créer l'utilisateur
+        $eleve = User::create([
+            'name' => $validated['nom'] . ' ' . $validated['prenom'],
+            'email' => $validated['email'],
+            'password' => Hash::make('password'), // Mot de passe par défaut
+            'role' => 'eleve',
+            'status' => 'actif',
+            'telephone' => $validated['telephone'],
+            'adresse' => $validated['adresse'],
+            'date_naissance' => $validated['date_naissance'],
+            'cne' => $validated['cne'],
+            'nom_pere' => $validated['nom_pere'],
+            'telephone_pere' => $validated['telephone_pere'],
+            'nom_mere' => $validated['nom_mere'],
+            'telephone_mere' => $validated['telephone_mere'],
+        ]);
+
+        // Inscrire l'élève aux matières sélectionnées
+        $eleve->matieres()->sync($validated['matieres']);
+
+        return redirect()->route('admin.eleves.show', $eleve)
+            ->with('success', 'Élève créé avec succès. Le mot de passe par défaut est "password".');
     }
 
     /**
-     * Display the specified resource.
+     * Affiche les détails d'un élève
+     *
+     * @param  \App\Models\User  $eleve
+     * @return \Illuminate\View\View
      */
-    public function show(Eleve $eleve)
+    public function show(User $eleve)
     {
-        $eleve->load([
-            'classe',
-            'classe.niveau',
-            'absences' => function($query) {
-                $query->latest()->take(5);
-            },
-            'paiements' => function($query) {
-                $query->latest()->take(5);
-            }
-        ]);
+        $this->authorize('view', $eleve);
+        
+        $eleve->load(['matieres', 'absences' => function($query) {
+            return $query->latest()->take(10);
+        }, 'paiements' => function($query) {
+            return $query->latest()->take(10);
+        }]);
         
         return view('admin.eleves.show', compact('eleve'));
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Affiche le formulaire de modification d'un élève
+     *
+     * @param  \App\Models\User  $eleve
+     * @return \Illuminate\View\View
      */
-    public function edit(Eleve $eleve)
+    public function edit(User $eleve)
     {
-        $classes = Classe::active()
-            ->with('niveau')
-            ->get()
-            ->groupBy('niveau.nom');
-            
-        return view('admin.eleves.edit', compact('eleve', 'classes'));
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Eleve $eleve)
-    {
-        $validated = $request->validate([
-            'cni' => ['nullable', 'string', 'max:20', Rule::unique('eleves')->ignore($eleve->id)],
-            'cne' => ['required', 'string', 'max:20', Rule::unique('eleves')->ignore($eleve->id)],
-            'nom' => ['required', 'string', 'max:50'],
-            'prenom' => ['required', 'string', 'max:50'],
-            'date_naissance' => ['required', 'date'],
-            'lieu_naissance' => ['required', 'string', 'max:100'],
-            'adresse' => ['required', 'string', 'max:255'],
-            'telephone' => ['required', 'string', 'max:20'],
-            'email' => ['nullable', 'email', 'max:100'],
-            'sexe' => ['required', 'in:Homme,Femme'],
-            'classe_id' => ['required', 'exists:classes,id'],
-            'date_inscription' => ['required', 'date'],
-            'nom_pere' => ['required', 'string', 'max:100'],
-            'profession_pere' => ['nullable', 'string', 'max:100'],
-            'telephone_pere' => ['nullable', 'string', 'max:20'],
-            'nom_mere' => ['required', 'string', 'max:100'],
-            'profession_mere' => ['nullable', 'string', 'max:100'],
-            'telephone_mere' => ['nullable', 'string', 'max:20'],
-            'adresse_parents' => ['required', 'string', 'max:255'],
-            'status' => ['required', 'in:actif,inactif,abandonne,diplome'],
-            'remarques' => ['nullable', 'string'],
-        ]);
+        $this->authorize('update', $eleve);
         
-        try {
-            $eleve->update($validated);
-            
-            return redirect()
-                ->route('admin.eleves.show', $eleve->id)
-                ->with('success', 'Informations de l\'élève mises à jour avec succès');
-                
-        } catch (\Exception $e) {
-            return back()
-                ->withInput()
-                ->with('error', 'Une erreur est survenue lors de la mise à jour: ' . $e->getMessage());
-        }
+        $matieres = Matiere::orderBy('nom')->get();
+        $eleve->load('matieres');
+        
+        return view('admin.eleves.edit', compact('eleve', 'matieres'));
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Met à jour les informations d'un élève
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\User  $eleve
+     * @return \Illuminate\Http\RedirectResponse
      */
-    public function destroy(Eleve $eleve)
+    public function update(Request $request, User $eleve)
     {
-        try {
-            $eleve->delete();
-            
-            return redirect()
-                ->route('admin.eleves.index')
-                ->with('success', 'Élève supprimé avec succès');
-                
-        } catch (\Exception $e) {
-            return back()
-                ->with('error', 'Une erreur est survenue lors de la suppression: ' . $e->getMessage());
-        }
+        $this->authorize('update', $eleve);
+        
+        $validated = $request->validate([
+            'nom' => 'required|string|max:255',
+            'prenom' => 'required|string|max:255',
+            'email' => [
+                'required', 'string', 'email', 'max:255',
+                Rule::unique('users', 'email')->ignore($eleve->id),
+            ],
+            'telephone' => 'required|string|max:20',
+            'adresse' => 'required|string|max:500',
+            'date_naissance' => 'required|date|before:today',
+            'cne' => [
+                'required', 'string', 'max:50',
+                Rule::unique('users', 'cne')->ignore($eleve->id),
+            ],
+            'status' => ['required', 'in:actif,inactif,suspendu'],
+            'nom_pere' => 'required|string|max:255',
+            'telephone_pere' => 'required|string|max:20',
+            'nom_mere' => 'required|string|max:255',
+            'telephone_mere' => 'required|string|max:20',
+            'matieres' => 'required|array',
+            'matieres.*' => 'exists:matieres,id',
+        ]);
+
+        // Mettre à jour l'utilisateur
+        $eleve->update([
+            'name' => $validated['nom'] . ' ' . $validated['prenom'],
+            'email' => $validated['email'],
+            'telephone' => $validated['telephone'],
+            'adresse' => $validated['adresse'],
+            'date_naissance' => $validated['date_naissance'],
+            'cne' => $validated['cne'],
+            'status' => $validated['status'],
+            'nom_pere' => $validated['nom_pere'],
+            'telephone_pere' => $validated['telephone_pere'],
+            'nom_mere' => $validated['nom_mere'],
+            'telephone_mere' => $validated['telephone_mere'],
+        ]);
+
+        // Mettre à jour les matières de l'élève
+        $eleve->matieres()->sync($validated['matieres']);
+
+        return redirect()->route('admin.eleves.show', $eleve)
+            ->with('success', 'Informations de l\'élève mises à jour avec succès.');
     }
-    
+
     /**
-     * Get students by class for AJAX requests
+     * Affiche le formulaire de changement de mot de passe
+     *
+     * @param  \App\Models\User  $eleve
+     * @return \Illuminate\View\View
      */
-    public function getByClasse(Classe $classe)
+    public function editPassword(User $eleve)
     {
-        $eleves = $classe->eleves()
-            ->select('id', 'nom', 'prenom', 'cne')
-            ->orderBy('nom')
-            ->orderBy('prenom')
-            ->get();
-            
-        return response()->json($eleves);
+        $this->authorize('update', $eleve);
+        
+        return view('admin.eleves.password', compact('eleve'));
+    }
+
+    /**
+     * Met à jour le mot de passe de l'élève
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\User  $eleve
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function updatePassword(Request $request, User $eleve)
+    {
+        $this->authorize('update', $eleve);
+        
+        $validated = $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $eleve->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        return redirect()->route('admin.eleves.show', $eleve)
+            ->with('success', 'Mot de passe mis à jour avec succès.');
+    }
+
+    /**
+     * Désactive un élève
+     *
+     * @param  \App\Models\User  $eleve
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function deactivate(User $eleve)
+    {
+        $this->authorize('delete', $eleve);
+        
+        $eleve->update(['status' => 'inactif']);
+        
+        return redirect()->route('admin.eleves.index')
+            ->with('success', 'L\'élève a été désactivé avec succès.');
+    }
+
+    /**
+     * Réactive un élève
+     *
+     * @param  \App\Models\User  $eleve
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function activate(User $eleve)
+    {
+        $this->authorize('update', $eleve);
+        
+        $eleve->update(['status' => 'actif']);
+        
+        return redirect()->route('admin.eleves.show', $eleve)
+            ->with('success', 'L\'élève a été réactivé avec succès.');
     }
 }

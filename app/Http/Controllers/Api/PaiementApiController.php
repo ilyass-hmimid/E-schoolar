@@ -4,342 +4,304 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Paiement;
-use App\Models\Eleve;
-use App\Models\Matiere;
-use App\Models\Pack;
+use App\Models\User;
+use App\Models\PackVente;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 
 class PaiementApiController extends Controller
 {
     /**
-     * Affiche la liste des paiements avec filtres
+     * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index()
     {
-        $query = Paiement::with(['eleve', 'matiere', 'pack']);
+        $query = Paiement::with(['eleve', 'pack']);
         
-        // Filtre par élève
-        if ($request->has('eleve_id')) {
-            $query->where('eleve_id', $request->eleve_id);
+        // Filtrage par élève
+        if ($eleveId = request('eleve_id')) {
+            $query->where('eleve_id', $eleveId);
         }
         
-        // Filtre par matière
-        if ($request->has('matiere_id')) {
-            $query->where('matiere_id', $request->matiere_id);
+        // Filtrage par pack
+        if ($packId = request('pack_id')) {
+            $query->where('pack_vente_id', $packId);
         }
         
-        // Filtre par statut
-        if ($request->has('statut')) {
-            $query->where('statut', $request->statut);
+        // Filtrage par statut
+        if ($statut = request('statut')) {
+            $query->where('statut', $statut);
         }
         
-        // Filtre par date
-        if ($request->has('date_debut') && $request->has('date_fin')) {
-            $query->whereBetween('date_paiement', [
-                $request->date_debut,
-                $request->date_fin
-            ]);
+        // Filtrage par date
+        if ($dateDebut = request('date_debut')) {
+            $query->whereDate('date_paiement', '>=', $dateDebut);
         }
         
-        // Tri et pagination
-        $paiements = $query->orderBy('date_paiement', 'desc')
-                          ->paginate($request->per_page ?? 15);
+        if ($dateFin = request('date_fin')) {
+            $query->whereDate('date_paiement', '<=', $dateFin);
+        }
         
-        return response()->json($paiements);
+        // Tri
+        $sort = request('sort', 'date_paiement');
+        $direction = request('direction', 'desc');
+        
+        $validSorts = ['date_paiement', 'montant', 'created_at'];
+        if (in_array($sort, $validSorts)) {
+            $query->orderBy($sort, $direction);
+        }
+        
+        $paiements = $query->paginate(request('per_page', 15));
+        
+        return response()->json([
+            'data' => $paiements->items(),
+            'meta' => [
+                'current_page' => $paiements->currentPage(),
+                'last_page' => $paiements->lastPage(),
+                'per_page' => $paiements->perPage(),
+                'total' => $paiements->total(),
+            ]
+        ]);
     }
-    
+
     /**
-     * Enregistre un nouveau paiement
+     * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'eleve_id' => 'required|exists:eleves,id',
-            'matiere_id' => 'nullable|exists:matieres,id',
-            'pack_id' => 'nullable|exists:packs,id',
+            'eleve_id' => 'required|exists:users,id',
+            'pack_vente_id' => 'required|exists:pack_ventes,id',
             'montant' => 'required|numeric|min:0',
             'date_paiement' => 'required|date',
-            'mode_paiement' => 'required|in:espèce,chèque,virement,autre',
-            'reference' => 'nullable|string|max:100',
-            'notes' => 'nullable|string|max:500',
+            'methode_paiement' => 'required|in:espece,cheque,virement,carte_bancaire,autre',
+            'reference' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:1000',
+            'statut' => 'required|in:en_attente,paye,annule,rembourse',
         ]);
-        
+
         if ($validator->fails()) {
             return response()->json([
-                'message' => 'Erreur de validation',
+                'message' => 'Validation error',
                 'errors' => $validator->errors()
             ], 422);
         }
         
-        // Vérifier qu'au moins une matière ou un pack est fourni
-        if (empty($request->matiere_id) && empty($request->pack_id)) {
+        // Vérifier que l'utilisateur est bien un élève
+        $eleve = User::findOrFail($request->eleve_id);
+        if ($eleve->role !== 'eleve') {
             return response()->json([
-                'message' => 'Vous devez spécifier une matière ou un pack',
-                'errors' => ['matiere_id' => ['Une matière ou un pack est requis']]
+                'message' => 'L\'utilisateur spécifié n\'est pas un élève'
             ], 422);
         }
         
-        try {
-            DB::beginTransaction();
-            
-            $paiement = new Paiement();
-            $paiement->eleve_id = $request->eleve_id;
-            $paiement->matiere_id = $request->matiere_id;
-            $paiement->pack_id = $request->pack_id;
-            $paiement->montant = $request->montant;
-            $paiement->date_paiement = $request->date_paiement;
-            $paiement->mode_paiement = $request->mode_paiement;
-            $paiement->reference = $request->reference;
-            $paiement->notes = $request->notes;
-            $paiement->statut = Paiement::STATUT_PAYE;
-            $paiement->save();
-            
-            DB::commit();
-            
-            return response()->json([
-                'message' => 'Paiement enregistré avec succès',
-                'data' => $paiement->load(['eleve', 'matiere', 'pack'])
-            ], 201);
-            
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Erreur lors de l\'enregistrement du paiement: ' . $e->getMessage());
-            
-            return response()->json([
-                'message' => 'Une erreur est survenue lors de l\'enregistrement du paiement',
-                'error' => $e->getMessage()
-            ], 500);
+        // Vérifier que le pack existe
+        $pack = PackVente::findOrFail($request->pack_vente_id);
+        
+        // Si le montant n'est pas fourni, utiliser celui du pack
+        $montant = $request->montant ?? $pack->prix;
+        
+        $paiement = Paiement::create([
+            'eleve_id' => $request->eleve_id,
+            'pack_vente_id' => $request->pack_vente_id,
+            'montant' => $montant,
+            'date_paiement' => $request->date_paiement,
+            'methode_paiement' => $request->methode_paiement,
+            'reference' => $request->reference,
+            'notes' => $request->notes,
+            'statut' => $request->statut,
+            'enregistre_par' => auth()->id(),
+        ]);
+        
+        // Mettre à jour le statut du pack si nécessaire
+        if ($request->statut === 'paye') {
+            $pack->update(['statut' => 'paye']);
         }
+        
+        // Charger les relations pour la réponse
+        $paiement->load(['eleve', 'pack']);
+
+        return response()->json([
+            'message' => 'Paiement enregistré avec succès',
+            'data' => $paiement
+        ], 201);
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(Paiement $paiement)
+    {
+        $paiement->load(['eleve', 'pack']);
+        return response()->json(['data' => $paiement]);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, Paiement $paiement)
+    {
+        $validator = Validator::make($request->all(), [
+            'eleve_id' => 'sometimes|required|exists:users,id',
+            'pack_vente_id' => 'sometimes|required|exists:pack_ventes,id',
+            'montant' => 'sometimes|required|numeric|min:0',
+            'date_paiement' => 'sometimes|required|date',
+            'methode_paiement' => 'sometimes|required|in:espece,cheque,virement,carte_bancaire,autre',
+            'reference' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:1000',
+            'statut' => 'sometimes|required|in:en_attente,paye,annule,rembourse',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+        
+        // Vérifications supplémentaires si les champs sont fournis
+        if ($request->has('eleve_id')) {
+            $eleve = User::findOrFail($request->eleve_id);
+            if ($eleve->role !== 'eleve') {
+                return response()->json([
+                    'message' => 'L\'utilisateur spécifié n\'est pas un élève'
+                ], 422);
+            }
+        }
+        
+        // Sauvegarder l'ancien statut pour la mise à jour du pack
+        $ancienStatut = $paiement->statut;
+        
+        // Mise à jour du paiement
+        $paiement->update($request->all());
+        
+        // Mettre à jour le statut du pack si le statut a changé
+        if ($request->has('statut') && $request->statut !== $ancienStatut) {
+            $paiement->pack->update(['statut' => $request->statut]);
+        }
+        
+        // Recharger les relations pour la réponse
+        $paiement->load(['eleve', 'pack']);
+        
+        return response()->json([
+            'message' => 'Paiement mis à jour avec succès',
+            'data' => $paiement
+        ]);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(Paiement $paiement)
+    {
+        // Ne pas permettre la suppression si le paiement est déjà validé
+        if ($paiement->statut === 'paye') {
+            return response()->json([
+                'message' => 'Impossible de supprimer un paiement déjà validé'
+            ], 422);
+        }
+        
+        $paiement->delete();
+        
+        return response()->json([
+            'message' => 'Paiement supprimé avec succès'
+        ]);
     }
     
     /**
-     * Affiche les détails d'un paiement
+     * Valider un paiement
      */
-    public function show($id)
+    public function valider(Paiement $paiement)
     {
-        $paiement = Paiement::with(['eleve', 'matiere', 'pack'])->find($id);
-        
-        if (!$paiement) {
+        if ($paiement->statut !== 'en_attente') {
             return response()->json([
-                'message' => 'Paiement non trouvé'
-            ], 404);
+                'message' => 'Seuls les paiements en attente peuvent être validés'
+            ], 422);
         }
         
-        return response()->json($paiement);
+        $paiement->update([
+            'statut' => 'paye',
+            'valide_par' => auth()->id(),
+            'date_validation' => now(),
+        ]);
+        
+        // Mettre à jour le statut du pack
+        $paiement->pack->update(['statut' => 'paye']);
+        
+        return response()->json([
+            'message' => 'Paiement validé avec succès',
+            'data' => $paiement->fresh()
+        ]);
     }
     
     /**
-     * Met à jour un paiement existant
+     * Annuler un paiement
      */
-    public function update(Request $request, $id)
+    public function annuler(Request $request, Paiement $paiement)
     {
-        $paiement = Paiement::find($id);
-        
-        if (!$paiement) {
+        $validator = Validator::make($request->all(), [
+            'raison' => 'required|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
             return response()->json([
-                'message' => 'Paiement non trouvé'
-            ], 404);
+                'message' => 'Validation error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+        
+        $paiement->update([
+            'statut' => 'annule',
+            'raison_annulation' => $request->raison,
+            'annule_par' => auth()->id(),
+            'date_annulation' => now(),
+        ]);
+        
+        return response()->json([
+            'message' => 'Paiement annulé avec succès',
+            'data' => $paiement->fresh()
+        ]);
+    }
+    
+    /**
+     * Rembourser un paiement
+     */
+    public function rembourser(Request $request, Paiement $paiement)
+    {
+        if ($paiement->statut !== 'paye') {
+            return response()->json([
+                'message' => 'Seuls les paiements validés peuvent être remboursés'
+            ], 422);
         }
         
         $validator = Validator::make($request->all(), [
-            'montant' => 'numeric|min:0',
-            'date_paiement' => 'date',
-            'mode_paiement' => 'in:espèce,chèque,virement,autre',
-            'reference' => 'nullable|string|max:100',
-            'notes' => 'nullable|string|max:500',
-            'statut' => 'in:' . implode(',', [
-                Paiement::STATUT_PAYE,
-                Paiement::STATUT_ANNULE,
-                Paiement::STATUT_REMBOURSE
-            ])
+            'montant_rembourse' => 'required|numeric|min:0|max:' . $paiement->montant,
+            'methode_remboursement' => 'required|in:virement,cheque,espece,autre',
+            'reference_remboursement' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:1000',
         ]);
-        
+
         if ($validator->fails()) {
             return response()->json([
-                'message' => 'Erreur de validation',
+                'message' => 'Validation error',
                 'errors' => $validator->errors()
             ], 422);
         }
         
-        try {
-            DB::beginTransaction();
-            
-            $paiement->fill($request->only([
-                'montant', 'date_paiement', 'mode_paiement', 'reference', 'notes', 'statut'
-            ]));
-            
-            $paiement->save();
-            
-            DB::commit();
-            
-            return response()->json([
-                'message' => 'Paiement mis à jour avec succès',
-                'data' => $paiement->load(['eleve', 'matiere', 'pack'])
-            ]);
-            
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Erreur lors de la mise à jour du paiement: ' . $e->getMessage());
-            
-            return response()->json([
-                'message' => 'Une erreur est survenue lors de la mise à jour du paiement',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-    
-    /**
-     * Supprime un paiement
-     */
-    public function destroy($id)
-    {
-        $paiement = Paiement::find($id);
-        
-        if (!$paiement) {
-            return response()->json([
-                'message' => 'Paiement non trouvé'
-            ], 404);
-        }
-        
-        try {
-            $paiement->delete();
-            
-            return response()->json([
-                'message' => 'Paiement supprimé avec succès'
-            ]);
-            
-        } catch (\Exception $e) {
-            \Log::error('Erreur lors de la suppression du paiement: ' . $e->getMessage());
-            
-            return response()->json([
-                'message' => 'Une erreur est survenue lors de la suppression du paiement',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-    
-    /**
-     * Exporte les paiements au format CSV
-     */
-    public function export(Request $request)
-    {
-        $query = Paiement::with(['eleve', 'matiere', 'pack']);
-        
-        // Appliquer les mêmes filtres que pour l'index
-        if ($request->has('eleve_id')) {
-            $query->where('eleve_id', $request->eleve_id);
-        }
-        
-        if ($request->has('matiere_id')) {
-            $query->where('matiere_id', $request->matiere_id);
-        }
-        
-        if ($request->has('statut')) {
-            $query->where('statut', $request->statut);
-        }
-        
-        if ($request->has('date_debut') && $request->has('date_fin')) {
-            $query->whereBetween('date_paiement', [
-                $request->date_debut,
-                $request->date_fin
-            ]);
-        }
-        
-        $paiements = $query->orderBy('date_paiement', 'desc')->get();
-        
-        $fileName = 'paiements_' . now()->format('Y-m-d_His') . '.csv';
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
-        ];
-        
-        $callback = function() use ($paiements) {
-            $file = fopen('php://output', 'w');
-            
-            // En-têtes
-            fputcsv($file, [
-                'ID', 'Élève', 'Matière', 'Pack', 'Montant', 'Date',
-                'Mode de paiement', 'Référence', 'Statut', 'Notes'
-            ]);
-            
-            // Données
-            foreach ($paiements as $paiement) {
-                fputcsv($file, [
-                    $paiement->id,
-                    $paiement->eleve ? $paiement->eleve->nom_complet : '',
-                    $paiement->matiere ? $paiement->matiere->nom : '',
-                    $paiement->pack ? $paiement->pack->nom : '',
-                    number_format($paiement->montant, 2, ',', ' '),
-                    $paiement->date_paiement->format('d/m/Y'),
-                    $paiement->mode_paiement,
-                    $paiement->reference,
-                    $paiement->statut,
-                    $paiement->notes
-                ]);
-            }
-            
-            fclose($file);
-        };
-        
-        return response()->stream($callback, 200, $headers);
-    }
-    
-    /**
-     * Récupère les statistiques des paiements
-     */
-    public function getStats(Request $request)
-    {
-        $query = Paiement::query();
-        
-        // Filtres
-        if ($request->has('date_debut') && $request->has('date_fin')) {
-            $query->whereBetween('date_paiement', [
-                $request->date_debut,
-                $request->date_fin
-            ]);
-        }
-        
-        // Total des paiements
-        $total = $query->sum('montant');
-        
-        // Nombre de paiements
-        $count = $query->count();
-        
-        // Montant moyen
-        $moyenne = $count > 0 ? $total / $count : 0;
-        
-        // Répartition par mode de paiement
-        $modes = $query->clone()
-                      ->select('mode_paiement', DB::raw('SUM(montant) as total'))
-                      ->groupBy('mode_paiement')
-                      ->pluck('total', 'mode_paiement');
-        
-        // Répartition par statut
-        $statuts = $query->clone()
-                        ->select('statut', DB::raw('COUNT(*) as count'))
-                        ->groupBy('statut')
-                        ->pluck('count', 'statut');
-        
-        // Évolution mensuelle
-        $evolution = $query->clone()
-                          ->select(
-                              DB::raw('DATE_FORMAT(date_paiement, "%Y-%m") as mois'),
-                              DB::raw('SUM(montant) as total')
-                          )
-                          ->groupBy('mois')
-                          ->orderBy('mois')
-                          ->get();
+        $paiement->update([
+            'statut' => 'rembourse',
+            'montant_rembourse' => $request->montant_rembourse,
+            'methode_remboursement' => $request->methode_remboursement,
+            'reference_remboursement' => $request->reference_remboursement,
+            'notes' => $request->notes,
+            'rembourse_par' => auth()->id(),
+            'date_remboursement' => now(),
+        ]);
         
         return response()->json([
-            'total' => $total,
-            'nombre_paiements' => $count,
-            'moyenne' => round($moyenne, 2),
-            'par_mode_paiement' => $modes,
-            'par_statut' => $statuts,
-            'evolution_mensuelle' => $evolution
+            'message' => 'Paiement marqué comme remboursé avec succès',
+            'data' => $paiement->fresh()
         ]);
     }
 }

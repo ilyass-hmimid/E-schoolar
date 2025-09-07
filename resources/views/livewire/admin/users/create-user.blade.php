@@ -223,21 +223,11 @@
     @push('scripts')
     <script>
         document.addEventListener('livewire:initialized', () => {
-            // Gestion des notifications
+            // Redirection après la création d'un utilisateur
             window.addEventListener('user-created', (event) => {
-                // Afficher une notification de succès
-                const toast = window.Swal.mixin({
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 3000,
-                    timerProgressBar: true,
-                });
-                
-                toast.fire({
-                    icon: 'success',
-                    title: event.detail.message
-                });
+                if (event.detail.type === 'success') {
+                    window.location.href = "{{ route('admin.users.index') }}";
+                }
             });
         });
     </script>
