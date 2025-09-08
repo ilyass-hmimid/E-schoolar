@@ -24,15 +24,17 @@ class TestUsersSeeder extends Seeder
             ['email' => 'prof@demo.com'],
             [
                 'name' => 'Professeur',
+                'prenom' => 'Test',
                 'email' => 'prof@demo.com',
                 'password' => Hash::make('password'),
                 'role' => 'professeur',
                 'status' => 'actif',
+                'is_active' => true,
                 'adresse' => 'Adresse du professeur',
                 'telephone' => '0600000001',
                 'date_naissance' => Carbon::now()->subYears(35),
-                'pourcentage_remuneration' => 70, // 70% du montant des cours
-                'date_embauche' => Carbon::now()->subYear(),
+                'lieu_naissance' => 'Ville de naissance',
+                'sexe' => 'Homme',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]
@@ -43,14 +45,17 @@ class TestUsersSeeder extends Seeder
             ['email' => 'eleve@demo.com'],
             [
                 'name' => 'Élève',
+                'prenom' => 'Test',
                 'email' => 'eleve@demo.com',
                 'password' => Hash::make('password'),
                 'role' => 'eleve',
                 'status' => 'actif',
+                'is_active' => true,
                 'adresse' => 'Adresse de l\'élève',
+                'sexe' => 'Femme',
                 'telephone' => '0600000002',
                 'date_naissance' => Carbon::now()->subYears(15),
-                'cne' => 'A123456789',
+                'lieu_naissance' => 'Ville de naissance',
                 'nom_pere' => 'Père de l\'élève',
                 'telephone_pere' => '0600000003',
                 'nom_mere' => 'Mère de l\'élève',
@@ -64,19 +69,25 @@ class TestUsersSeeder extends Seeder
         $maths = Matiere::where('nom', 'Mathématiques')->first();
         $physique = Matiere::where('nom', 'Physique-Chimie')->first();
         
-        if ($maths) {
+        // Récupérer un niveau et une filière existants
+        $niveau = DB::table('niveaux')->where('code', '2BAC')->first();
+        $filiere = DB::table('filieres')->where('code', 'SM')->first();
+        
+        if ($maths && $niveau && $filiere) {
             $professeur->matieresEnseignees()->syncWithoutDetaching([
                 $maths->id => [
-                    'est_responsable' => true,
+                    'niveau_id' => $niveau->id,
+                    'filiere_id' => $filiere->id,
                     'date_debut' => now(),
                 ]
             ]);
         }
         
-        if ($physique) {
+        if ($physique && $niveau && $filiere) {
             $professeur->matieresEnseignees()->syncWithoutDetaching([
                 $physique->id => [
-                    'est_responsable' => true,
+                    'niveau_id' => $niveau->id,
+                    'filiere_id' => $filiere->id,
                     'date_debut' => now(),
                 ]
             ]);
@@ -84,9 +95,7 @@ class TestUsersSeeder extends Seeder
 
         // Inscrire l'élève aux matières (Maths)
         if ($maths) {
-            $eleve->matieres()->syncWithoutDetaching([
-                $maths->id => ['date_inscription' => now()]
-            ]);
+            $eleve->matieres()->syncWithoutDetaching([$maths->id]);
         }
 
         // Réactiver les contraintes de clé étrangère

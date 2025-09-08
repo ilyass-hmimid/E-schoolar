@@ -2,22 +2,29 @@
 
 namespace App\Exports;
 
+use App\Models\Salaire;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
-class SalairesExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithTitle
+class SalairesExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithTitle, ShouldAutoSize
 {
     protected $salaires;
     protected $periode;
+    protected $filters;
 
-    public function __construct($salaires, $periode)
+    public function __construct($salaires, $periode = null, $filters = [])
     {
         $this->salaires = $salaires;
-        $this->periode = $periode;
+        $this->periode = $periode ?? 'Toutes périodes';
+        $this->filters = $filters;
     }
 
     public function collection()
@@ -34,98 +41,171 @@ class SalairesExport implements FromCollection, WithHeadings, WithMapping, WithS
     {
         return [
             'ID',
+            'Référence',
             'Période',
             'Professeur',
-            'Matière',
-            'Nombre d\'élèves',
-            'Prix unitaire',
-            'Commission (%)',
-            'Montant Brut',
-            'Montant Commission',
-            'Montant Net',
+            'Heures travaillées',
+            'Taux horaire',
+            'Salaire brut',
+            'Prime ancienneté',
+            'Prime rendement',
+            'Indemnité transport',
+            'Autres primes',
+            'Total gains',
+            'CNSS',
+            'IR',
+            'Autres retenues',
+            'Total retenues',
+            'Salaire net',
             'Statut',
+            'Type de paiement',
             'Date de paiement',
-            'Commentaires',
+            'Référence paiement',
+            'Notes'
         ];
     }
 
     public function map($salaire): array
     {
+        $totalGains = $salaire->salaire_brut + $salaire->prime_anciennete + $salaire->prime_rendement + 
+                     $salaire->indemnite_transport + $salaire->autres_primes;
+        
+        $totalRetenues = $salaire->cnss + $salaire->ir + $salaire->retenues_diverses;
+
         return [
             $salaire->id,
-            $salaire->mois_periode,
-            $salaire->professeur->name,
-            $salaire->matiere->nom,
-            $salaire->nombre_eleves,
-            number_format($salaire->prix_unitaire, 2, ',', ' '),
-            number_format($salaire->commission_prof, 2, ',', ' '),
-            number_format($salaire->montant_brut, 2, ',', ' '),
-            number_format($salaire->montant_commission, 2, ',', ' '),
-            number_format($salaire->montant_net, 2, ',', ' '),
+            $salaire->reference,
+            \Carbon\Carbon::parse($salaire->periode)->format('m/Y'),
+            $salaire->professeur ? $salaire->professeur->nom . ' ' . $salaire->professeur->prenom : 'N/A',
+            $salaire->nb_heures,
+            $salaire->taux_horaire,
+            $salaire->salaire_brut,
+            $salaire->prime_anciennete,
+            $salaire->prime_rendement,
+            $salaire->indemnite_transport,
+            $salaire->autres_primes,
+            $totalGains,
+            $salaire->cnss,
+            $salaire->ir,
+            $salaire->retenues_diverses,
+            $totalRetenues,
+            $salaire->salaire_net,
             $this->getStatutLabel($salaire->statut),
-            $salaire->date_paiement ? \Carbon\Carbon::parse($salaire->date_paiement)->format('d/m/Y') : '',
-            $salaire->commentaires,
+            $salaire->type_paiement ? ucfirst($salaire->type_paiement) : 'N/A',
+            $salaire->date_paiement ? \Carbon\Carbon::parse($salaire->date_paiement)->format('d/m/Y') : 'N/A',
+            $salaire->reference_paiement ?? 'N/A',
+            $salaire->notes ?? ''
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
+        $lastRow = $this->salaires->count() + 1;
+        
         // Style de l'en-tête
-        $sheet->getStyle('A1:M1')->applyFromArray([
-            'font' => ['bold' => true],
+        $sheet->getStyle('A1:V1')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF']
+            ],
             'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                'startColor' => ['rgb' => 'E0E0E0'],
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '3498DB'],
             ],
             'borders' => [
                 'allBorders' => [
-                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => '000000'],
                 ],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
             ],
         ]);
 
-        // Ajustement automatique de la largeur des colonnes
-        foreach (range('A', 'M') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
+        // Style des cellules de données
+        $sheet->getStyle('A2:V' . $lastRow)->applyFromArray([
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => 'DDDDDD'],
+                ],
+            ],
+            'alignment' => [
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
+        ]);
 
-        // Format des nombres
-        $sheet->getStyle('F2:H' . ($this->salaires->count() + 1))->getNumberFormat()->setFormatCode('#,##0.00');
-        $sheet->getStyle('I2:J' . ($this->salaires->count() + 1))->getNumberFormat()->setFormatCode('#,##0.00');
+        // Style pour les montants
+        $sheet->getStyle('E2:V' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.00');
+        
+        // Style pour les entêtes de colonnes numériques
+        $sheet->getStyle('E1:V1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         // Ajout d'une ligne de totaux
-        $lastRow = $this->salaires->count() + 2;
-        $sheet->setCellValue('E' . $lastRow, 'TOTAL');
-        $sheet->setCellValue('H' . $lastRow, '=SUM(H2:H' . ($lastRow - 1) . ')');
-        $sheet->setCellValue('I' . $lastRow, '=SUM(I2:I' . ($lastRow - 1) . ')');
-        $sheet->setCellValue('J' . $lastRow, '=SUM(J2:J' . ($lastRow - 1) . ')');
+        $totalRow = $lastRow + 1;
+        $sheet->setCellValue('D' . $totalRow, 'TOTAL');
+        
+        // Formules pour les totaux
+        $columns = [
+            'F' => 'taux_horaire',
+            'G' => 'salaire_brut',
+            'H' => 'prime_anciennete',
+            'I' => 'prime_rendement',
+            'J' => 'indemnite_transport',
+            'K' => 'autres_primes',
+            'L' => 'total_gains',
+            'M' => 'cnss',
+            'N' => 'ir',
+            'O' => 'retenues_diverses',
+            'P' => 'total_retenues',
+            'Q' => 'salaire_net'
+        ];
+        
+        foreach ($columns as $col => $field) {
+            if ($field === 'total_gains') {
+                $sheet->setCellValue($col . $totalRow, '=SUM(' . $col . '2:' . $col . $lastRow . ')');
+            } elseif ($field === 'total_retenues') {
+                $sheet->setCellValue($col . $totalRow, '=SUM(' . $col . '2:' . $col . $lastRow . ')');
+            } else {
+                $sheet->setCellValue($col . $totalRow, '=SUM(' . $col . '2:' . $col . $lastRow . ')');
+            }
+        }
         
         // Style de la ligne de totaux
-        $sheet->getStyle('E' . $lastRow . ':J' . $lastRow)->applyFromArray([
+        $sheet->getStyle('D' . $totalRow . ':V' . $totalRow)->applyFromArray([
             'font' => ['bold' => true],
             'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => 'F5F5F5'],
             ],
             'borders' => [
-                'top' => [
-                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                ],
+                'top' => ['borderStyle' => Border::BORDER_MEDIUM],
+                'bottom' => ['borderStyle' => Border::BORDER_DOUBLE],
             ],
         ]);
 
-        // Format des nombres pour la ligne de totaux
-        $sheet->getStyle('H' . $lastRow . ':J' . $lastRow)->getNumberFormat()->setFormatCode('#,##0.00');
+        // Ajout des métadonnées
+        $sheet->getHeaderFooter()
+            ->setOddHeader('&C&B&16' . config('app.name') . ' - Export des salaires');
+            
+        $sheet->getPageSetup()
+            ->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE);
+            
+        $sheet->setAutoFilter('A1:V1');
     }
-
-    protected function getStatutLabel($statut)
+    
+    private function getStatutLabel($statut)
     {
         $statuts = [
             'en_attente' => 'En attente',
             'paye' => 'Payé',
-            'annule' => 'Annulé',
+            'retard' => 'En retard',
+            'annule' => 'Annulé'
         ];
-
+        
         return $statuts[$statut] ?? $statut;
     }
 }

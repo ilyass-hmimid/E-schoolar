@@ -25,10 +25,18 @@ class CreateAdminUser extends Command
             $this->info("Mot de passe de l'administrateur mis à jour avec succès!");
         } else {
             $user = User::create([
-                'name' => 'Administrateur',
+                'name' => 'Admin',
+                'prenom' => 'Admin',
                 'email' => $email,
                 'password' => Hash::make($password),
-                'is_active' => true,
+                'status' => 'actif',
+                'role' => 'admin',
+                'telephone' => '0600000000',
+                'adresse' => 'Adresse admin',
+                'date_naissance' => now()->subYears(30),
+                'lieu_naissance' => 'Ville',
+                'niveau_id' => 1,
+                'filiere_id' => 1
             ]);
             
             if (class_exists('Spatie\\Permission\\Models\\Role')) {

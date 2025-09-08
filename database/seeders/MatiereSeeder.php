@@ -15,28 +15,43 @@ class MatiereSeeder extends Seeder
         $matieres = [
             [
                 'nom' => 'Mathématiques',
-                'prix_mensuel' => 300,
-                'couleur' => '#3b82f6', // Bleu
+                'code' => 'MATH',
+                'prix' => 300.00,
+                'prix_prof' => 200.00,
+                'type' => 'Scientifique',
+                'description' => 'Cours de mathématiques couvrant divers sujets avancés',
             ],
             [
                 'nom' => 'Sciences de la Vie et de la Terre (SVT)',
-                'prix_mensuel' => 250,
-                'couleur' => '#10b981', // Vert
+                'code' => 'SVT',
+                'prix' => 250.00,
+                'prix_prof' => 150.00,
+                'type' => 'Scientifique',
+                'description' => 'Étude des sciences de la vie et de la Terre',
             ],
             [
                 'nom' => 'Physique-Chimie',
-                'prix_mensuel' => 280,
-                'couleur' => '#8b5cf6', // Violet
+                'code' => 'PHY-CHI',
+                'prix' => 280.00,
+                'prix_prof' => 180.00,
+                'type' => 'Scientifique',
+                'description' => 'Cours de physique et chimie',
             ],
             [
                 'nom' => 'Communication Française',
-                'prix_mensuel' => 200,
-                'couleur' => '#ec4899', // Rose
+                'code' => 'FRAN',
+                'prix' => 200.00,
+                'prix_prof' => 100.00,
+                'type' => 'Littéraire',
+                'description' => 'Amélioration des compétences en communication en français',
             ],
             [
                 'nom' => 'Communication Anglaise',
-                'prix_mensuel' => 200,
-                'couleur' => '#f59e0b', // Jaune
+                'code' => 'ANGL',
+                'prix' => 200.00,
+                'prix_prof' => 100.00,
+                'type' => 'Linguistique',
+                'description' => 'Développement des compétences en communication en anglais',
             ],
         ];
 

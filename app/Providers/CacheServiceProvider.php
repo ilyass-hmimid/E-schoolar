@@ -5,7 +5,6 @@ namespace App\Providers;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\ServiceProvider;
 use App\Models\Matiere;
-use App\Models\Classe;
 use App\Models\User;
 use App\Models\Etudiant;
 use Carbon\Carbon;
@@ -49,17 +48,7 @@ class CacheServiceProvider extends ServiceProvider
             });
         });
 
-        // Macro pour le cache des classes avec filtre
-        Cache::macro('classes', function (\Closure $callback, $filters = [], $ttl = null) {
-            $key = 'classes_' . md5(serialize($filters));
-            $ttl = $ttl ?? $this->cacheTtl;
-            
-            return Cache::remember($key, now()->addMinutes($ttl), function () use ($callback, $filters) {
-                return $callback($filters);
-            });
-        });
-
-        // Macro pour le cache des étudiants avec filtre
+// Macro pour le cache des étudiants avec filtre
         Cache::macro('etudiants', function (\Closure $callback, $filters = [], $ttl = null) {
             $key = 'etudiants_' . md5(serialize($filters));
             $ttl = $ttl ?? $this->cacheTtl;
@@ -96,20 +85,7 @@ class CacheServiceProvider extends ServiceProvider
             Cache::tags(['matieres'])->flush();
         });
 
-        // Observer pour le modèle Classe
-        Classe::created(function ($classe) {
-            Cache::tags(['classes'])->flush();
-        });
-        
-        Classe::updated(function ($classe) {
-            Cache::tags(['classes'])->flush();
-        });
-        
-        Classe::deleted(function ($classe) {
-            Cache::tags(['classes'])->flush();
-        });
-
-        // Observer pour le modèle Etudiant
+// Observer pour le modèle Etudiant
         Etudiant::created(function ($etudiant) {
             Cache::tags(['etudiants'])->flush();
         });

@@ -21,7 +21,14 @@
     <!-- Vite CSS/JS -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
     @stack('styles')
+    
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
     <style>
         /* Styles pour le contenu principal */
         .main-content {
@@ -43,6 +50,17 @@
             width: 16rem;
             z-index: 40;
             transform: translateX(-100%);
+        }
+        
+        @media (min-width: 768px) {
+            .sidebar {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 16rem;
+                width: calc(100% - 16rem);
+            }
         }
         
         /* Styles pour l'overlay du menu mobile */

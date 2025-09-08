@@ -12,10 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->foreignId('classe_id')
-                  ->nullable()
-                  ->constrained('classes')
-                  ->nullOnDelete();
+            if (!Schema::hasColumn('users', 'password')) {
+                $table->string('password')->after('email');
+            }
         });
     }
 
@@ -25,8 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropForeign(['classe_id']);
-            $table->dropColumn('classe_id');
+            if (Schema::hasColumn('users', 'password')) {
+                $table->dropColumn('password');
+            }
         });
     }
 };

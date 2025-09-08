@@ -3,10 +3,11 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CentreController;
 use App\Http\Controllers\Api\MatiereController;
-use App\Http\Controllers\Api\EleveController;
+use App\Http\Controllers\Admin\EleveController;
 use App\Http\Controllers\Api\ProfesseurController;
 use App\Http\Controllers\Api\AbsenceController;
 use App\Http\Controllers\Api\PaiementApiController;
+use App\Http\Controllers\Api\SalaireController;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,6 +40,13 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->group(function () {
         
         // Supprimer un élève
         Route::delete('/{eleve}', [EleveController::class, 'destroy']);
+        
+        // Activer/Désactiver un élève
+        Route::post('/{eleve}/activate', [EleveController::class, 'activate']);
+        Route::post('/{eleve}/deactivate', [EleveController::class, 'deactivate']);
+        
+        // Gestion du mot de passe
+        Route::put('/{eleve}/password', [EleveController::class, 'updatePassword']);
     });
 
     // ============================================================================
@@ -168,6 +176,23 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->group(function () {
         
         // Supprimer un niveau
         Route::delete('/{id}', [CentreController::class, 'destroyNiveau']);
+    });
+    
+    // ============================================================================
+    // ROUTES API GESTION DES SALAIRES
+    // ============================================================================
+    Route::prefix('salaires')->group(function () {
+        // Enregistrer un paiement de salaire
+        Route::post('/{salaire}/paiement', [SalaireController::class, 'enregistrerPaiement']);
+        
+        // Générer une fiche de paie PDF
+        Route::get('/{salaire}/fiche-paie', [SalaireController::class, 'genererFichePaie']);
+        
+        // Obtenir les statistiques des salaires
+        Route::get('/statistiques', [SalaireController::class, 'statistiques']);
+        
+        // Exporter les salaires en Excel
+        Route::get('/export/excel', [SalaireController::class, 'exporterExcel']);
     });
 });
 

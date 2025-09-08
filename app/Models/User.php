@@ -8,6 +8,17 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Carbon\Carbon;
+use App\Enums\RoleType;
+use App\Models\Paiement;
+use App\Models\PaiementProfesseur;
+use App\Models\Salaire;
+use App\Models\Absence;
+use App\Models\Matiere;
+use App\Models\Niveau;
+use App\Models\Filiere;
+use App\Events\NewNotificationEvent;
 
 class User extends Authenticatable
 {
@@ -28,20 +39,27 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'prenom',
+        'notify_by_email',
         'email',
         'password',
         'role',
         'status',
         'date_naissance',
+        'lieu_naissance',
         'adresse',
         'telephone',
-        'pourcentage_remuneration', // Pour les professeurs uniquement
-        'date_embauche',           // Pour les professeurs
-        'cne',                     // Pour les élèves
-        'nom_pere',                // Pour les élèves
-        'telephone_pere',          // Pour les élèves
-        'nom_mere',                // Pour les élèves
-        'telephone_mere'           // Pour les élèves
+        'niveau_id',
+        'filiere_id',
+        'nom_pere',
+        'telephone_pere',
+        'pourcentage_remuneration', 
+        'date_embauche',       
+        'nom_mere',                
+        'telephone_mere',
+        'email_verified_at',
+        'is_active',
+        'remember_token'
     ];
     
     /**
@@ -61,92 +79,38 @@ class User extends Authenticatable
     ];
 
     /**
-     * Les valeurs par défaut des attributs du modèle.
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'remember_token',
+    ];
+    
+    /**
+     * Les attributs par défaut
      *
      * @var array
      */
     protected $attributes = [
         'role' => self::ROLE_ELEVE,
         'status' => self::STATUS_ACTIF,
-        'pourcentage_remuneration' => 30.00, // Valeur par défaut pour les professeurs
+        'is_active' => true
     ];
-
+    
     /**
-     * The attributes that should be hidden for serialization.
+     * Get the password for the user.
      *
-     * @var array<int, string>
+     * @return string
      */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
-
-    /**
-     * Vérifie si l'utilisateur est un administrateur
-     */
-    public function isAdmin(): bool
+    public function getAuthPassword()
     {
-        return $this->role === self::ROLE_ADMIN;
+        return $this->password;
     }
 
-    /**
-     * Vérifie si l'utilisateur est un professeur
-     */
-    public function isProfesseur(): bool
-    {
-        return $this->role === self::ROLE_PROFESSEUR;
-    }
 
-    /**
-     * Vérifie si l'utilisateur est un élève
-     */
-    public function isEleve(): bool
-    {
-        return $this->role === self::ROLE_ELEVE;
-    }
 
-    /**
-     * Relation avec les matières de l'élève
-     */
-    public function matieres(): BelongsToMany
-    {
-        return $this->belongsToMany(Matiere::class, 'eleve_matiere')
-            ->withTimestamps();
-    }
 
-    /**
-     * Relation avec les matières enseignées (pour les professeurs)
-     */
-    public function matieresEnseignees(): BelongsToMany
-    {
-        return $this->belongsToMany(Matiere::class, 'professeur_matiere')
-            ->withPivot('est_responsable')
-            ->withTimestamps();
-    }
-
-    /**
-     * Relation avec les absences (pour les élèves)
-     */
-    public function absences(): HasMany
-    {
-        return $this->hasMany(Absence::class, 'eleve_id');
-    }
-
-    /**
-     * Relation avec les paiements (pour les élèves)
-     */
-    public function paiements(): HasMany
-    {
-        return $this->hasMany(Paiement::class, 'eleve_id');
-    }
-
-    /**
-     * Relation avec les paiements (pour les professeurs)
-     */
-    public function salaires(): HasMany
-    {
-        return $this->hasMany(Salaire::class, 'professeur_id');
-    }
 
     /**
      * Get the user's role.
@@ -159,12 +123,6 @@ class User extends Authenticatable
     }
     
     /**
-     * Vérifie si l'utilisateur a un rôle spécifique
-     *
-     * @param string|array $role
-     * @return bool
-     */
-    /**
      * Vérifie si l'utilisateur a le rôle spécifié
      *
      * @param string|array $role Rôle ou tableau de rôles à vérifier
@@ -173,16 +131,31 @@ class User extends Authenticatable
     public function hasRole($role): bool
     {
         // Si l'utilisateur est admin, il a automatiquement tous les rôles
-        if ($this->is_admin === true) {
+        if ($this->is_admin) {
             return true;
         }
         
+        // Convertir le rôle en entier si nécessaire
+        $userRole = is_numeric($this->role) ? (int)$this->role : $this->role;
+        
         if (is_array($role)) {
-            return in_array($this->role, $role);
+            $role = array_map(function($r) {
+                if (is_string($r) && defined("App\\Enums\\RoleType::$r")) {
+                    return constant("App\\Enums\\RoleType::$r")->value;
+                }
+                return $r;
+            }, $role);
+            
+            return in_array($userRole, $role);
+        }
+        
+        // Si le rôle est une chaîne comme 'admin', le convertir en valeur d'énumération
+        if (is_string($role) && defined("App\\Enums\\RoleType::$role")) {
+            $role = constant("App\\Enums\\RoleType::$role")->value;
         }
         
         // Vérifier si le rôle demandé correspond au rôle de l'utilisateur
-        return $this->role === $role;
+        return $userRole === $role;
     }
 
     /**
@@ -196,22 +169,6 @@ class User extends Authenticatable
     
     
     /**
-     * Get the classe that the user belongs to.
-     */
-    public function classe(): BelongsTo
-    {
-        return $this->belongsTo(Classe::class);
-    }
-    
-    /**
-     * Get the classes where this user is the main teacher.
-     */
-    public function classesEnseignees(): HasMany
-    {
-        return $this->hasMany(Classe::class, 'professeur_principal_id');
-    }
-    
-    /**
      * Find the user instance for the given username.
      *
      * @param  string  $username
@@ -220,24 +177,16 @@ class User extends Authenticatable
     public function findForPassport($username)
     {
         return $this->where('email', $username)
-            ->where('is_active', true)
+            ->where('status', 'actif')
             ->first();
     }
 
     /**
-     * Get the password for the user.
-     *
-     * @return string
-     */
-    public function getAuthPassword()
-    {
-        return $this->password;
-    }
-    
-    /**
      * Get the payments made by this user (for admin users who record payments)
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function paiementsEnregistres()
+    public function paiementsEnregistres(): HasMany
     {
         return $this->hasMany(PaiementProfesseur::class, 'enregistre_par');
     }
@@ -246,8 +195,10 @@ class User extends Authenticatable
      * Get the payments for this user
      * - For teachers: payments received
      * - For students: payments made
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function paiements()
+    public function paiementsParRole()
     {
         if ($this->hasRole('professeur')) {
             return $this->hasMany(PaiementProfesseur::class, 'professeur_id')
@@ -255,13 +206,7 @@ class User extends Authenticatable
         }
         
         if ($this->hasRole('eleve')) {
-            // Vérifier si le modèle Paiement existe, sinon utiliser Paiment
-            if (class_exists(Paiement::class)) {
-                return $this->hasMany(Paiement::class, 'etudiant_id')
-                    ->orderBy('date_paiement', 'desc');
-            }
-            
-            return $this->hasMany(Paiment::class, 'etudiant_id')
+            return $this->hasMany(Paiement::class, 'etudiant_id')
                 ->orderBy('date_paiement', 'desc');
         }
         
@@ -271,18 +216,22 @@ class User extends Authenticatable
     
     /**
      * Get the active payments for this teacher
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function paiementsActifs()
+    public function paiementsActifs(): HasMany
     {
-        return $this->paiements()->where('statut', 'paye');
+        return $this->paiementsParRole()->where('statut', 'paye');
     }
     
     /**
      * Get the pending payments for this teacher
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function paiementsEnAttente()
+    public function paiementsEnAttente(): HasMany
     {
-        return $this->paiements()->whereIn('statut', ['en_retard', 'impaye']);
+        return $this->paiementsParRole()->whereIn('statut', ['en_retard', 'impaye']);
     }
     
     /**
@@ -307,7 +256,7 @@ class User extends Authenticatable
      */
     public function getSalaireMensuel($month)
     {
-        return $this->paiements()
+        return $this->paiementsParRole()
             ->where('mois', $month)
             ->first();
     }
@@ -328,7 +277,7 @@ class User extends Authenticatable
      */
     public function getTotalPaiements($startDate = null, $endDate = null)
     {
-        $query = $this->paiementsActifs();
+        $query = $this->paiementsParRole()->where('statut', 'paye');
         
         if ($startDate) {
             $query->whereDate('date_paiement', '>=', Carbon::parse($startDate));
@@ -488,20 +437,24 @@ class User extends Authenticatable
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     /**
+     * Relation avec les enseignements (pour les professeurs)
+     * 
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function enseignements()
+    public function enseignements(): HasMany
     {
-        return $this->hasMany(\App\Models\Enseignement::class, 'professeur_id');
+        return $this->hasMany(Enseignement::class, 'professeur_id');
     }
 
     /**
      * Obtenir les matières enseignées par le professeur
      */
     /**
+     * Relation avec les matières enseignées (pour les professeurs)
+     * 
      * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
      */
-    public function matieresEnseignees()
+    public function matieresEnseignees(): BelongsToMany
     {
         return $this->belongsToMany(Matiere::class, 'enseignements', 'professeur_id', 'matiere_id')
             ->withPivot(['niveau_id', 'filiere_id', 'nombre_heures_semaine'])
@@ -533,9 +486,11 @@ class User extends Authenticatable
      * Obtenir les absences de l'élève
      */
     /**
+     * Relation avec les absences (pour les élèves)
+     * 
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function absences()
+    public function absences(): HasMany
     {
         return $this->hasMany(Absence::class, 'etudiant_id')
             ->orderBy('date_debut', 'desc');
@@ -623,20 +578,23 @@ class User extends Authenticatable
     }
 
     /**
-     * Obtenir les paiements validés par l'assistant
-     */
-    /**
+     * Obtient les paiements associés à l'utilisateur.
+     *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function paiementsValides()
+    public function paiements(): HasMany
     {
-        return $this->hasMany(\App\Models\Paiement::class, 'assistant_id')
+        return $this->hasMany(Paiement::class, 'eleve_id');
+    }
+
+    /**
+     * Obtient les paiements validés par l'assistant.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function paiementsValides(): HasMany
+    {
+        return $this->hasMany(Paiement::class, 'assistant_id')
             ->where('statut', 'valide')
             ->orderBy('date_paiement', 'desc');
     }
@@ -651,15 +609,11 @@ class User extends Authenticatable
     public function matieres()
     {
         if ($this->isEleve()) {
-            return $this->matieresEleve();
+            return $this->belongsToMany(Matiere::class, 'eleve_matiere', 'eleve_id', 'matiere_id')
+                ->withTimestamps();
         } elseif ($this->isProfesseur()) {
             return $this->belongsToMany(Matiere::class, 'enseignements', 'professeur_id', 'matiere_id')
                 ->withPivot(['niveau_id', 'filiere_id'])
-                ->withTimestamps();
-        }
-        if ($this->isEleve()) {
-            return $this->belongsToMany(Matiere::class, 'inscriptions', 'etudiant_id', 'matiere_id')
-                ->withPivot(['niveau_id', 'filiere_id', 'annee_scolaire'])
                 ->withTimestamps();
         }
         
@@ -667,20 +621,13 @@ class User extends Authenticatable
     }
 
     /**
-     * Obtenir les salaires (pour les professeurs)
-     */
-    /**
+     * Relation avec les salaires (pour les professeurs)
+     * 
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function salaires()
+    public function salaires(): HasMany
     {
-        return $this->hasMany(\App\Models\Salaire::class, 'professeur_id');
+        return $this->hasMany(Salaire::class, 'professeur_id');
     }
 
     /**
@@ -744,8 +691,11 @@ class User extends Authenticatable
             return $this->hasPermissionTo($permission);
         }
         
-        // Vérification basée sur le rôle si Spatie n'est pas utilisé
-        return $this->role->hasPermission($permission);
+        // Si le rôle est un entier, le convertir en objet RoleType
+        $role = is_numeric($this->role) ? RoleType::from($this->role) : $this->role;
+        
+        // Vérification basée sur le rôle
+        return method_exists($role, 'hasPermission') ? $role->hasPermission($permission) : false;
     }
 
     /**
@@ -786,21 +736,6 @@ class User extends Authenticatable
      * ============================================
      */
     
-    /**
-     * Définir les canaux de diffusion des notifications
-     */
-    public function receivesBroadcastNotificationsOn()
-    {
-        return 'App.Models.User.'.$this->id;
-    }
-
-    /**
-     * Envoyer une notification en temps réel à l'utilisateur
-     */
-    public function notifyRealTime($notification)
-    {
-        event(new NewNotificationEvent($notification));
-    }
     
     /**
      * ============================================
@@ -808,64 +743,6 @@ class User extends Authenticatable
      * ============================================
      */
     
-    /**
-     * Calculer le salaire du professeur pour une période donnée
-     */
-    public function calculerSalaire(string $moisPeriode): float
-    {
-        if (!$this->isProfesseur()) {
-            return 0;
-        }
 
-        return $this->salaires()
-            ->where('mois_periode', $moisPeriode)
-            ->where('statut', 'en_attente')
-            ->sum('montant_net');
-    }
-
-    /**
-     * Obtenir le total des paiements d'un élève pour une période
-     */
-    public function totalPaiements(string $moisPeriode): float
-    {
-        if (!$this->isEleve()) {
-            return 0;
-        }
-
-        return $this->paiements()
-            ->where('mois_periode', $moisPeriode)
-            ->where('statut', 'valide')
-            ->sum('montant');
-    }
-
-    /**
-     * Obtenir la moyenne d'un élève pour une matière
-     */
-    public function moyenneMatiere(int $matiereId, string $trimestre = null): float
-    {
-        if (!$this->isEleve()) {
-            return 0;
-        }
-
-        $query = $this->notes()->where('matiere_id', $matiereId);
-        
-        if ($trimestre) {
-            $query->where('trimestre', $trimestre);
-        }
-
-        $notes = $query->get();
-        
-        if ($notes->isEmpty()) {
-            return 0;
-        }
-
-        $totalPondere = $notes->sum(function ($note) {
-            return $note->note * $note->coefficient;
-        });
-
-        $totalCoefficients = $notes->sum('coefficient');
-
-        return $totalCoefficients > 0 ? round($totalPondere / $totalCoefficients, 2) : 0;
-    }
 
 }

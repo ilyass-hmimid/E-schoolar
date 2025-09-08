@@ -120,50 +120,25 @@ class Absence extends Model
         ]);
     }
 
-    /**
-     * Scope pour les absences d'un élève donné
-     */
-    public function scopePourEleve($query, int $eleveId)
-    {
-        return $query->where('eleve_id', $eleveId);
-    }
-
-    /**
-     * Scope pour les absences d'une matière donnée
-     */
-    public function scopePourMatiere($query, int $matiereId)
-    {
-        return $query->where('matiere_id', $matiereId);
-    }
-
-    /**
-     * Scope pour les absences dans une période donnée
-     */
-    public function scopeEntreDates($query, string $dateDebut, string $dateFin)
-    {
-        return $query->whereBetween('date_absence', [$dateDebut, $dateFin]);
-    }
-
-    /**
-     * Scope pour les absences non justifiées
-     */
-    public function scopeNonJustifiees($query)
-    {
-        return $query->where('statut', self::STATUT_NON_JUSTIFIEE);
-    }
 
     /**
      * Scope pour les absences justifiées
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeJustifiees(Builder $query): Builder
+    public function scopeJustifiees($query)
     {
         return $query->where('statut', self::STATUT_JUSTIFIEE);
     }
 
     /**
      * Scope pour les absences non justifiées
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeNonJustifiees(Builder $query): Builder
+    public function scopeNonJustifiees($query)
     {
         return $query->where('statut', self::STATUT_NON_JUSTIFIEE);
     }
@@ -178,24 +153,37 @@ class Absence extends Model
 
     /**
      * Scope pour les absences d'un élève
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param int $eleveId
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopePourEleve(Builder $query, int $eleveId): Builder
+    public function scopePourEleve($query, int $eleveId)
     {
         return $query->where('eleve_id', $eleveId);
     }
 
     /**
      * Scope pour les absences d'une matière
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param int $matiereId
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopePourMatiere(Builder $query, int $matiereId): Builder
+    public function scopePourMatiere($query, int $matiereId)
     {
         return $query->where('matiere_id', $matiereId);
     }
 
     /**
      * Scope pour les absences entre deux dates
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $dateDebut
+     * @param string $dateFin
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeEntreDates(Builder $query, string $dateDebut, string $dateFin): Builder
+    public function scopeEntreDates($query, string $dateDebut, string $dateFin)
     {
         return $query->whereBetween('date_absence', [
             Carbon::parse($dateDebut)->startOfDay(),
@@ -241,11 +229,4 @@ class Absence extends Model
         }
     }
 
-    /**
-     * Vérifier si l'absence est justifiée
-     */
-    public function getEstJustifieeAttribute(): bool
-    {
-        return $this->statut === self::STATUT_JUSTIFIEE;
-    }
 }

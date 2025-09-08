@@ -22,6 +22,10 @@ class EventServiceProvider extends ServiceProvider
         'Illuminate\Notifications\Events\NotificationSent' => [
             'App\Listeners\BroadcastNotificationCreated',
         ],
+        // Événement de création d'absence
+        'App\Events\AbsenceCreated' => [
+            'App\Listeners\SendAbsenceCreatedNotification',
+        ],
     ];
 
     /**

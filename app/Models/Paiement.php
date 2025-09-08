@@ -12,6 +12,7 @@ class Paiement extends Model
     public const STATUT_PAYE = 'paye';
     public const STATUT_IMPAYE = 'impaye';
     public const STATUT_EN_RETARD = 'en_retard';
+    public const STATUT_ANNULE = 'annule';
 
     // Types de paiement
     public const TYPE_INSCRIPTION = 'inscription';
@@ -52,8 +53,15 @@ class Paiement extends Model
      */
     protected $casts = [
         'montant' => 'decimal:2',
-        'date_paiement' => 'date',
+        'date_paiement' => 'datetime',
         'mois_couvre' => 'date',
+    ];
+    
+    protected $dates = [
+        'date_paiement',
+        'mois_couvre',
+        'created_at',
+        'updated_at'
     ];
 
     /**
@@ -98,27 +106,7 @@ class Paiement extends Model
         return $this->statut === self::STATUT_EN_RETARD;
     }
 
-    /**
-     * Marquer le paiement comme payé
-     */
-    public function marquerCommePaye(string $reference, string $modePaiement, ?string $commentaire = null): void
-    {
-        $this->update([
-            'statut' => self::STATUT_PAYE,
-            'reference_paiement' => $reference,
-            'mode_paiement' => $modePaiement,
-            'commentaire' => $commentaire,
-            'date_paiement' => now(),
-        ]);
-    }
 
-    /**
-     * Scope pour les paiements d'un élève donné
-     */
-    public function scopePourEleve($query, int $eleveId)
-    {
-        return $query->where('eleve_id', $eleveId);
-    }
 
     /**
      * Scope pour les paiements d'une matière donnée
@@ -243,8 +231,12 @@ class Paiement extends Model
 
     /**
      * Scope pour les paiements d'un élève donné
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param int $eleveId
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopePourEleve($query, $eleveId)
+    public function scopePourEleve($query, int $eleveId)
     {
         return $query->where('eleve_id', $eleveId);
     }
@@ -263,13 +255,37 @@ class Paiement extends Model
 
     /**
      * Marque le paiement comme payé
+     * 
+     * @param array|string $donnees Tableau de données ou référence de paiement
+     * @param string|null $modePaiement Mode de paiement (si $donnees est une chaîne)
+     * @param string|null $commentaire Commentaire optionnel (si $donnees est une chaîne)
+     * @return bool
      */
-    public function marquerCommePaye(array $donnees = []): bool
+    public function marquerCommePaye($donnees = [], ?string $modePaiement = null, ?string $commentaire = null): bool
     {
+        // Support pour l'ancienne signature (string, string, ?string)
+        if (is_string($donnees) && !empty($modePaiement)) {
+            $donnees = [
+                'reference_paiement' => $donnees,
+                'mode_paiement' => $modePaiement,
+                'commentaire' => $commentaire,
+                'date_paiement' => now()
+            ];
+        }
+        
+        // S'assure que $donnees est un tableau
+        $donnees = is_array($donnees) ? $donnees : [];
+        
+        // Mise à jour des attributs
         $this->statut = self::STATUT_PAYE;
-        $this->date_paiement = $donnees['date_paiement'] ?? now();
+        
+        // Gestion de la date de paiement avec Carbon
+        $this->date_paiement = isset($donnees['date_paiement']) 
+            ? \Carbon\Carbon::parse($donnees['date_paiement'])
+            : now();
+        
         $this->mode_paiement = $donnees['mode_paiement'] ?? self::MODE_ESPECES;
-        $this->reference = $donnees['reference'] ?? null;
+        $this->reference_paiement = $donnees['reference_paiement'] ?? $donnees['reference'] ?? null;
         $this->commentaire = $donnees['commentaire'] ?? null;
         
         if (auth()->check()) {

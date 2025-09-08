@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Professeur;
 use App\Http\Controllers\Controller;
 use App\Models\Note;
 use App\Models\Matiere;
-use App\Models\Classe;
 use App\Models\Etudiant;
 use App\Traits\OptimizedQueries;
 use Illuminate\Http\Request;
@@ -153,20 +152,9 @@ class NoteController extends Controller
                         });
         }, 30); // Mise en cache pour 30 minutes
         
-        // Récupérer les classes enseignées pour le filtre
-        $classes = $this->cached('classes_notes_prof_' . Auth::id(), function() {
-            return Classe::whereHas('enseignements', function($query) {
-                    $query->where('professeur_id', Auth::id());
-                })
-                ->select(['id', 'nom'])
-                ->orderBy('nom')
-                ->get();
-        }, $this->cacheTtl);
-
         return Inertia::render('Professeur/Notes/Index', [
             'notes' => $notes,
             'matieres' => $matieres,
-            'classes' => $classes,
             'filters' => $filters
         ]);
     }
@@ -179,16 +167,9 @@ class NoteController extends Controller
         $matieres = Auth::user()->matieresEnseignees()
             ->orderBy('nom')
             ->get(['id', 'nom']);
-            
-        $classes = Classe::whereHas('enseignements', function($query) {
-                $query->where('professeur_id', Auth::id());
-            })
-            ->orderBy('nom')
-            ->get(['id', 'nom']);
 
         return Inertia::render('Professeur/Notes/Create', [
             'matieres' => $matieres,
-            'classes' => $classes,
         ]);
     }
 
@@ -313,48 +294,43 @@ class NoteController extends Controller
         return redirect()->route('professeur.notes.index')
             ->with('success', 'La note a été supprimée avec succès.');
     }
-    
+
     /**
-     * Récupère les étudiants d'une classe pour une matière donnée
+     * Récupère les étudiants pour une matière donnée
      */
-    public function getEtudiantsByClasseMatiere($classeId, $matiereId)
+    public function getEtudiantsByMatiere($matiereId)
     {
         // Vérifier que le professeur enseigne bien cette matière
         if (!Auth::user()->matieresEnseignees()->where('matieres.id', $matiereId)->exists()) {
-            return response()->json(['error' => 'Accès non autorisé.'], 403);
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous n\'êtes pas autorisé à voir les étudiants de cette matière.'
+            ], 403);
         }
-        
-        $etudiants = Etudiant::whereHas('inscriptions', function($query) use ($classeId) {
-                $query->where('classe_id', $classeId);
-            })
+
+        // Récupérer les étudiants qui suivent cette matière
+        $etudiants = Etudiant::with(['user:id,nom,prenom'])
+            ->select('id', 'user_id', 'numero_etudiant')
             ->orderBy('nom')
-            ->get(['id', 'nom', 'prenom']);
-            
-        return response()->json($etudiants);
+            ->get()
+            ->map(function ($etudiant) {
+                return [
+                    'id' => $etudiant->id,
+                    'user_id' => $etudiant->user_id,
+                    'numero_etudiant' => $etudiant->numero_etudiant,
+                    'nom_complet' => $etudiant->user->prenom . ' ' . $etudiant->user->nom,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $etudiants
+        ]);
     }
-    
-    /**
-     * Récupère les notes d'un étudiant pour une matière donnée
-     */
-    public function getNotesEtudiantMatiere($etudiantId, $matiereId)
-    {
-        // Vérifier que le professeur enseigne bien cette matière
-        if (!Auth::user()->matieresEnseignees()->where('matieres.id', $matiereId)->exists()) {
-            return response()->json(['error' => 'Accès non autorisé.'], 403);
-        }
-        
-        $notes = Note::where('etudiant_id', $etudiantId)
-            ->where('matiere_id', $matiereId)
-            ->where('professeur_id', Auth::id())
-            ->orderBy('date_evaluation', 'desc')
-            ->get();
-            
-        return response()->json($notes);
-    }
-    
+
     /**
      * Calcule la moyenne d'un étudiant dans une matière
-     * 
+     *
      * @param int $etudiantId
      * @param int $matiereId
      * @return \Illuminate\Http\JsonResponse

@@ -149,7 +149,6 @@ return [
     */
     'keys' => [
         'matieres' => 'matieres',
-        'classes' => 'classes',
         'etudiants' => 'etudiants',
         'presences' => 'presences',
         'statistiques' => 'statistiques',

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class Salaire extends Model
 {
@@ -20,6 +21,19 @@ class Salaire extends Model
      */
     protected $fillable = [
         'professeur_id',
+        'reference',
+        'periode',
+        'nb_heures',
+        'taux_horaire',
+        'salaire_brut',
+        'prime_anciennete',
+        'prime_rendement',
+        'indemnite_transport',
+        'autres_primes',
+        'cnss',
+        'ir',
+        'retenues_diverses',
+        'salaire_net',
         'montant',
         'date_paiement',
         'periode_debut',
@@ -30,6 +44,8 @@ class Salaire extends Model
         'reference_paiement',
         'preuve_paiement',  // Chemin vers le fichier de preuve
         'paye_par',         // ID de l'admin qui a effectué le paiement
+        'type_paiement',
+        'notes',
     ];
 
     /**
@@ -41,7 +57,18 @@ class Salaire extends Model
         'date_paiement' => 'date',
         'periode_debut' => 'date',
         'periode_fin' => 'date',
+        'periode' => 'date',
         'montant' => 'decimal:2',
+        'salaire_brut' => 'decimal:2',
+        'prime_anciennete' => 'decimal:2',
+        'prime_rendement' => 'decimal:2',
+        'indemnite_transport' => 'decimal:2',
+        'autres_primes' => 'decimal:2',
+        'cnss' => 'decimal:2',
+        'ir' => 'decimal:2',
+        'retenues_diverses' => 'decimal:2',
+        'salaire_net' => 'decimal:2',
+        'taux_horaire' => 'decimal:2',
     ];
 
     /**
@@ -68,6 +95,36 @@ class Salaire extends Model
     public function getEstPayeAttribute(): bool
     {
         return $this->statut === self::STATUT_PAYE;
+    }
+    
+    /**
+     * Get the reference attribute with a fallback
+     */
+    public function getReferenceAttribute($value)
+    {
+        if ($value) {
+            return $value;
+        }
+        
+        // Generate a reference if not set
+        return 'SAL-' . strtoupper(Str::random(8));
+    }
+    
+    /**
+     * Get the period in a readable format
+     */
+    public function getPeriodeFormateeAttribute()
+    {
+        if ($this->periode) {
+            return Carbon::parse($this->periode)->format('m/Y');
+        }
+        
+        if ($this->periode_debut && $this->periode_fin) {
+            return Carbon::parse($this->periode_debut)->format('d/m/Y') . ' - ' . 
+                   Carbon::parse($this->periode_fin)->format('d/m/Y');
+        }
+        
+        return 'N/A';
     }
 
     /**

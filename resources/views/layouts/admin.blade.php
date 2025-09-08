@@ -11,7 +11,7 @@
 @endpush
 
 @section('content')
-<div x-data="{ sidebarOpen: window.innerWidth >= 768 }" class="flex h-screen bg-gray-50">
+<div x-data="{ sidebarOpen: window.innerWidth >= 768, open: {{ request()->routeIs('admin.eleves.*') ? 'true' : 'false' }}, openProfs: {{ request()->routeIs('admin.professeurs.*') ? 'true' : 'false' }} }" class="flex h-screen bg-gray-50">
     <!-- Mobile sidebar backdrop -->
     <div x-show="sidebarOpen" @click="sidebarOpen = false" class="fixed inset-0 z-20 bg-black bg-opacity-50 md:hidden" x-cloak></div>
     
@@ -32,26 +32,61 @@
                             Tableau de bord
                         </a>
 
-                        <!-- Users Management -->
-                        <a href="{{ route('admin.users.index') }}" class="group flex items-center px-2 py-2 text-sm font-medium rounded-md {{ request()->routeIs('admin.users.*') ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                            <i class="fas fa-users mr-3 text-gray-400 group-hover:text-gray-500"></i>
-                            Gestion des utilisateurs
+                        <!-- Gestion des élèves -->
+                        <div>
+                            <button type="button" class="group w-full flex items-center px-2 py-2 text-sm font-medium rounded-md {{ request()->routeIs('admin.eleves.*') ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}" @click="open = !open">
+                                <i class="fas fa-user-graduate mr-3 text-gray-400 group-hover:text-gray-500"></i>
+                                Gestion des élèves
+                                <svg :class="{'rotate-90': open, 'text-gray-400': !open}" class="ml-auto h-5 w-5 transform group-hover:text-gray-400 transition-colors ease-in-out duration-150" viewBox="0 0 20 20">
+                                    <path d="M6 6L14 10L6 14V6Z" fill="currentColor" />
+                                </svg>
+                            </button>
+                            <div x-show="open" class="mt-1 space-y-1 pl-11">
+                                <a href="{{ route('admin.eleves.index') }}" class="group flex items-center px-2 py-2 text-sm font-medium rounded-md {{ request()->routeIs('admin.eleves.index') ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                                    Liste des élèves
+                                </a>
+                                <a href="{{ route('admin.eleves.create') }}" class="group flex items-center px-2 py-2 text-sm font-medium rounded-md {{ request()->routeIs('admin.eleves.create') ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                                    Ajouter un élève
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Gestion des professeurs -->
+                        <div>
+                            <button type="button" class="group w-full flex items-center px-2 py-2 text-sm font-medium rounded-md {{ request()->routeIs('admin.professeurs.*') ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}" @click="openProfs = !openProfs">
+                                <i class="fas fa-chalkboard-teacher mr-3 text-gray-400 group-hover:text-gray-500"></i>
+                                Gestion des professeurs
+                                <svg :class="{'rotate-90': openProfs, 'text-gray-400': !openProfs}" class="ml-auto h-5 w-5 transform group-hover:text-gray-400 transition-colors ease-in-out duration-150" viewBox="0 0 20 20">
+                                    <path d="M6 6L14 10L6 14V6Z" fill="currentColor" />
+                                </svg>
+                            </button>
+                            <div x-show="openProfs" class="mt-1 space-y-1 pl-11">
+                                <a href="{{ route('admin.professeurs.index') }}" class="group flex items-center px-2 py-2 text-sm font-medium rounded-md {{ request()->routeIs('admin.professeurs.index') ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                                    Liste des professeurs
+                                </a>
+                                <a href="{{ route('admin.professeurs.create') }}" class="group flex items-center px-2 py-2 text-sm font-medium rounded-md {{ request()->routeIs('admin.professeurs.create') ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                                    Ajouter un professeur
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Gestion des matières -->
+                        <a href="{{ route('admin.matieres.index') }}" class="group flex items-center px-2 py-2 text-sm font-medium rounded-md {{ request()->routeIs('admin.matieres.*') ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                            <i class="fas fa-book mr-3 text-gray-400 group-hover:text-gray-500"></i>
+                            Gestion des matières
                         </a>
 
-                        <!-- Payments -->
-                        <a href="{{ route('admin.paiements.index') }}" class="group flex items-center px-2 py-2 text-sm font-medium rounded-md {{ request()->routeIs('admin.paiements.*') ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                            <i class="fas fa-credit-card mr-3 text-gray-400 group-hover:text-gray-500"></i>
-                            Gestion des paiements
-                        </a>
-
-                        <!-- Absences -->
+                        <!-- Gestion des absences -->
                         <a href="{{ route('admin.absences.index') }}" class="group flex items-center px-2 py-2 text-sm font-medium rounded-md {{ request()->routeIs('admin.absences.*') ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                             <i class="fas fa-calendar-times mr-3 text-gray-400 group-hover:text-gray-500"></i>
                             Gestion des absences
                         </a>
 
-                        <!-- Additional menu items removed - routes not defined in routes/admin.php -->
-                    </nav>
+                        <!-- Gestion des paiements -->
+                        <a href="{{ route('admin.paiements.index') }}" class="group flex items-center px-2 py-2 text-sm font-medium rounded-md {{ request()->routeIs('admin.paiements.*') ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                            <i class="fas fa-credit-card mr-3 text-gray-400 group-hover:text-gray-500"></i>
+                            Gestion des paiements
+                        </a>
                 </div>
             </div>
         </div>

@@ -296,16 +296,6 @@ class RapportController extends Controller
             ->when(!empty($filters['date_fin']), function($q) use ($filters) {
                 $q->where('date_seance', '<=', $filters['date_fin']);
             })
-            ->when(!empty($filters['niveau_id']), function($q) use ($filters) {
-                $q->whereHas('classe', function($q) use ($filters) {
-                    $q->where('niveau_id', $filters['niveau_id']);
-                });
-            })
-            ->when(!empty($filters['filiere_id']), function($q) use ($filters) {
-                $q->whereHas('classe', function($q) use ($filters) {
-                    $q->where('filiere_id', $filters['filiere_id']);
-                });
-            })
             ->when(!empty($filters['matiere_id']), function($q) use ($filters) {
                 $q->where('matiere_id', $filters['matiere_id']);
             })

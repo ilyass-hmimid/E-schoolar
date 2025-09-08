@@ -18,11 +18,6 @@ class Professeur extends Enseignant
     {
         return $this->belongsToMany(Matiere::class, 'enseignements', 'professeur_id', 'matiere_id');
     }
-    
-    public function classes(): BelongsToMany
-    {
-        return $this->belongsToMany(Classe::class, 'enseignements', 'professeur_id', 'classe_id');
-    }
 
     public function absences(): HasMany
     {

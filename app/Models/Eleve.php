@@ -15,7 +15,6 @@ class Eleve extends Model
 
     protected $fillable = [
         'user_id',
-        'classe_id',
         'date_naissance',
         'lieu_naissance',
         'adresse',
@@ -50,14 +49,6 @@ class Eleve extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    /**
-     * Relation avec la classe de l'élève
-     */
-    public function classe(): BelongsTo
-    {
-        return $this->belongsTo(Classe::class);
     }
 
     /**
@@ -127,10 +118,6 @@ class Eleve extends Model
         return $query->where('est_actif', true);
     }
 
-    public function scopeDeClasse($query, $classeId)
-    {
-        return $query->where('classe_id', $classeId);
-    }
 
     public function getStatutPaiementAttribute(): string
     {

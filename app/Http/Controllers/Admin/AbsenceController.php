@@ -2,94 +2,37 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\BaseAdminController;
 use App\Models\Absence;
 use App\Models\User;
 use App\Models\Matiere;
-use Illuminate\Http\Request;
+use App\Models\Classe;
+use App\Enums\RoleType;
+use App\Events\AbsenceCreated;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
-class AbsenceController extends Controller
+/**
+ * Contrôleur pour la gestion des absences
+ * 
+ * Ce contrôleur gère toutes les opérations liées aux absences dans l'administration.
+ * Il supporte à la fois les réponses JSON pour les API et le rendu de vues (Blade/Inertia).
+ */
+
+class AbsenceController extends BaseAdminController
 {
     /**
-     * Affiche la liste des absences
+     * Validation rules for absence operations
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\View\View
+     * @var array
      */
-    public function index(Request $request)
-    {
-        $query = Absence::with(['eleve', 'matiere', 'professeur'])
-            ->latest('date_absence');
-            
-        // Filtrage par élève
-        if ($request->has('eleve_id') && $request->eleve_id) {
-            $query->where('eleve_id', $request->eleve_id);
-        }
-        
-        // Filtrage par professeur
-        if ($request->has('professeur_id') && $request->professeur_id) {
-            $query->where('professeur_id', $request->professeur_id);
-        }
-        
-        // Filtrage par matière
-        if ($request->has('matiere_id') && $request->matiere_id) {
-            $query->where('matiere_id', $request->matiere_id);
-        }
-        
-        // Filtrage par statut
-        if ($request->has('statut') && $request->statut) {
-            $query->where('statut', $request->statut);
-        }
-        
-        // Filtrage par date
-        if ($request->has('date_debut') && $request->date_debut) {
-            $query->whereDate('date_absence', '>=', $request->date_debut);
-        }
-        
-        if ($request->has('date_fin') && $request->date_fin) {
-            $query->whereDate('date_absence', '<=', $request->date_fin);
-        }
-        
-        $absences = $query->paginate(20);
-        $eleves = User::where('role', 'eleve')->orderBy('name')->get();
-        $professeurs = User::where('role', 'professeur')->orderBy('name')->get();
-        $matieres = Matiere::orderBy('nom')->get();
-        
-        return view('admin.absences.index', compact('absences', 'eleves', 'professeurs', 'matieres'));
-    }
-
-    /**
-     * Affiche le formulaire de création d'une absence
-     *
-     * @return \Illuminate\View\View
-     */
-    public function create()
-    {
-        $eleves = User::where('role', 'eleve')
-            ->where('status', 'actif')
-            ->orderBy('name')
-            ->get();
-            
-        $professeurs = User::where('role', 'professeur')
-            ->where('status', 'actif')
-            ->orderBy('name')
-            ->get();
-            
-        $matieres = Matiere::orderBy('nom')->get();
-        
-        return view('admin.absences.create', compact('eleves', 'professeurs', 'matieres'));
-    }
-
-    /**
-     * Enregistre une nouvelle absence
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
+    protected $validationRules = [
+        'store' => [
             'eleve_id' => 'required|exists:users,id',
             'matiere_id' => 'required|exists:matieres,id',
             'professeur_id' => 'required|exists:users,id',
@@ -98,90 +41,400 @@ class AbsenceController extends Controller
             'heure_fin' => 'required|date_format:H:i|after:heure_debut',
             'motif' => 'nullable|string|max:1000',
             'commentaire' => 'nullable|string|max:1000',
-        ]);
+            'justificatif' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'statut' => 'required|in:non_justifiee,en_attente,justifiee',
+            'heures_manquees' => 'required|numeric|min:0.5|max:8',
+        ],
+        'update' => [
+            'eleve_id' => 'sometimes|required|exists:users,id',
+            'matiere_id' => 'sometimes|required|exists:matieres,id',
+            'professeur_id' => 'sometimes|required|exists:users,id',
+            'date_absence' => 'sometimes|required|date|before_or_equal:today',
+            'heure_debut' => 'sometimes|required|date_format:H:i',
+            'heure_fin' => 'sometimes|required|date_format:H:i|after:heure_debut',
+            'motif' => 'nullable|string|max:1000',
+            'commentaire' => 'nullable|string|max:1000',
+            'justificatif' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'statut' => 'sometimes|required|in:non_justifiee,en_attente,justifiee',
+            'heures_manquees' => 'sometimes|required|numeric|min:0.5|max:8',
+        ]
+    ];
+
+    /**
+     * Gestionnaire de réponse commun
+     *
+     * @param mixed $data Les données à passer à la vue
+     * @param string $view Le chemin de la vue (Inertia) ou le nom (Blade)
+     * @param array $additionalData Données supplémentaires pour les réponses JSON
+     * @return mixed
+     * @throws \RuntimeException Si la vue n'existe pas
+     * @throws \Illuminate\Http\JsonResponse Pour les réponses JSON
+     */
+    protected function respond($data, $view, $additionalData = [])
+    {
+        // Réponses JSON
+        if (request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'meta' => $additionalData
+            ]);
+        }
+
+        // Vérifier si Inertia est disponible
+        $inertiaClass = 'Inertia\\Inertia';
+        $responseClass = 'Inertia\\Response';
         
-        // Vérifier que l'élève est bien actif
-        $eleve = User::findOrFail($validated['eleve_id']);
-        if ($eleve->role !== 'eleve' || $eleve->status !== 'actif') {
-            return back()->with('error', 'Seuls les élèves actifs peuvent être marqués absents.');
+        if (class_exists($inertiaClass) && class_exists($responseClass)) {
+            try {
+                return $inertiaClass::render($view, $data);
+            } catch (\Exception $e) {
+                // En cas d'erreur avec Inertia, on bascule sur Blade
+                if (app()->bound('log')) {
+                    app('log')->warning("Échec du rendu Inertia: " . $e->getMessage());
+                }
+            }
         }
         
-        // Vérifier que le professeur est bien un professeur actif
-        $professeur = User::findOrFail($validated['professeur_id']);
-        if ($professeur->role !== 'professeur' || $professeur->status !== 'actif') {
-            return back()->with('error', 'Le professeur sélectionné n\'est pas valide.');
+        // Fallback sur les vues Blade
+        $bladeView = $this->resolveBladeView($view);
+        
+        if (!view()->exists($bladeView)) {
+            throw new \RuntimeException("La vue [{$bladeView}] est introuvable.");
         }
         
-        // Vérifier que la matière existe
-        $matiere = Matiere::findOrFail($validated['matiere_id']);
-        
-        // Vérifier que l'élève est inscrit à la matière
-        if (!$eleve->matieres->contains($matiere->id)) {
-            return back()->with('error', 'L\'élève n\'est pas inscrit à cette matière.');
+        return view($bladeView, $data);
+    }
+    /**
+     * Gère les réponses d'erreur de manière centralisée
+     *
+     * @param string $message
+     * @param bool $isJson
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+     */
+    protected function errorResponse($message, $isJson = false)
+    {
+        if ($isJson) {
+            return response()->json(['message' => $message], 422);
         }
-        
-        // Vérifier que le professeur enseigne cette matière
-        if (!$professeur->matieresEnseignees->contains($matiere->id)) {
-            return back()->with('error', 'Le professeur n\'enseigne pas cette matière.');
-        }
-        
-        // Calculer la durée en minutes
-        $debut = Carbon::parse($validated['date_absence'] . ' ' . $validated['heure_debut']);
-        $fin = Carbon::parse($validated['date_absence'] . ' ' . $validated['heure_fin']);
-        $duree_minutes = $fin->diffInMinutes($debut);
-        
-        // Vérifier les chevauchements d'absences
-        $chevauchant = Absence::where('eleve_id', $eleve->id)
-            ->where('date_absence', $validated['date_absence'])
-            ->where(function($query) use ($debut, $fin) {
-                $query->where(function($q) use ($debut, $fin) {
-                    $q->where('heure_debut', '<=', $debut->format('H:i:s'))
-                      ->where('heure_fin', '>', $debut->format('H:i:s'));
-                })->orWhere(function($q) use ($debut, $fin) {
-                    $q->where('heure_debut', '<', $fin->format('H:i:s'))
-                      ->where('heure_fin', '>=', $fin->format('H:i:s'));
-                })->orWhere(function($q) use ($debut, $fin) {
-                    $q->where('heure_debut', '>=', $debut->format('H:i:s'))
-                      ->where('heure_fin', '<=', $fin->format('H:i:s'));
-                });
-            })
-            ->exists();
-            
-        if ($chevauchant) {
-            return back()->with('error', 'L\'élève a déjà une absence qui chevauche cette plage horaire.');
-        }
-        
-        // Créer l'absence
-        $absence = new Absence([
-            'eleve_id' => $validated['eleve_id'],
-            'matiere_id' => $validated['matiere_id'],
-            'professeur_id' => $validated['professeur_id'],
-            'date_absence' => $validated['date_absence'],
-            'heure_debut' => $validated['heure_debut'],
-            'heure_fin' => $validated['heure_fin'],
-            'duree_minutes' => $duree_minutes,
-            'motif' => $validated['motif'] ?? null,
-            'commentaire' => $validated['commentaire'] ?? null,
-            'statut' => 'non_justifiee',
-            'enregistre_par' => auth()->id(),
-        ]);
-        
-        $absence->save();
-        
-        return redirect()->route('admin.absences.show', $absence)
-            ->with('success', 'Absence enregistrée avec succès.');
+        return back()->with('error', $message)->withInput();
     }
 
     /**
-     * Affiche les détails d'une absence
+     * Convertit un chemin de vue Inertia en chemin de vue Blade
      *
+     * @param string $view
+     * @return string
+     */
+    protected function resolveBladeView($view)
+    {
+        // Convertit les chemins Inertia en notation point pour Blade
+        $view = str_replace('/', '.', strtolower($view));
+        
+        // Supprime le préfixe 'admin.' s'il existe
+        if (str_starts_with($view, 'admin.')) {
+            $view = substr($view, 6);
+        }
+        
+        return 'admin.' . $view;
+    }
+
+    /**
+     * Affiche la liste des absences
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return mixed
+     * @throws \Illuminate\Auth\Access\AuthorizationException
+     */
+    public function index(Request $request)
+    {
+        $this->authorize('viewAny', Absence::class);
+
+        $query = Absence::with(['eleve:id,name,email', 'matiere:id,nom', 'professeur:id,name']);
+        
+        // Apply role-based filtering
+        $user = auth()->user();
+        if ($user->role === RoleType::PROFESSEUR) {
+            $query->where('professeur_id', $user->id);
+        } elseif ($user->role === RoleType::ELEVE) {
+            $query->where('eleve_id', $user->id);
+        }
+        
+        // Apply filters
+        $filters = $request->only(['search', 'eleve_id', 'professeur_id', 'matiere_id', 'statut', 'date_debut', 'date_fin']);
+        
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->whereHas('eleve', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+        
+        if (!empty($filters['eleve_id'])) {
+            $query->where('eleve_id', $filters['eleve_id']);
+        }
+        
+        if (!empty($filters['professeur_id'])) {
+            $query->where('professeur_id', $filters['professeur_id']);
+        }
+        
+        if (!empty($filters['matiere_id'])) {
+            $query->where('matiere_id', $filters['matiere_id']);
+        }
+        
+        if (!empty($filters['statut'])) {
+            $query->where('statut', $filters['statut']);
+        }
+        
+        if (!empty($filters['date_debut'])) {
+            $query->whereDate('date_absence', '>=', $filters['date_debut']);
+        }
+        
+        if (!empty($filters['date_fin'])) {
+            $query->whereDate('date_absence', '<=', $filters['date_fin']);
+        }
+        
+        // Sorting
+        $sort = $request->input('sort', 'date_absence');
+        $direction = $request->input('direction', 'desc');
+        $validSorts = ['date_absence', 'created_at', 'heures_manquees', 'statut'];
+        
+        if (in_array($sort, $validSorts)) {
+            $query->orderBy($sort, $direction);
+        } else {
+            $query->latest('date_absence');
+        }
+        
+        // Pagination
+        $perPage = $request->input('per_page', request()->wantsJson() ? 15 : 20);
+        $absences = $query->paginate($perPage);
+        
+        // For API responses
+        if ($request->wantsJson()) {
+            return response()->json([
+                'data' => $absences->items(),
+                'meta' => [
+                    'current_page' => $absences->currentPage(),
+                    'last_page' => $absences->lastPage(),
+                    'per_page' => $absences->perPage(),
+                    'total' => $absences->total(),
+                ]
+            ]);
+        }
+        
+        // For web responses
+        $eleves = User::where('role', RoleType::ELEVE)
+            ->where('status', 'actif')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
+            
+        $professeurs = User::where('role', RoleType::PROFESSEUR)
+            ->where('status', 'actif')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
+            
+        $matieres = Matiere::orderBy('nom')->get(['id', 'nom']);
+        
+        // Calculate statistics for web view using a separate query
+        $statsQuery = clone $query;
+        $stats = [
+            'total' => $statsQuery->count(),
+            'justified' => $statsQuery->clone()->where('statut', 'justifiee')->count(),
+            'pending' => $statsQuery->clone()->where('statut', 'en_attente')->count(),
+            'unjustified' => $statsQuery->clone()->where('statut', 'non_justifiee')->count(),
+        ];
+        
+        // For traditional Blade views
+        if (!class_exists('Inertia\Inertia')) {
+            $absences = $query->paginate($perPage);
+            $viewData = compact('absences', 'eleves', 'professeurs', 'matieres');
+            return view('admin.absences.index', $viewData);
+        }
+        
+        // Prepare data for the response
+        $data = [
+            'absences' => $absences,
+            'filters' => $filters,
+            'eleves' => $eleves,
+            'professeurs' => $professeurs,
+            'matieres' => $matieres,
+            'stats' => $stats,
+            'can' => [
+                'create' => $user->can('create', Absence::class),
+                'update' => $user->can('update', Absence::class),
+                'delete' => $user->can('delete', Absence::class),
+            ]
+        ];
+        
+        return $this->respond($data, 'Admin/Absences/Index');
+    }
+
+    /**
+     * Affiche le formulaire de création d'une nouvelle absence
+     *
+     * @return mixed
+     * @throws \Illuminate\Auth\Access\AuthorizationException
+     */
+    public function create()
+    {
+        $this->authorize('create', Absence::class);
+        
+        $eleves = User::where('role', RoleType::ELEVE)
+            ->where('status', 'actif')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
+            
+        $professeurs = User::where('role', RoleType::PROFESSEUR)
+            ->where('status', 'actif')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
+            
+        $matieres = Matiere::orderBy('nom')->get(['id', 'nom']);
+        
+        $data = [
+            'eleves' => $eleves,
+            'professeurs' => $professeurs,
+            'matieres' => $matieres,
+            'defaults' => [
+                'date_absence' => now()->format('Y-m-d'),
+                'heure_debut' => '08:00',
+                'heure_fin' => '09:00',
+                'heures_manquees' => 1,
+            ]
+        ];
+        
+        return $this->respond($data, 'Admin/Absences/Create');
+}
+
+    /**
+     * Enregistre une nouvelle absence dans la base de données
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return mixed
+     * @throws \Illuminate\Auth\Access\AuthorizationException
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    public function store(Request $request)
+    {
+        $this->authorize('create', Absence::class);
+        
+        // Validation de la requête
+        $validated = $request->validate($this->validationRules['store']);
+        
+        // Gestion du téléchargement du fichier si présent
+        if ($request->hasFile('justificatif')) {
+            $path = $request->file('justificatif')->store('justificatifs', 'public');
+            $validated['justificatif_path'] = $path;
+    }
+    
+    // Calculate hours if not provided
+    if (!isset($validated['heures_manquees'])) {
+        $start = Carbon::parse($validated['heure_debut']);
+        $end = Carbon::parse($validated['heure_fin']);
+        $validated['heures_manquees'] = $end->diffInHours($start);
+    }
+    
+        // Vérification de l'élève
+        $eleve = User::with('matieres')->findOrFail($validated['eleve_id']);
+        if ($eleve->role !== RoleType::ELEVE || $eleve->status !== 'actif') {
+            return $this->errorResponse(
+                'Seuls les élèves actifs peuvent être marqués absents.',
+                $request->wantsJson()
+            );
+        }
+        
+        // Vérification du professeur
+        $professeur = User::findOrFail($validated['professeur_id']);
+        if ($professeur->role !== RoleType::PROFESSEUR || $professeur->status !== 'actif') {
+            return $this->errorResponse(
+                'Seuls les professeurs actifs peuvent enregistrer des absences.',
+                $request->wantsJson()
+            );
+        }
+        
+        // Vérification de la matière et de l'inscription de l'élève
+        $matiere = Matiere::findOrFail($validated['matiere_id']);
+        if (!$eleve->matieres->contains($matiere->id)) {
+            return $this->errorResponse(
+                'L\'élève n\'est pas inscrit à cette matière.',
+                $request->wantsJson()
+            );
+        }
+    
+        try {
+            DB::beginTransaction();
+            
+            $absence = Absence::create($validated);
+            
+            // Événement de création d'absence (pour notifications, etc.)
+            event(new AbsenceCreated($absence));
+            
+            DB::commit();
+            
+            // Réponse API
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Absence enregistrée avec succès',
+                    'data' => $absence->load(['eleve', 'matiere', 'professeur'])
+                ], 201);
+            }
+            
+            // Réponse Web
+            return redirect()->route('admin.absences.index')
+                ->with('success', 'Absence enregistrée avec succès');
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Erreur lors de la création de l\'absence: ' . $e->getMessage());
+            
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Une erreur est survenue lors de l\'enregistrement de l\'absence.'
+                ], 500);
+            }
+            
+            return back()
+                ->with('error', 'Une erreur est survenue lors de l\'enregistrement de l\'absence.')
+                ->withInput();
+        }
+    }
+
+    /**
+     * Display the specified absence.
+     *
+{{ ... }}
      * @param  \App\Models\Absence  $absence
-     * @return \Illuminate\View\View
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\View\View
      */
     public function show(Absence $absence)
     {
-        $absence->load(['eleve', 'matiere', 'professeur', 'enregistrePar']);
-        return view('admin.absences.show', compact('absence'));
+        $this->authorize('view', $absence);
+        
+        // Load relationships
+        $absence->load([
+            'eleve:id,name,email', 
+            'matiere:id,nom', 
+            'professeur:id,name',
+            'enregistrePar:id,name'
+        ]);
+        
+        // Handle API response
+        if (request()->wantsJson()) {
+            return response()->json([
+                'data' => $absence
+            ]);
+        }
+        
+        // Handle web response
+        return $this->respond($absence, 'Admin/Absences/Show', [
+            'can' => [
+                'update' => auth()->user()->can('update', $absence),
+                'delete' => auth()->user()->can('delete', $absence)
+            ]
+        ]);
     }
 
     /**
@@ -190,21 +443,52 @@ class AbsenceController extends Controller
      * @param  \App\Models\Absence  $absence
      * @return \Illuminate\View\View
      */
+    /**
+     * Show the form for editing the specified absence.
+     *
+     * @param  \App\Models\Absence  $absence
+     * @return \Illuminate\View\View|\Illuminate\Http\JsonResponse
+     */
     public function edit(Absence $absence)
     {
-        $eleves = User::where('role', 'eleve')
-            ->where('status', 'actif')
-            ->orderBy('name')
-            ->get();
-            
-        $professeurs = User::where('role', 'professeur')
-            ->where('status', 'actif')
-            ->orderBy('name')
-            ->get();
-            
-        $matieres = Matiere::orderBy('nom')->get();
+        $this->authorize('update', $absence);
         
-        return view('admin.absences.edit', compact('absence', 'eleves', 'professeurs', 'matieres'));
+        // Load relationships
+        $absence->load(['eleve', 'matiere', 'professeur']);
+        
+        // Get active students, teachers, and subjects for the form
+        $eleves = User::where('role', RoleType::ELEVE)
+            ->where('status', 'actif')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
+            
+        $professeurs = User::where('role', RoleType::PROFESSEUR)
+            ->where('status', 'actif')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
+            
+        $matieres = Matiere::orderBy('nom')->get(['id', 'nom']);
+        
+        // Prepare data for the view
+        $data = [
+            'absence' => $absence,
+            'eleves' => $eleves,
+            'professeurs' => $professeurs,
+            'matieres' => $matieres,
+            'statuts' => [
+                'non_justifiee' => 'Non justifiée',
+                'justifiee' => 'Justifiée',
+                'en_attente' => 'En attente de validation'
+            ]
+        ];
+        
+        // Handle API response
+        if (request()->wantsJson()) {
+            return response()->json(['data' => $data]);
+        }
+        
+        // Handle web response
+        return $this->respond($data, 'Admin/Absences/Edit');
     }
 
     /**
@@ -214,90 +498,104 @@ class AbsenceController extends Controller
      * @param  \App\Models\Absence  $absence
      * @return \Illuminate\Http\RedirectResponse
      */
+    /**
+     * Update the specified absence in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\Absence  $absence
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+     */
     public function update(Request $request, Absence $absence)
     {
-        $validated = $request->validate([
+        $this->authorize('update', $absence);
+        
+        // Define validation rules
+        $rules = [
             'eleve_id' => 'required|exists:users,id',
             'matiere_id' => 'required|exists:matieres,id',
             'professeur_id' => 'required|exists:users,id',
             'date_absence' => 'required|date',
             'heure_debut' => 'required|date_format:H:i',
             'heure_fin' => 'required|date_format:H:i|after:heure_debut',
-            'motif' => 'nullable|string|max:1000',
-            'commentaire' => 'nullable|string|max:1000',
-            'statut' => 'required|in:en_attente,justifiee,non_justifiee',
-        ]);
+            'motif' => 'nullable|string|max:255',
+            'commentaire' => 'nullable|string',
+            'statut' => 'required|in:non_justifiee,justifiee,en_attente',
+            'justificatif' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+        ];
         
-        // Vérifier que l'élève est bien actif
-        $eleve = User::findOrFail($validated['eleve_id']);
-        if ($eleve->role !== 'eleve' || $eleve->status !== 'actif') {
+        // Validate the request
+        $validated = $request->validate($rules);
+        
+        // Handle file upload if present
+        if ($request->hasFile('justificatif')) {
+            // Delete old file if exists
+            if ($absence->justificatif_path) {
+                Storage::disk('public')->delete($absence->justificatif_path);
+            }
+            
+            // Store new file
+            $path = $request->file('justificatif')->store('justificatifs', 'public');
+            $validated['justificatif_path'] = $path;
+            
+            // Update status if a justificatif is uploaded
+            if ($validated['statut'] === 'non_justifiee') {
+                $validated['statut'] = 'en_attente';
+            }
+        }
+        
+        // Calculate duration in minutes
+        $debut = Carbon::parse($validated['date_absence'] . ' ' . $validated['heure_debut']);
+        $fin = Carbon::parse($validated['date_absence'] . ' ' . $validated['heure_fin']);
+        $validated['duree_minutes'] = $fin->diffInMinutes($debut);
+        
+        // Check if student is active
+        $eleve = User::with('matieres')->findOrFail($validated['eleve_id']);
+        if ($eleve->role !== RoleType::ELEVE || $eleve->status !== 'actif') {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => 'Seuls les élèves actifs peuvent être marqués absents.'
+                ], 422);
+            }
             return back()->with('error', 'Seuls les élèves actifs peuvent être marqués absents.');
         }
         
-        // Vérifier que le professeur est bien un professeur actif
+        // Check if teacher is active
         $professeur = User::findOrFail($validated['professeur_id']);
-        if ($professeur->role !== 'professeur' || $professeur->status !== 'actif') {
-            return back()->with('error', 'Le professeur sélectionné n\'est pas valide.');
+        if ($professeur->role !== RoleType::PROFESSEUR || $professeur->status !== 'actif') {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => 'Seuls les professeurs actifs peuvent enregistrer des absences.'
+                ], 422);
+            }
+            return back()->with('error', 'Seuls les professeurs actifs peuvent enregistrer des absences.');
         }
         
-        // Vérifier que la matière existe
+        // Check if subject exists and student is enrolled
         $matiere = Matiere::findOrFail($validated['matiere_id']);
-        
-        // Vérifier que l'élève est inscrit à la matière
         if (!$eleve->matieres->contains($matiere->id)) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => 'L\'élève n\'est pas inscrit à cette matière.'
+                ], 422);
+            }
             return back()->with('error', 'L\'élève n\'est pas inscrit à cette matière.');
         }
         
-        // Vérifier que le professeur enseigne cette matière
-        if (!$professeur->matieresEnseignees->contains($matiere->id)) {
-            return back()->with('error', 'Le professeur n\'enseigne pas cette matière.');
+        // Update the absence
+        $absence->update($validated);
+        
+        // Handle API response
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Absence mise à jour avec succès',
+                'data' => $absence->load(['eleve', 'matiere', 'professeur'])
+            ]);
         }
         
-        // Calculer la durée en minutes
-        $debut = Carbon::parse($validated['date_absence'] . ' ' . $validated['heure_debut']);
-        $fin = Carbon::parse($validated['date_absence'] . ' ' . $validated['heure_fin']);
-        $duree_minutes = $fin->diffInMinutes($debut);
-        
-        // Vérifier les chevauchements d'absences (sauf pour l'absence actuelle)
-        $chevauchant = Absence::where('id', '!=', $absence->id)
-            ->where('eleve_id', $eleve->id)
-            ->where('date_absence', $validated['date_absence'])
-            ->where(function($query) use ($debut, $fin) {
-                $query->where(function($q) use ($debut, $fin) {
-                    $q->where('heure_debut', '<=', $debut->format('H:i:s'))
-                      ->where('heure_fin', '>', $debut->format('H:i:s'));
-                })->orWhere(function($q) use ($debut, $fin) {
-                    $q->where('heure_debut', '<', $fin->format('H:i:s'))
-                      ->where('heure_fin', '>=', $fin->format('H:i:s'));
-                })->orWhere(function($q) use ($debut, $fin) {
-                    $q->where('heure_debut', '>=', $debut->format('H:i:s'))
-                      ->where('heure_fin', '<=', $fin->format('H:i:s'));
-                });
-            })
-            ->exists();
-            
-        if ($chevauchant) {
-            return back()->with('error', 'L\'élève a déjà une absence qui chevauche cette plage horaire.');
-        }
-        
-        // Mettre à jour l'absence
-        $absence->update([
-            'eleve_id' => $validated['eleve_id'],
-            'matiere_id' => $validated['matiere_id'],
-            'professeur_id' => $validated['professeur_id'],
-            'date_absence' => $validated['date_absence'],
-            'heure_debut' => $validated['heure_debut'],
-            'heure_fin' => $validated['heure_fin'],
-            'duree_minutes' => $duree_minutes,
-            'motif' => $validated['motif'] ?? null,
-            'commentaire' => $validated['commentaire'] ?? null,
-            'statut' => $validated['statut'],
-            'traite_par' => $validated['statut'] !== 'en_attente' ? auth()->id() : null,
-            'date_traitement' => $validated['statut'] !== 'en_attente' ? now() : null,
-        ]);
-        
-        return redirect()->route('admin.absences.show', $absence)
-            ->with('success', 'Absence mise à jour avec succès.');
+        // Handle web response
+        $redirectRoute = $request->input('_redirect', route('admin.absences.show', $absence));
+        return redirect($redirectRoute)
+            ->with('success', 'Absence mise à jour avec succès');
     }
 
     /**
@@ -307,24 +605,63 @@ class AbsenceController extends Controller
      * @param  \App\Models\Absence  $absence
      * @return \Illuminate\Http\RedirectResponse
      */
+    /**
+     * Mark an absence as justified with an optional file upload.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\Absence  $absence
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+     */
     public function justifier(Request $request, Absence $absence)
     {
+        $this->authorize('update', $absence);
+        
         $validated = $request->validate([
+            'justificatif' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
             'commentaire' => 'nullable|string|max:1000',
         ]);
         
-        if ($absence->statut === 'justifiee') {
-            return back()->with('info', 'Cette absence est déjà justifiée.');
+        // Handle file upload
+        if ($request->hasFile('justificatif')) {
+            // Delete old file if exists
+            if ($absence->justificatif_path) {
+                Storage::disk('public')->delete($absence->justificatif_path);
+            }
+            
+            // Store new file
+            $path = $request->file('justificatif')->store('justificatifs', 'public');
+            
+            // Update absence
+            $absence->update([
+                'statut' => 'justifiee',
+                'justificatif_path' => $path,
+                'commentaire' => $validated['commentaire'] ?? $absence->commentaire,
+                'justifie_le' => now(),
+                'justifie_par' => auth()->id(),
+            ]);
+            
+            // Handle API response
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => 'Absence justifiée avec succès',
+                    'data' => $absence->load(['eleve', 'matiere', 'professeur'])
+                ]);
+            }
+            
+            // Handle web response
+            return redirect()
+                ->route('admin.absences.show', $absence)
+                ->with('success', 'Absence justifiée avec succès');
         }
         
-        $absence->update([
-            'statut' => 'justifiee',
-            'commentaire' => $validated['commentaire'] ?? $absence->commentaire,
-            'traite_par' => auth()->id(),
-            'date_traitement' => now(),
-        ]);
+        // If no file was uploaded but the method was called
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Aucun justificatif fourni',
+            ], 422);
+        }
         
-        return back()->with('success', 'L\'absence a été marquée comme justifiée.');
+        return back()->with('error', 'Aucun justificatif fourni');
     }
 
     /**
@@ -334,23 +671,45 @@ class AbsenceController extends Controller
      * @param  \App\Models\Absence  $absence
      * @return \Illuminate\Http\RedirectResponse
      */
+    /**
+     * Mark an absence as unjustified.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\Absence  $absence
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+     */
     public function nonJustifier(Request $request, Absence $absence)
     {
-        $validated = $request->validate([
-            'commentaire' => 'nullable|string|max:1000',
-        ]);
+        $this->authorize('update', $absence);
         
+        // If already marked as non-justified
         if ($absence->statut === 'non_justifiee') {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => 'Cette absence est déjà marquée comme non justifiée',
+                ], 422);
+            }
             return back()->with('info', 'Cette absence est déjà marquée comme non justifiée.');
         }
         
+        // Update the absence status
         $absence->update([
             'statut' => 'non_justifiee',
-            'commentaire' => $validated['commentaire'] ?? $absence->commentaire,
+            'justifie_le' => null,
+            'justifie_par' => null,
             'traite_par' => auth()->id(),
             'date_traitement' => now(),
         ]);
         
+        // Handle API response
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Absence marquée comme non justifiée avec succès',
+                'data' => $absence->load(['eleve', 'matiere', 'professeur'])
+            ]);
+        }
+        
+        // Handle web response
         return back()->with('success', 'L\'absence a été marquée comme non justifiée.');
     }
 
@@ -360,12 +719,39 @@ class AbsenceController extends Controller
      * @param  \App\Models\Absence  $absence
      * @return \Illuminate\Http\RedirectResponse
      */
+    /**
+     * Remove the specified absence from storage.
+     *
+     * @param  \App\Models\Absence  $absence
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+     */
     public function destroy(Absence $absence)
     {
+        $this->authorize('delete', $absence);
+        
+        // Delete the justificatif file if it exists
+        if ($absence->justificatif_path) {
+            Storage::disk('public')->delete($absence->justificatif_path);
+        }
+        
+        // Store the absence data for the response
+        $absenceData = $absence->load(['eleve', 'matiere', 'professeur']);
+        
+        // Delete the absence
         $absence->delete();
         
-        return redirect()->route('admin.absences.index')
-            ->with('success', 'L\'absence a été supprimée avec succès.');
+        // Handle API response
+        if (request()->wantsJson()) {
+            return response()->json([
+                'message' => 'Absence supprimée avec succès',
+                'data' => $absenceData
+            ]);
+        }
+        
+        // Handle web response
+        return redirect()
+            ->route('admin.absences.index')
+            ->with('success', 'Absence supprimée avec succès');
     }
     
     /**
@@ -374,80 +760,105 @@ class AbsenceController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\View\View
      */
+    /**
+     * Generate an absence report with filtering options.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View|\Illuminate\Http\JsonResponse
+     */
     public function rapport(Request $request)
     {
-        $query = Absence::with(['eleve', 'matiere', 'professeur'])
-            ->select(
-                'absences.*',
-                DB::raw('YEAR(date_absence) as annee'),
-                DB::raw('MONTH(date_absence) as mois')
-            )
-            ->orderBy('date_absence', 'desc');
+        $this->authorize('viewAny', Absence::class);
+        
+        // Get filter parameters
+        $filters = [
+            'eleve_id' => $request->input('eleve_id'),
+            'matiere_id' => $request->input('matiere_id'),
+            'professeur_id' => $request->input('professeur_id'),
+            'statut' => $request->input('statut'),
+            'date_debut' => $request->input('date_debut'),
+            'date_fin' => $request->input('date_fin'),
+            'classe_id' => $request->input('classe_id'),
+        ];
+        
+        // Start building the query
+        $query = Absence::with(['eleve', 'matiere', 'professeur']);
+        
+        // Apply filters
+        if (!empty($filters['eleve_id'])) {
+            $query->where('eleve_id', $filters['eleve_id']);
+        }
+        
+        if (!empty($filters['matiere_id'])) {
+            $query->where('matiere_id', $filters['matiere_id']);
+        }
+        
+        if (!empty($filters['professeur_id'])) {
+            $query->where('professeur_id', $filters['professeur_id']);
+        }
+        
+        if (!empty($filters['statut'])) {
+            $query->where('statut', $filters['statut']);
+        }
+        
+        if (!empty($filters['date_debut'])) {
+            $query->whereDate('date_absence', '>=', $filters['date_debut']);
+        }
+        
+        if (!empty($filters['date_fin'])) {
+            $query->whereDate('date_absence', '<=', $filters['date_fin']);
+        }
+        
+        // Filter by class if specified
+        if (!empty($filters['classe_id'])) {
+            $query->whereHas('eleve', function($q) use ($filters) {
+                $q->where('classe_id', $filters['classe_id']);
+            });
+        }
+        
+        // Get the results with pagination
+        $absences = $query->orderBy('date_absence', 'desc')
+                         ->orderBy('heure_debut', 'desc')
+                         ->paginate(25);
+        
+        // Get filter options
+        $eleves = User::where('role', RoleType::ELEVE)
+            ->where('status', 'actif')
+            ->orderBy('name')
+            ->get(['id', 'name']);
             
-        // Filtrage par année
-        $annee = $request->input('annee', date('Y'));
-        $query->whereYear('date_absence', $annee);
-        
-        // Filtrage par mois
-        if ($request->has('mois') && $request->mois) {
-            $query->whereMonth('date_absence', $request->mois);
-        }
-        
-        // Filtrage par statut
-        if ($request->has('statut') && $request->statut) {
-            $query->where('statut', $request->statut);
-        }
-        
-        // Filtrage par élève
-        if ($request->has('eleve_id') && $request->eleve_id) {
-            $query->where('eleve_id', $request->eleve_id);
-        }
-        
-        // Filtrage par professeur
-        if ($request->has('professeur_id') && $request->professeur_id) {
-            $query->where('professeur_id', $request->professeur_id);
-        }
-        
-        // Filtrage par matière
-        if ($request->has('matiere_id') && $request->matiere_id) {
-            $query->where('matiere_id', $request->matiere_id);
-        }
-        
-        $absences = $query->get();
-        
-        // Calcul des statistiques
-        $totalAbsences = $absences->count();
-        $totalHeures = $absences->sum('duree_minutes') / 60;
-        $moyenneParEleve = $absences->groupBy('eleve_id')->count() > 0 
-            ? $totalAbsences / $absences->groupBy('eleve_id')->count() 
-            : 0;
+        $professeurs = User::where('role', RoleType::PROFESSEUR)
+            ->where('status', 'actif')
+            ->orderBy('name')
+            ->get(['id', 'name']);
             
-        $parMatiere = $absences->groupBy('matiere.nom')->map(function($absences) {
-            return [
-                'count' => $absences->count(),
-                'heures' => $absences->sum('duree_minutes') / 60,
-            ];
-        });
+        $matieres = Matiere::orderBy('nom')->get(['id', 'nom']);
         
-        $parStatut = $absences->groupBy('statut')->map->count();
+        $classes = Classe::orderBy('nom')->get(['id', 'nom']);
         
-        $eleves = User::where('role', 'eleve')->orderBy('name')->get();
-        $professeurs = User::where('role', 'professeur')->orderBy('name')->get();
-        $matieres = Matiere::orderBy('nom')->get();
-        $annees = range(date('Y') - 5, date('Y') + 1);
+        // Prepare data for the view
+        $data = [
+            'absences' => $absences,
+            'eleves' => $eleves,
+            'professeurs' => $professeurs,
+            'matieres' => $matieres,
+            'classes' => $classes,
+            'filters' => $filters,
+            'statuts' => [
+                'non_justifiee' => 'Non justifiée',
+                'justifiee' => 'Justifiée',
+                'en_attente' => 'En attente de validation'
+            ]
+        ];
         
-        return view('admin.absences.rapport', compact(
-            'absences',
-            'totalAbsences',
-            'totalHeures',
-            'moyenneParEleve',
-            'parMatiere',
-            'parStatut',
-            'eleves',
-            'professeurs',
-            'matieres',
-            'annees',
-            'annee'
-        ));
+        // Handle API response
+        if ($request->wantsJson()) {
+            return response()->json([
+                'data' => $data
+            ]);
+        }
+        
+        // Handle web response
+        return $this->respond($data, 'Admin/Absences/Rapport');
     }
 }

@@ -16,7 +16,6 @@ class Cours extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'classe_id',
         'matiere_id',
         'enseignant_id',
         'date',
@@ -54,14 +53,6 @@ class Cours extends Model
         'statut' => 'planifié',
         'est_valide' => false,
     ];
-
-    /**
-     * Get the classe that owns the cours.
-     */
-    public function classe(): BelongsTo
-    {
-        return $this->belongsTo(Classe::class);
-    }
 
     /**
      * Get the matiere that owns the cours.

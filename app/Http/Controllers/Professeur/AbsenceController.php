@@ -166,16 +166,9 @@ class AbsenceController extends Controller
                 ->get(['id', 'nom']);
         }, $this->cacheTtl);
         
-        // Récupérer les étudiants des classes du professeur avec mise en cache
-        $etudiants = $this->cached('etudiants_prof_' . Auth::id(), function() {
-            return Etudiant::whereHas('inscriptions', function($query) {
-                    $query->whereIn('classe_id', function($q) {
-                        $q->select('classe_id')
-                          ->from('enseignements')
-                          ->where('professeur_id', Auth::id());
-                    });
-                })
-                ->with('user:id,nom,prenom')
+        // Récupérer tous les étudiants avec mise en cache
+        $etudiants = $this->cached('tous_etudiants', function() {
+            return Etudiant::with('user:id,nom,prenom')
                 ->orderBy('nom')
                 ->get(['id', 'user_id', 'numero_etudiant'])
                 ->map(function($etudiant) {

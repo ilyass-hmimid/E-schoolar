@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Professeur;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\OptimizedQueries;
-use App\Models\Classe;
 use App\Models\Etudiant;
 use App\Models\Matiere;
 use App\Models\Presence;
@@ -48,7 +47,7 @@ class PresenceController extends Controller
     {
         // Récupérer les filtres de la requête
         $filters = $request->only([
-            'etudiant_id', 'matiere_id', 'classe_id', 
+            'etudiant_id', 'matiere_id', 
             'date_debut', 'date_fin', 'statut'
         ]);
         
@@ -67,9 +66,6 @@ class PresenceController extends Controller
         return inertia('Professeur/Presences/Index', [
             'presences' => $presences,
             'filters' => $filters,
-            'classes' => $this->cached('classes_list', function() {
-                return Classe::select('id', 'nom')->get();
-            }, 1440), // Mise en cache pour 24h
             'matieres' => $this->cached('matieres_list', function() {
                 return Matiere::select('id', 'nom')->get();
             }, 1440), // Mise en cache pour 24h
@@ -84,9 +80,6 @@ class PresenceController extends Controller
     public function create()
     {
         return inertia('Professeur/Presences/Create', [
-            'classes' => $this->cached('classes_list', function() {
-                return Classe::select('id', 'nom')->get();
-            }, 1440), // Mise en cache pour 24h
             'matieres' => $this->cached('matieres_list', function() {
                 return Matiere::select('id', 'nom')->get();
             }, 1440), // Mise en cache pour 24h
@@ -104,7 +97,6 @@ class PresenceController extends Controller
         $validated = $request->validate([
             'etudiant_id' => 'required|exists:etudiants,id',
             'matiere_id' => 'required|exists:matieres,id',
-            'classe_id' => 'required|exists:classes,id',
             'date_seance' => 'required|date',
             'heure_debut' => 'required|date_format:H:i',
             'heure_fin' => 'required|date_format:H:i|after:heure_debut',
@@ -121,7 +113,6 @@ class PresenceController extends Controller
                 ]
             ],
             'matiere_id' => $validated['matiere_id'],
-            'classe_id' => $validated['classe_id'],
             'date_seance' => $validated['date_seance'],
             'heure_debut' => $validated['heure_debut'],
             'heure_fin' => $validated['heure_fin'],
@@ -169,7 +160,6 @@ class PresenceController extends Controller
         $validated = $request->validate([
             'etudiant_id' => 'required|exists:etudiants,id',
             'matiere_id' => 'required|exists:matieres,id',
-            'classe_id' => 'required|exists:classes,id',
             'date_seance' => 'required|date',
             'heure_debut' => 'required|date_format:H:i',
             'heure_fin' => 'required|date_format:H:i|after:heure_debut',
@@ -219,23 +209,21 @@ class PresenceController extends Controller
     }
     
     /**
-     * Récupère les étudiants d'une classe pour une matière donnée
+     * Récupère les étudiants pour une matière donnée
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getEtudiantsByClasseMatiere(Request $request)
+    public function getEtudiantsByMatiere(Request $request)
     {
         $request->validate([
-            'classe_id' => 'required|exists:classes,id',
             'matiere_id' => 'required|exists:matieres,id',
         ]);
         
-        $cacheKey = 'etudiants_classe_' . $request->classe_id . '_matiere_' . $request->matiere_id;
+        $cacheKey = 'etudiants_matiere_' . $request->matiere_id;
         
         $etudiants = $this->cached($cacheKey, function() use ($request) {
-            return Etudiant::where('classe_id', $request->classe_id)
-                ->with(['user:id,nom,prenom'])
+            return Etudiant::with(['user:id,nom,prenom'])
                 ->select('id', 'user_id', 'numero_etudiant')
                 ->get()
                 ->map(function($etudiant) {
@@ -252,7 +240,7 @@ class PresenceController extends Controller
     }
     
     /**
-     * Affiche le formulaire de marquage des présences pour une classe et une matière
+     * Affiche le formulaire de marquage des présences pour une matière
      *
      * @param Request $request
      * @return \Inertia\Response
@@ -260,18 +248,15 @@ class PresenceController extends Controller
     public function showMarquerPresences(Request $request)
     {
         $request->validate([
-            'classe_id' => 'required|exists:classes,id',
             'matiere_id' => 'required|exists:matieres,id',
             'date_seance' => 'required|date',
         ]);
         
-        $classe = Classe::findOrFail($request->classe_id);
         $matiere = Matiere::findOrFail($request->matiere_id);
         
-        // Récupérer les étudiants de la classe avec mise en cache
-        $etudiants = $this->cached('etudiants_classe_' . $classe->id, function() use ($classe) {
-            return $classe->etudiants()
-                ->with(['user:id,nom,prenom'])
+        // Récupérer les étudiants avec mise en cache
+        $etudiants = $this->cached('etudiants_matiere_' . $matiere->id, function() use ($matiere) {
+            return Etudiant::with(['user:id,nom,prenom'])
                 ->select('id', 'user_id', 'numero_etudiant')
                 ->get()
                 ->map(function($etudiant) {
@@ -287,7 +272,6 @@ class PresenceController extends Controller
         }, 60); // Mise en cache pendant 1 heure
         
         return inertia('Professeur/Presences/Marquer', [
-            'classe' => $classe,
             'matiere' => $matiere,
             'etudiants' => $etudiants,
             'date_seance' => $request->date_seance,
@@ -305,7 +289,6 @@ class PresenceController extends Controller
     public function marquerPresences(Request $request)
     {
         $validated = $request->validate([
-            'classe_id' => 'required|exists:classes,id',
             'matiere_id' => 'required|exists:matieres,id',
             'date_seance' => 'required|date',
             'heure_debut' => 'required|date_format:H:i',
@@ -320,7 +303,6 @@ class PresenceController extends Controller
         
         // Préparer les données pour le service
         $data = [
-            'classe_id' => $validated['classe_id'],
             'matiere_id' => $validated['matiere_id'],
             'date_seance' => $validated['date_seance'],
             'heure_debut' => $validated['heure_debut'],

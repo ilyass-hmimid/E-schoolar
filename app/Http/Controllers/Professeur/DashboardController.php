@@ -8,7 +8,6 @@ use App\Models\Enseignement;
 use App\Models\Note;
 use App\Models\Eleve;
 use App\Models\Matiere;
-use App\Models\Classe;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -29,7 +28,7 @@ class DashboardController extends Controller
         // Récupérer les enseignements actuels
         $enseignements = Enseignement::where('professeur_id', $professeur->id)
             ->where('date_fin', '>=', $maintenant)
-            ->with(['classe', 'matiere'])
+            ->with(['matiere'])
             ->get();
             
         // Récupérer les enseignements du mois dernier pour comparaison
@@ -38,10 +37,10 @@ class DashboardController extends Controller
             ->get();
         
         // Récupérer les élèves actuels
-        $eleves = Eleve::whereIn('classe_id', $enseignements->pluck('classe_id'))->get();
+        $eleves = Eleve::all();
         
         // Récupérer les élèves du mois dernier
-        $elevesMoisDernier = Eleve::whereIn('classe_id', $enseignementsMoisDernier->pluck('classe_id'))->get();
+        $elevesMoisDernier = Eleve::where('created_at', '<=', $moisDernier)->get();
         
         // Récupérer la moyenne générale actuelle
         $moyenneGenerale = Note::whereHas('enseignement', function($query) use ($professeur) {
@@ -51,13 +50,13 @@ class DashboardController extends Controller
         // Récupérer les prochains cours (7 prochains jours)
         $prochainsCours = $professeur->cours()
             ->whereBetween('date_debut', [$maintenant, $maintenant->copy()->addWeek()])
-            ->with(['classe', 'matiere'])
+            ->with(['matiere'])
             ->orderBy('date_debut')
             ->get();
             
         // Récupérer les derniers devoirs créés
         $derniersDevoirs = $professeur->devoirs()
-            ->with(['classe', 'matiere'])
+            ->with(['matiere'])
             ->latest()
             ->take(5)
             ->get();
@@ -83,7 +82,7 @@ class DashboardController extends Controller
             
         // Statistiques
         $stats = [
-            'total_classes' => $enseignements->count(),
+            'total_enseignements' => $enseignements->count(),
             'total_eleves' => $eleves->count(),
             'cours_ce_mois' => $professeur->cours()
                 ->whereMonth('date_debut', $maintenant->month)
@@ -94,10 +93,10 @@ class DashboardController extends Controller
         ];
         
         // Calculer les évolutions
-        $nbClasses = $enseignements->groupBy('classe_id')->count();
-        $nbClassesMoisDernier = $enseignementsMoisDernier->groupBy('classe_id')->count();
-        $evolutionClasses = $nbClassesMoisDernier > 0 
-            ? round((($nbClasses - $nbClassesMoisDernier) / $nbClassesMoisDernier) * 100, 1)
+        $nbEnseignements = $enseignements->count();
+        $nbEnseignementsMoisDernier = $enseignementsMoisDernier->count();
+        $evolutionEnseignements = $nbEnseignementsMoisDernier > 0 
+            ? round((($nbEnseignements - $nbEnseignementsMoisDernier) / $nbEnseignementsMoisDernier) * 100, 1)
             : 0;
             
         $evolutionEleves = $elevesMoisDernier->count() > 0 
@@ -114,7 +113,6 @@ class DashboardController extends Controller
             : 0;
 
         return view('professeur.dashboard', [
-            'classes' => $enseignements->pluck('classe')->unique(),
             'prochains_cours' => $prochainsCours,
             'derniers_devoirs' => $derniersDevoirs,
             'dernieres_notes' => $dernieresNotes,
@@ -123,7 +121,7 @@ class DashboardController extends Controller
             'aujourdhui' => $maintenant->format('d/m/Y'),
             'moyenne_generale' => $moyenneGenerale,
             'enseignements' => $enseignements,
-            'evolution_classes' => $evolutionClasses,
+            'evolution_enseignements' => $evolutionEnseignements,
             'evolution_eleves' => $evolutionEleves,
             'evolution_moyenne' => $evolutionMoyenne
         ]);
