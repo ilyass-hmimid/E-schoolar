@@ -134,6 +134,12 @@
                     </div>
                 @endif
                 
+                @if (session('warning'))
+                    <div class="mb-6 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded" role="alert">
+                        <p>{{ session('warning') }}</p>
+                    </div>
+                @endif
+                
                 @if ($errors->any())
                     <div class="mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded" role="alert">
                         <ul class="list-disc list-inside">

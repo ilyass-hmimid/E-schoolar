@@ -7,14 +7,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
-class LoginController extends Controller
+class NewLoginController extends Controller
 {
     /**
-     * Afficher le formulaire de connexion
+     * Affiche le formulaire de connexion
      */
     public function showLoginForm()
     {
-        // Si l'utilisateur est déjà connecté, rediriger vers le tableau de bord
         if (auth()->check()) {
             return redirect()->route('admin.dashboard');
         }
@@ -23,37 +22,31 @@ class LoginController extends Controller
     }
 
     /**
-     * Traiter la tentative de connexion
+     * Traite la tentative de connexion
      */
     public function login(Request $request)
     {
-        // Si l'utilisateur est déjà connecté, rediriger vers le tableau de bord
         if (auth()->check()) {
             return redirect()->route('admin.dashboard');
         }
 
-        // Validation basique
         $credentials = $request->validate([
             'email' => 'required|email',
             'password' => 'required',
         ]);
 
-        // Tentative de connexion
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
-            
-            // Rediriger vers l'URL demandée ou le tableau de bord par défaut
             return redirect()->intended(route('admin.dashboard'));
         }
 
-        // En cas d'échec
-        return back()->withErrors([
+        throw ValidationException::withMessages([
             'email' => 'Email ou mot de passe incorrect.',
-        ])->onlyInput('email');
+        ]);
     }
 
     /**
-     * Déconnexion de l'utilisateur
+     * Déconnecte l'utilisateur
      */
     public function logout(Request $request)
     {

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\BaseAdminController;
 use App\Models\Paiement;
 use App\Models\User;
 use App\Models\Matiere;
@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
-class PaiementController extends Controller
+class PaiementController extends BaseAdminController
 {
     /**
      * Affiche la liste des paiements

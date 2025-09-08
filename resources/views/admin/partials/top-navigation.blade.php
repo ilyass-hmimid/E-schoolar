@@ -63,14 +63,7 @@
                     aria-labelledby="user-menu"
                     style="display: none;"
                 >
-                    <a href="{{ route('admin.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" role="menuitem">
-                        <i class="fas fa-user-circle mr-2"></i> Mon profil
-                    </a>
-                    <a href="{{ route('admin.settings') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" role="menuitem">
-                        <i class="fas fa-cog mr-2"></i> Paramètres
-                    </a>
-                    <div class="border-t border-gray-100 dark:border-gray-700 my-1"></div>
-                    <form method="POST" action="{{ route('admin.logout') }}" class="block w-full text-left">
+                    <form method="POST" action="{{ route('logout') }}" class="block w-full text-left">
                         @csrf
                         <button type="submit" class="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700" role="menuitem">
                             <i class="fas fa-sign-out-alt mr-2"></i> Déconnexion

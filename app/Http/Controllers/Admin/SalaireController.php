@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Salaire;
 use App\Models\User;
 use App\Models\Paiement;
+use App\Models\Professeur;
 use App\Exports\SalairesExport;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -18,6 +19,66 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class SalaireController extends Controller
 {
+    /**
+     * Affiche la liste des salaires
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
+     */
+    /**
+     * Génère les salaires mensuels pour tous les professeurs
+     * 
+     * @param string $mois Le mois au format 'YYYY-MM' (optionnel, par défaut le mois en cours)
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function generateSalairesMensuels($mois = null)
+    {
+        $mois = $mois ?? now()->format('Y-m');
+        $dateDebut = Carbon::parse($mois . '-01')->startOfMonth();
+        $dateFin = $dateDebut->copy()->endOfMonth();
+        
+        $resultats = [];
+        $professeurs = Professeur::with('matieres.eleves')->get();
+        
+        foreach ($professeurs as $professeur) {
+            $salaire = $professeur->calculateSalaireMensuel($mois);
+            
+            // Enregistrer le salaire dans la base de données
+            $salaireEnregistre = Salaire::updateOrCreate(
+                [
+                    'professeur_id' => $professeur->id,
+                    'periode' => $dateDebut->format('Y-m'),
+                ],
+                [
+                    'reference' => 'SAL-' . strtoupper(Str::random(8)),
+                    'salaire_brut' => $salaire['salaire_total'],
+                    'salaire_net' => $salaire['salaire_total'], // À ajuster avec les retenues si nécessaire
+                    'montant' => $salaire['salaire_total'],
+                    'statut' => 'en_attente',
+                    'date_paiement' => null,
+                    'periode_debut' => $dateDebut,
+                    'periode_fin' => $dateFin,
+                    'details' => json_encode($salaire['details']),
+                    'paye_par' => auth()->id(),
+                ]
+            );
+            
+            $resultats[] = [
+                'professeur' => $professeur->nom_complet,
+                'salaire' => $salaire['salaire_total'],
+                'details' => $salaire['details'],
+                'salaire_id' => $salaireEnregistre->id,
+            ];
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Calcul des salaires effectué avec succès',
+            'data' => $resultats,
+            'mois' => $dateDebut->format('F Y'),
+        ]);
+    }
+    
     /**
      * Affiche la liste des salaires
      *
@@ -589,7 +650,7 @@ class SalaireController extends Controller
      * Affiche la fiche de paie d'un salaire
      *
      * @param  \App\Models\Salaire  $salaire
-     * @return \Illuminate\View\View
+     * @return \Illuminate\View\View|\Illuminate\Http\Response
      */
     public function fichePaie(Salaire $salaire)
     {
@@ -602,7 +663,7 @@ class SalaireController extends Controller
         
         // Vérifier si on veut forcer le téléchargement
         if (request()->has('download')) {
-            $pdf = PDF::loadView('admin.salaires.fiche_paie', compact('salaire'));
+            $pdf = Pdf::loadView('admin.salaires.fiche_paie', compact('salaire'));
             return $pdf->download($filename);
         }
         
@@ -716,18 +777,22 @@ class SalaireController extends Controller
         }
         
         // Vérifier le format d'export demandé (par défaut Excel)
-        if ($request->has('format') && $request->format === 'pdf') {
+        $format = $request->input('format');
+        if ($format === 'pdf') {
             $filename .= '.pdf';
             
-            // Charger la vue PDF avec les données
-            $pdf = PDF::loadView('admin.salaires.exports.pdf', [
+            // Préparer les données pour la vue PDF
+            $pdfData = [
                 'salaires' => $salaires,
                 'filters' => $filters,
                 'periode' => $periode,
                 'totalBrut' => $salaires->sum('salaire_brut'),
                 'totalNet' => $salaires->sum('salaire_net'),
                 'totalRetenues' => $salaires->sum('cnss') + $salaires->sum('ir') + $salaires->sum('retenues_diverses'),
-            ]);
+            ];
+            
+            // Charger la vue PDF avec les données
+            $pdf = Pdf::loadView('admin.salaires.exports.pdf', $pdfData);
             
             // Télécharger le PDF
             return $pdf->download($filename);

@@ -5,7 +5,7 @@
 @section('content_header')
     <div class="row mb-2">
         <div class="col-sm-6">
-            <h1>Détails du professeur : {{ $professeur->name }}</h1>
+            <h1>Détails du professeur : {{ $professeur->nom }} {{ $professeur->prenom }}</h1>
         </div>
         <div class="col-sm-6 text-right">
             <a href="{{ route('admin.professeurs.index') }}" class="btn btn-secondary">
@@ -26,17 +26,28 @@
             <div class="card card-primary card-outline">
                 <div class="card-body box-profile">
                     <div class="text-center">
-                        <img class="profile-user-img img-fluid rounded-circle"
-                             src="{{ $professeur->avatar ? asset('storage/' . $professeur->avatar) : asset('img/default-avatar.png') }}"
-                             alt="Photo de profil" style="width: 100px; height: 100px; object-fit: cover;">
+                        <div class="position-relative d-inline-block">
+                            <img class="profile-user-img img-fluid rounded-circle"
+                                 src="{{ $professeur->avatar ? asset('storage/' . $professeur->avatar) : asset('img/default-avatar.png') }}"
+                                 alt="Photo de profil" style="width: 100px; height: 100px; object-fit: cover;">
+                            <span class="position-absolute bottom-0 end-0 p-1 {{ $professeur->est_actif ? 'bg-success' : 'bg-danger' }} border border-white rounded-circle">
+                                <span class="visually-hidden">Statut</span>
+                            </span>
+                        </div>
                     </div>
 
-                    <h3 class="profile-username text-center mt-3">{{ $professeur->name }}</h3>
+                    <h3 class="profile-username text-center mt-3">{{ $professeur->nom }} {{ $professeur->prenom }}</h3>
 
                     <p class="text-muted text-center">
-                        <span class="badge bg-primary">
-                            {{ $professeur->matieres->pluck('nom')->implode(', ') }}
-                        </span>
+                        @if($professeur->matieres->count() > 0)
+                            @foreach($professeur->matieres as $matiere)
+                                <span class="badge bg-primary me-1 mb-1">
+                                    {{ $matiere->nom }}
+                                </span>
+                            @endforeach
+                        @else
+                            <span class="text-danger">Aucune matière assignée</span>
+                        @endif
                     </p>
 
                     <ul class="list-group list-group-unbordered mb-3">
@@ -92,9 +103,39 @@
             <!-- À propos -->
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Informations complémentaires</h3>
+                    <h3 class="card-title">Informations professionnelles</h3>
                 </div>
                 <div class="card-body">
+                    <strong><i class="fas fa-id-card mr-2"></i> Matricule</strong>
+                    <p class="text-muted">{{ $professeur->matricule ?? 'Non défini' }}</p>
+                    <hr>
+                    
+                    <strong><i class="fas fa-calendar-alt mr-2"></i> Date d'embauche</strong>
+                    <p class="text-muted">
+                        {{ $professeur->date_embauche ? $professeur->date_embauche->format('d/m/Y') : 'Non définie' }}
+                        @if($professeur->date_embauche)
+                            <small class="text-muted">({{ $professeur->anciennete }} ans d'ancienneté)</small>
+                        @endif
+                    </p>
+                    <hr>
+                    
+                    <strong><i class="fas fa-percentage mr-2"></i> Pourcentage de rémunération</strong>
+                    <p class="text-muted">{{ $professeur->pourcentage_remuneration }}%</p>
+                    <hr>
+                    
+                    <strong><i class="fas fa-money-bill-wave mr-2"></i> Salaire mensuel estimé</strong>
+                    <h4 class="text-primary">{{ number_format($professeur->salaire_mensuel, 2, ',', ' ') }} DH</h4>
+                    <small class="text-muted">Basé sur les inscriptions actuelles</small>
+                    <hr>
+                    
+                    <strong><i class="fas fa-info-circle mr-2"></i> Statut</strong>
+                    <p>
+                        @if($professeur->est_actif)
+                            <span class="badge bg-success">Actif</span>
+                        @else
+                            <span class="badge bg-danger">Inactif</span>
+                        @endif
+                    </p>
                     <strong><i class="fas fa-map-marker-alt mr-2"></i>Adresse</strong>
                     <p class="text-muted">
                         @if($professeur->adresse)
@@ -126,20 +167,70 @@
                 <div class="card-header p-2">
                     <ul class="nav nav-pills">
                         <li class="nav-item">
-                            <a class="nav-link active" href="#activity" data-toggle="tab">
-                                <i class="fas fa-chart-line mr-1"></i>Activité
+                            <a class="nav-link active" href="#matieres" data-toggle="tab">
+                                <i class="fas fa-book mr-1"></i> Matières
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#cours" data-toggle="tab">
-                                <i class="fas fa-calendar-alt mr-1"></i>Emploi du temps
+                            <a class="nav-link" href="#activity" data-toggle="tab">
+                                <i class="fas fa-chart-line mr-1"></i> Activité
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#paiements" data-toggle="tab">
+                                <i class="fas fa-money-bill-wave mr-1"></i> Paiements
                             </a>
                         </li>
                     </ul>
                 </div>
                 <div class="card-body">
                     <div class="tab-content">
-                        <div class="active tab-pane" id="activity">
+                        <!-- Onglet Matières -->
+                        <div class="active tab-pane" id="matieres">
+                            @if($professeur->matieres->count() > 0)
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th>Matière</th>
+                                                <th>Niveau</th>
+                                                <th>Nombre d'élèves</th>
+                                                <th>Prix mensuel/élève</th>
+                                                <th>Pourcentage</th>
+                                                <th>Montant mensuel</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($professeur->matieres as $matiere)
+                                                <tr>
+                                                    <td>{{ $matiere->nom }}</td>
+                                                    <td>{{ $matiere->niveau ?? 'Tous niveaux' }}</td>
+                                                    <td>{{ $matiere->eleves_count ?? 0 }}</td>
+                                                    <td>{{ number_format($matiere->prix_mensuel, 2, ',', ' ') }} DH</td>
+                                                    <td>{{ $matiere->pivot->pourcentage_remuneration ?? $professeur->pourcentage_remuneration }}%</td>
+                                                    <td class="font-weight-bold">
+                                                        {{ number_format(($matiere->prix_mensuel * $matiere->eleves_count * ($matiere->pivot->pourcentage_remuneration ?? $professeur->pourcentage_remuneration) / 100), 2, ',', ' ') }} DH
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                            <tr class="table-active">
+                                                <td colspan="4" class="text-right"><strong>Total mensuel :</strong></td>
+                                                <td colspan="2" class="font-weight-bold text-primary">
+                                                    {{ number_format($professeur->salaire_mensuel, 2, ',', ' ') }} DH
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @else
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i> Aucune matière assignée à ce professeur.
+                                </div>
+                            @endif
+                        </div>
+                        
+                        <!-- Onglet Activité -->
+                        <div class="tab-pane" id="activity">
                             <div class="row">
                                 <div class="col-md-4 col-sm-6 col-12">
                                     <div class="info-box">
@@ -221,10 +312,53 @@
                         </div>
                         <!-- /.tab-pane -->
 
-                        <div class="tab-pane" id="cours">
-                            <div class="alert alert-info">
-                                <i class="icon fas fa-info"></i>
-                                L'emploi du temps sera affiché ici une fois configuré.
+                        <!-- Onglet Paiements -->
+                        <div class="tab-pane" id="paiements">
+                            @if($professeur->paiements->count() > 0)
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Mois</th>
+                                                <th>Montant</th>
+                                                <th>Statut</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($professeur->paiements as $paiement)
+                                                <tr>
+                                                    <td>{{ $paiement->date_paiement->format('d/m/Y') }}</td>
+                                                    <td>{{ $paiement->mois_paiement->format('m/Y') }}</td>
+                                                    <td>{{ number_format($paiement->montant, 2, ',', ' ') }} DH</td>
+                                                    <td>
+                                                        @if($paiement->est_paye)
+                                                            <span class="badge bg-success">Payé</span>
+                                                        @else
+                                                            <span class="badge bg-warning">En attente</span>
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        <a href="#" class="btn btn-sm btn-info" title="Voir le reçu">
+                                                            <i class="fas fa-receipt"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @else
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> Aucun paiement enregistré pour ce professeur.
+                                </div>
+                            @endif
+                            
+                            <div class="mt-3">
+                                <button class="btn btn-primary" data-toggle="modal" data-target="#ajouterPaiementModal">
+                                    <i class="fas fa-plus"></i> Ajouter un paiement
+                                </button>
                             </div>
                         </div>
                         <!-- /.tab-pane -->

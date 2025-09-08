@@ -58,16 +58,25 @@
                 <div class="px-4 py-5 sm:px-6 bg-gray-50">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 h-12 w-12 rounded-md flex items-center justify-center" style="background-color: {{ $matiere->couleur }}20;">
-                            <span class="text-xl font-medium" style="color: {{ $matiere->couleur }};">
-                                {{ strtoupper(substr($matiere->nom, 0, 1)) }}
-                            </span>
+                            @if($matiere->icone)
+                                <i class="{{ $matiere->icone }} text-xl" style="color: {{ $matiere->couleur }};"></i>
+                            @else
+                                <span class="text-xl font-medium" style="color: {{ $matiere->couleur }};">
+                                    {{ strtoupper(substr($matiere->nom, 0, 1)) }}
+                                </span>
+                            @endif
                         </div>
                         <div class="ml-4">
                             <h3 class="text-lg leading-6 font-medium text-gray-900">
                                 {{ $matiere->nom }}
+                                @if($matiere->est_fixe)
+                                    <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        Matière fixe
+                                    </span>
+                                @endif
                             </h3>
                             <p class="mt-1 max-w-2xl text-sm text-gray-500">
-                                {{ $matiere->slug }}
+                                {{ $matiere->niveau_libelle }}
                             </p>
                         </div>
                     </div>
@@ -84,21 +93,55 @@
                         </div>
                         <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                             <dt class="text-sm font-medium text-gray-500">
+                                Niveau d'enseignement
+                            </dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                {{ $matiere->niveau_libelle }}
+                            </dd>
+                        </div>
+                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">
                                 Prix mensuel
                             </dt>
                             <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                                 {{ number_format($matiere->prix_mensuel, 2, ',', ' ') }} DH
                             </dd>
                         </div>
+                        @if($matiere->prix_trimestriel)
                         <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                             <dt class="text-sm font-medium text-gray-500">
-                                Couleur
+                                Prix trimestriel
                             </dt>
                             <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                {{ number_format($matiere->prix_trimestriel, 2, ',', ' ') }} DH
+                                @php
+                                    $rabais = (1 - ($matiere->prix_trimestriel / ($matiere->prix_mensuel * 3))) * 100;
+                                @endphp
+                                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                    {{ round($rabais) }}% d'économie
+                                </span>
+                            </dd>
+                        </div>
+                        @endif
+                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">
+                                Apparence
+                            </dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 space-y-2">
                                 <div class="flex items-center">
+                                    <span class="w-24 text-gray-500">Couleur :</span>
                                     <div class="h-6 w-6 rounded-full mr-2 border border-gray-300" style="background-color: {{ $matiere->couleur }};"></div>
-                                    <span>{{ $matiere->couleur }}</span>
+                                    <span class="font-mono">{{ $matiere->couleur }}</span>
                                 </div>
+                                @if($matiere->icone)
+                                <div class="flex items-center">
+                                    <span class="w-24 text-gray-500">Icône :</span>
+                                    <div class="flex items-center justify-center h-6 w-6 mr-2">
+                                        <i class="{{ $matiere->icone }} text-lg" style="color: {{ $matiere->couleur }};"></i>
+                                    </div>
+                                    <span class="font-mono">{{ $matiere->icone }}</span>
+                                </div>
+                                @endif
                             </dd>
                         </div>
                         <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">

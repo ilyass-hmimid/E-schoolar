@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Providers\RouteServiceProvider;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,30 +14,21 @@ class RedirectIfAuthenticated
      * Handle an incoming request.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     * @param  string|null  ...$guards
-     * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function handle(Request $request, Closure $next, ...$guards)
+    public function handle(Request $request, Closure $next, string ...$guards): Response
     {
         $guards = empty($guards) ? [null] : $guards;
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
-                // Si l'utilisateur est déjà authentifié et accède à la page de connexion,
-                // le rediriger vers le tableau de bord
-                if ($request->is('login') || $request->is('auth/login')) {
-                    return redirect()->route('admin.dashboard');
+                // Ne pas rediriger si on est déjà sur le tableau de bord
+                if ($request->is('dashboard') || $request->is('dashboard/*') || $request->is('home') || $request->is('home/*')) {
+                    return $next($request);
                 }
                 
-                // Pour toutes les autres requêtes, continuer normalement
-                return $next($request);
+                // Redirection vers le tableau de bord d'administration avec une URL complète pour éviter les boucles
+                return redirect()->intended(route('admin.dashboard'));
             }
-        }
-
-        // Si l'utilisateur n'est pas authentifié et essaie d'accéder à une zone protégée
-        // le rediriger vers la page de connexion
-        if ($request->is('admin/*') || $request->is('admin')) {
-            return redirect()->route('login');
         }
 
         return $next($request);

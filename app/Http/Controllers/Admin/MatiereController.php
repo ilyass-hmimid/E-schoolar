@@ -2,27 +2,75 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\BaseAdminController;
 use App\Models\Matiere;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
-class MatiereController extends Controller
+class MatiereController extends BaseAdminController
 {
     /**
      * Affiche la liste des matières
      *
      * @return \Illuminate\View\View
      */
-    public function index()
+    /**
+     * Affiche la liste des matières groupées par niveau
+     *
+     * @return \Illuminate\View\View
+     */
+    /**
+     * Affiche la liste des matières avec filtrage et tri
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View|\Illuminate\Http\JsonResponse
+     */
+    public function index(Request $request)
     {
-        $matieres = Matiere::withCount(['eleves', 'professeurs'])
-            ->orderBy('nom')
-            ->paginate(15);
-            
-        return view('admin.matieres.index', compact('matieres'));
+        $query = Matiere::withCount(['eleves', 'professeurs']);
+
+        // Filtrage par recherche
+        if ($request->has('search') && $request->search !== '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('nom', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        // Filtrage par niveau
+        if ($request->has('niveau') && $request->niveau !== '') {
+            $query->where('niveau', $request->niveau);
+        }
+
+        // Filtrage par statut
+        if ($request->has('actif') && $request->actif !== 'tous') {
+            $query->where('est_active', $request->actif === 'actif');
+        }
+
+        // Tri
+        $sortField = $request->get('sort', 'nom');
+        $sortDirection = $request->get('direction', 'asc');
+        $query->orderBy($sortField, $sortDirection);
+
+        // Récupération des matières
+        $matieres = $query->get();
+
+        // Si la requête est une requête AJAX, on renvoie les données en JSON
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'matieres' => $matieres,
+                'niveaux' => Matiere::getNiveauxDisponibles()
+            ]);
+        }
+
+        // Pour une requête normale, on renvoie la vue avec les données
+        return view('admin.matieres.index', [
+            'matieres' => $matieres,
+            'niveaux' => Matiere::getNiveauxDisponibles()
+        ]);
     }
 
     /**
@@ -30,11 +78,25 @@ class MatiereController extends Controller
      *
      * @return \Illuminate\View\View
      */
+    /**
+     * Affiche le formulaire de création d'une matière
+     *
+     * @return \Illuminate\View\View
+     */
     public function create()
     {
-        return view('admin.matieres.create');
+        $niveaux = Matiere::getNiveauxDisponibles();
+        $matieresFixes = Matiere::getMatieresFixes();
+        
+        return view('admin.matieres.create', compact('niveaux', 'matieresFixes'));
     }
 
+    /**
+     * Enregistre une nouvelle matière
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
     /**
      * Enregistre une nouvelle matière
      *
@@ -44,27 +106,40 @@ class MatiereController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nom' => 'required|string|max:100|unique:matieres,nom',
-            'description' => 'nullable|string|max:1000',
+            'nom' => 'required|string|max:255|unique:matieres,nom',
+            'description' => 'nullable|string',
+            'niveau' => ['required', 'string', Rule::in(array_keys(Matiere::getNiveauxDisponibles()))],
             'prix_mensuel' => 'required|numeric|min:0',
-            'couleur' => 'required|string|size:7', // Format #RRGGBB
+            'prix_trimestriel' => 'nullable|numeric|min:0',
+            'couleur' => 'required|string|size:7',
+            'icone' => 'nullable|string|max:50',
             'est_active' => 'boolean',
+            'est_fixe' => 'boolean'
         ]);
-        
-        // Générer un slug à partir du nom
+
+        // Créer un slug à partir du nom
         $validated['slug'] = Str::slug($validated['nom']);
         
-        // Vérifier que le slug est unique
-        $count = 1;
-        $originalSlug = $validated['slug'];
-        while (Matiere::where('slug', $validated['slug'])->exists()) {
-            $validated['slug'] = $originalSlug . '-' . $count++;
+        // Si le prix trimestriel n'est pas défini, on le calcule automatiquement (3 mois avec 10% de réduction)
+        if (!isset($validated['prix_trimestriel']) || $validated['prix_trimestriel'] === null) {
+            $validated['prix_trimestriel'] = $validated['prix_mensuel'] * 3 * 0.9; // 10% de réduction
         }
-        
+
+        // Vérifier si une matière avec le même nom et niveau existe déjà
+        $existingMatiere = Matiere::where('nom', $validated['nom'])
+            ->where('niveau', $validated['niveau'])
+            ->exists();
+            
+        if ($existingMatiere) {
+            return back()
+                ->withInput()
+                ->with('error', 'Une matière avec ce nom et ce niveau existe déjà.');
+        }
+
         // Créer la matière
         $matiere = Matiere::create($validated);
-        
-        return redirect()->route('admin.matieres.show', $matiere)
+
+        return redirect()->route('admin.matieres.index')
             ->with('success', 'Matière créée avec succès.');
     }
 
@@ -98,9 +173,18 @@ class MatiereController extends Controller
      * @param  \App\Models\Matiere  $matiere
      * @return \Illuminate\View\View
      */
+    /**
+     * Affiche le formulaire de modification d'une matière
+     *
+     * @param  \App\Models\Matiere  $matiere
+     * @return \Illuminate\View\View
+     */
     public function edit(Matiere $matiere)
     {
-        return view('admin.matieres.edit', compact('matiere'));
+        $niveaux = Matiere::getNiveauxDisponibles();
+        $matieresFixes = Matiere::getMatieresFixes();
+        
+        return view('admin.matieres.edit', compact('matiere', 'niveaux', 'matieresFixes'));
     }
 
     /**
@@ -113,23 +197,44 @@ class MatiereController extends Controller
     public function update(Request $request, Matiere $matiere)
     {
         $validated = $request->validate([
-            'nom' => [
-                'required',
-                'string',
-                'max:100',
-                Rule::unique('matieres', 'nom')->ignore($matiere->id),
-            ],
-            'description' => 'nullable|string|max:1000',
+            'nom' => ['required', 'string', 'max:255', Rule::unique('matieres')->ignore($matiere->id)],
+            'description' => 'nullable|string',
+            'niveau' => ['required', 'string', Rule::in(array_keys(Matiere::getNiveauxDisponibles()))],
             'prix_mensuel' => 'required|numeric|min:0',
-            'couleur' => 'required|string|size:7', // Format #RRGGBB
+            'prix_trimestriel' => 'nullable|numeric|min:0',
+            'couleur' => 'required|string|size:7',
+            'icone' => 'nullable|string|max:50',
             'est_active' => 'boolean',
+            'est_fixe' => 'boolean'
         ]);
+
+        // Si c'est une matière fixe, on s'assure qu'elle reste active
+        if ($matiere->est_fixe) {
+            $validated['est_active'] = true;
+        }
+
+        // Si le prix trimestriel n'est pas défini, on le calcule automatiquement (3 mois avec 10% de réduction)
+        if (!isset($validated['prix_trimestriel']) || $validated['prix_trimestriel'] === null) {
+            $validated['prix_trimestriel'] = $validated['prix_mensuel'] * 3 * 0.9; // 10% de réduction
+        }
+
+        // Vérifier si une autre matière avec le même nom et niveau existe déjà
+        $existingMatiere = Matiere::where('nom', $validated['nom'])
+            ->where('niveau', $validated['niveau'])
+            ->where('id', '!=', $matiere->id)
+            ->exists();
+            
+        if ($existingMatiere) {
+            return back()
+                ->withInput()
+                ->with('error', 'Cette matière existe déjà pour ce niveau.');
+        }
         
-        // Mettre à jour la matière
+        // Mettre à jour la matière avec tous les champs validés
         $matiere->update($validated);
         
-        return redirect()->route('admin.matieres.show', $matiere)
-            ->with('success', 'Mise à jour de la matière effectuée avec succès.');
+        return redirect()->route('admin.matieres.index')
+            ->with('success', 'Matière mise à jour avec succès.');
     }
 
     /**
@@ -297,30 +402,78 @@ class MatiereController extends Controller
         
         return back()->with('success', 'Le professeur a été retiré de la matière avec succès.');
     }
+    
+    /**
+     * Supprime une matière
+     *
+     * @param  \App\Models\Matiere  $matiere
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function destroy(Matiere $matiere)
+    {
+        // Ne pas permettre la suppression des matières fixes
+        if ($matiere->isMatiereFixe()) {
+            return back()->with('error', 'Impossible de supprimer une matière fixe du système.');
+        }
+        
+        // Vérifier si la matière est utilisée avant de supprimer
+        if ($matiere->eleves()->count() > 0 || $matiere->professeurs()->count() > 0) {
+            return back()->with('error', 'Impossible de supprimer cette matière car elle est utilisée.');
+        }
+        
+        $matiere->delete();
+        
+        return redirect()->route('admin.matieres.index')
+            ->with('success', 'Matière supprimée avec succès.');
+    }
 
     /**
      * Désactive une matière
      *
      * @param  \App\Models\Matiere  $matiere
-     * @return \Illuminate\Http\RedirectResponse
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
      */
     public function desactiver(Matiere $matiere)
     {
+        if ($matiere->est_fixe) {
+            if (request()->wantsJson() || request()->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Impossible de désactiver une matière fixe.'
+                ], 403);
+            }
+            return back()->with('error', 'Impossible de désactiver une matière fixe.');
+        }
+        
         $matiere->update(['est_active' => false]);
         
-        return back()->with('success', 'La matière a été désactivée avec succès.');
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Matière désactivée avec succès.'
+            ]);
+        }
+        
+        return back()->with('success', 'Matière désactivée avec succès.');
     }
 
     /**
-     * Active une matière
+     * Activer la matière
      *
      * @param  \App\Models\Matiere  $matiere
-     * @return \Illuminate\Http\RedirectResponse
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
      */
     public function activer(Matiere $matiere)
     {
         $matiere->update(['est_active' => true]);
         
-        return back()->with('success', 'La matière a été activée avec succès.');
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Matière activée avec succès.'
+            ]);
+        }
+        
+        return back()->with('success', 'Matière activée avec succès.');
     }
 }

@@ -990,8 +990,10 @@
         
         .login-btn:hover {
             transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.3);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.5) !important;
             text-decoration: none;
+            background: #00cc66 !important;
+            color: white !important;
         }
         
         .login-btn:active {
@@ -1376,11 +1378,29 @@
                 <div class="hero-content">
                     <h1 class="typing-text"></h1>
                     <p>Découvrez une nouvelle façon d'apprendre et de vous épanouir avec Allo TAWJIH. Notre plateforme éducative innovante vous accompagne à chaque étape de votre parcours d'apprentissage.</p>
-                    <div class="hero-buttons">
-                        <a href="{{ route('login') }}" class="login-btn" id="loginButton">
-                            <span>Se connecter</span>
-                            <i class="fas fa-arrow-right"></i>
-                        </a>
+                    <div class="hero-buttons" style="position: relative; z-index: 1000;">
+                       <form action="{{ route('login') }}" method="POST" style="display: inline-block; margin-right: 15px;">
+                           @csrf
+                           <button type="submit" style="
+                               background: #00cc66;
+                               border: 2px solid #00aa55;
+                               border-radius: 30px;
+                               color: white;
+                               cursor: pointer;
+                               font-size: 14px;
+                               font-weight: 600;
+                               padding: 12px 30px;
+                               text-transform: uppercase;
+                               transition: all 0.3s ease;
+                               box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                               display: inline-flex;
+                               align-items: center;
+                               justify-content: center;
+                           ">
+                               <span>Se connecter</span>
+                               <i class="fas fa-arrow-right" style="margin-left: 10px;"></i>
+                           </button>
+                       </form>
                         <a href="#about" class="btn-outline">
                             <span>Découvrir plus</span>
                             <i class="fas fa-chevron-circle-right" style="margin-left: 8px;"></i>
@@ -1704,7 +1724,7 @@
     </footer>
 
     <script>
-        // Le bouton de connexion fonctionnera avec le comportement par défaut du navigateur
+        // Pas besoin de gestionnaire JavaScript pour le bouton de connexion
 
         // Mobile Menu Toggle
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
@@ -2023,7 +2043,7 @@
         }
 
         // Add ripple effect to all buttons except the login button and navigation links
-        const buttons = document.querySelectorAll('.btn:not(#loginButton):not([href^="/"]):not([href^="http"]):not([href*="login"]), .service-card:not(#loginButton), .team-member:not(#loginButton), .member-social a:not(#loginButton)');
+        const buttons = document.querySelectorAll('.btn:not(#loginButton):not([href^="/"]):not([href^="http"]):not([href*="login"]):not([href*="#"]), .service-card:not(#loginButton), .team-member:not(#loginButton), .member-social a:not(#loginButton)');
         buttons.forEach(button => {
             // Préparer le bouton pour l'effet ripple
             button.style.position = 'relative';
@@ -2060,8 +2080,13 @@
             // Ne pas ajouter l'écouteur aux liens qui ne sont pas des ancres
             if (anchor.getAttribute('href') === '#') return;
             
-            // Ne pas ajouter l'écouteur au bouton de connexion
-            if (anchor.id === 'loginButton') return;
+            // Ne pas ajouter l'écouteur au bouton de connexion ou aux liens externes
+            if (anchor.id === 'loginButton' || 
+                anchor.getAttribute('href').startsWith('http') ||
+                anchor.getAttribute('href').startsWith('//') ||
+                anchor.getAttribute('href').includes('login')) {
+                return;
+            }
             
             anchor.addEventListener('click', function(e) {
                 const targetId = this.getAttribute('href');

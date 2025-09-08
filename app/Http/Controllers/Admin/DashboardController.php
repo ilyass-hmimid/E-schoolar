@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\BaseAdminController;
 use App\Models\User;
 use App\Models\Absence;
 use App\Models\Paiement;
 use Carbon\Carbon;
 
-class DashboardController extends Controller
+class DashboardController extends BaseAdminController
 {
     /**
      * Affiche le tableau de bord de l'administration
@@ -19,7 +19,7 @@ class DashboardController extends Controller
     {
         // Statistiques générales
         $stats = [
-            'total_eleves' => User::where('role', 'eleve')->count(),
+            'total_eleves' => User::where('role', '4')->orWhere('role', 'eleve')->count(),
             'total_professeurs' => User::where('role', 'professeur')->count(),
             'total_matieres' => \App\Models\Matiere::count(),
             'paiements_du_mois' => Paiement::whereMonth('date_paiement', now()->month)
@@ -29,7 +29,8 @@ class DashboardController extends Controller
         ];
 
         // Derniers élèves inscrits
-        $recentStudents = User::where('role', 'eleve')
+        $recentStudents = User::where('role', '4')
+            ->orWhere('role', 'eleve')
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get(['id', 'name', 'email', 'created_at']);
@@ -61,7 +62,7 @@ class DashboardController extends Controller
      */
     private function calculateAbsenceRate(): float
     {
-        $totalStudents = User::where('role', 'eleve')->count();
+        $totalStudents = User::where('role', '4')->orWhere('role', 'eleve')->count();
         
         if ($totalStudents === 0) {
             return 0.0;

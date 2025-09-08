@@ -492,7 +492,70 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+    // Gestion de la génération des salaires
+    document.getElementById('generateSalaires').addEventListener('click', function() {
+        // Demander confirmation avant de générer les salaires
+        Swal.fire({
+            title: 'Générer les salaires',
+            text: 'Voulez-vous générer les salaires pour le mois en cours ?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Oui, générer',
+            cancelButtonText: 'Annuler',
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Afficher un indicateur de chargement
+                Swal.fire({
+                    title: 'Génération en cours',
+                    text: 'Veuillez patienter...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // Appeler l'API pour générer les salaires
+                fetch('{{ route('admin.salaires.generate') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Succès',
+                            text: data.message || 'Les salaires ont été générés avec succès',
+                            showConfirmButton: true,
+                        }).then(() => {
+                            // Recharger la page pour afficher les nouveaux salaires
+                            window.location.reload();
+                        });
+                    } else {
+                        throw new Error(data.message || 'Une erreur est survenue');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erreur',
+                        text: error.message || 'Une erreur est survenue lors de la génération des salaires',
+                    });
+                });
+            }
+        });
+    });
+    
+    // Code existant
     // Initialisation de flatpickr pour les champs de date
     document.addEventListener('DOMContentLoaded', function() {
         flatpickr("input[type=date]", {

@@ -36,18 +36,12 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            \App\Http\Middleware\PreventBackAfterLogout::class,
-            \App\Http\Middleware\EnsureUserIsActive::class,
-            \App\Http\Middleware\ValidateRequestData::class,
-            \App\Http\Middleware\ActionLogger::class,
         ],
 
         'api' => [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            \App\Http\Middleware\ValidateRequestData::class,
-            \App\Http\Middleware\PreventBackAfterLogout::class,
         ],
     ];
 
@@ -59,7 +53,7 @@ class Kernel extends HttpKernel
      * @var array<string, class-string|string>
      */
     protected $middlewareAliases = [
-        'auth' => \App\Http\Middleware\Authenticate::class,
+        'auth' => \App\Http\Middleware\SimpleAuthenticate::class,
         'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
         'auth.session' => \Illuminate\Session\Middleware\AuthenticateSession::class,
         'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
@@ -72,11 +66,13 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'permission' => \App\Http\Middleware\CheckPermission::class,
         'role' => \App\Http\Middleware\RoleMiddleware::class,
+        'admin' => \App\Http\Middleware\AdminMiddleware::class,
         'active' => \App\Http\Middleware\EnsureUserIsActive::class,
-        'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
-        'professor' => \App\Http\Middleware\EnsureUserIsProfessor::class,
-        'student' => \App\Http\Middleware\EnsureUserIsStudent::class,
-        'parent' => \App\Http\Middleware\EnsureUserIsParent::class,
+        // Rôles temporairement désactivés pour le débogage
+        // 'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+        // 'professor' => \App\Http\Middleware\EnsureUserIsProfessor::class,
+        // 'student' => \App\Http\Middleware\EnsureUserIsStudent::class,
+        // 'parent' => \App\Http\Middleware\EnsureUserIsParent::class,
         'handle.welcome' => \App\Http\Middleware\HandleWelcomePage::class,
         'validate' => \App\Http\Middleware\ValidateRequestData::class,
         'action.logger' => \App\Http\Middleware\ActionLogger::class,

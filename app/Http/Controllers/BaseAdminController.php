@@ -19,22 +19,6 @@ class BaseAdminController extends BaseController
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            $user = Auth::user();
-            
-            if (!$user) {
-                return redirect()->route('login');
-            }
-            
-            // Autoriser uniquement les administrateurs
-            if (!$user->is_admin) {
-                auth()->logout();
-                return redirect()->route('login')
-                    ->with('error', 'Accès non autorisé. Seul un administrateur peut accéder à cette page.');
-            }
-            
-            return $next($request);
-        });
     }
 
     /**

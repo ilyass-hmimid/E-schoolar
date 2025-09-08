@@ -14,20 +14,12 @@ class HomeController extends Controller
      */
     public function index()
     {
-        // Si l'utilisateur est déjà authentifié, le rediriger vers le tableau de bord approprié
-        if (Auth::check()) {
-            $user = Auth::user();
-            
-            // Vérifier si l'utilisateur est administrateur
-            if ($user->is_admin) {
-                return redirect()->route('admin.dashboard');
-            }
-            
-            // Pour les autres rôles, rediriger vers la page d'accueil par défaut
-            return view('home');
+        // Si l'utilisateur n'est pas connecté, rediriger vers la page de connexion
+        if (!auth()->check()) {
+            return redirect()->route('login');
         }
         
-        // Si l'utilisateur n'est pas connecté, afficher la page d'accueil publique
+        // Si l'utilisateur est connecté, afficher la vue d'accueil
         return view('home');
     }
 }

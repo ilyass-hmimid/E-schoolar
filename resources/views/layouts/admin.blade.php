@@ -11,13 +11,13 @@
 @endpush
 
 @section('content')
-<div x-data="{ sidebarOpen: window.innerWidth >= 768, open: {{ request()->routeIs('admin.eleves.*') ? 'true' : 'false' }}, openProfs: {{ request()->routeIs('admin.professeurs.*') ? 'true' : 'false' }} }" class="flex h-screen bg-gray-50">
+<div x-data="{ sidebarOpen: window.innerWidth >= 768, open: {{ request()->routeIs('admin.eleves.*') ? 'true' : 'false' }}, openProfs: {{ request()->routeIs('admin.professeurs.*') ? 'true' : 'false' }} }" class="flex h-screen bg-gray-50 overflow-hidden">
     <!-- Mobile sidebar backdrop -->
     <div x-show="sidebarOpen" @click="sidebarOpen = false" class="fixed inset-0 z-20 bg-black bg-opacity-50 md:hidden" x-cloak></div>
     
     <!-- Sidebar -->
-    <div class="hidden md:flex md:flex-shrink-0">
-        <div class="flex flex-col w-64 bg-white border-r border-gray-200">
+    <div class="hidden md:flex md:flex-shrink-0 md:fixed md:top-0 md:left-0 md:bottom-0">
+        <div class="flex flex-col w-64 bg-white border-r border-gray-200 h-full">
             <div class="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
                 <div class="flex items-center flex-shrink-0 px-4">
                     <span class="text-xl font-bold text-gray-900">
@@ -93,10 +93,11 @@
     </div>
 
     <!-- Main content -->
-    <div class="flex flex-col flex-1 overflow-hidden">
+    <div class="flex-1 flex flex-col overflow-hidden md:ml-64">
         <!-- Top navigation -->
-        <div class="bg-white shadow-sm">
-            <div class="px-4 sm:px-6 lg:px-8">
+        <div class="bg-white shadow-sm z-10">
+        <main class="flex-1 overflow-y-auto focus:outline-none pt-16 px-4 sm:px-6 md:px-8 py-4">
+            <div class="mx-auto max-w-7xl">
                 <div class="flex justify-between h-16">
                     <div class="flex items-center">
                         <!-- Mobile menu button -->

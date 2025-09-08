@@ -9,7 +9,7 @@
                     </svg>
                 </button>
                 <!-- Logo -->
-                <a href="{{ route('home') }}" class="flex ml-2 md:mr-24">
+                <a href="/" class="flex ml-2 md:mr-24">
                     <span class="self-center text-xl font-semibold sm:text-2xl whitespace-nowrap text-gray-800">E-Schoolar</span>
                 </a>
             </div>
@@ -31,7 +31,7 @@
                             <span class="text-gray-700 mr-4">
                                 {{ Auth::user()->name }}
                             </span>
-                            <form method="POST" action="{{ route('admin.logout') }}">
+                            <form method="POST" action="{{ route('logout') }}">
                                 @csrf
                                 <button type="submit" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
                                     Déconnexion
@@ -55,7 +55,7 @@
     <!-- Mobile menu -->
     <div class="sm:hidden hidden" id="mobile-menu">
         <div class="pt-2 pb-3 space-y-1">
-            <a href="{{ route('home') }}" class="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">
+            <a href="/" class="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">
                 Accueil
             </a>
             @auth
@@ -65,7 +65,7 @@
                     </a>
                 @endif
                 
-                <form method="POST" action="{{ route('admin.logout') }}" class="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">
+                <form method="POST" action="{{ route('logout') }}" class="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">
                     @csrf
                     <button type="submit" class="w-full text-left">Déconnexion</button>
                 </form>

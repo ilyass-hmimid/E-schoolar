@@ -139,6 +139,24 @@
                     @enderror
                 </div>
                 
+                <!-- Langue d'enseignement -->
+                <div>
+                    <label for="langue_enseignement" class="block text-sm font-medium text-gray-300 mb-1">Langue d'enseignement <span class="text-red-500">*</span></label>
+                    <select name="langue_enseignement" id="langue_enseignement" required
+                           class="w-full bg-white border border-gray-600 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none"
+                           style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'><path stroke=\'%234b5563\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'M6 8l4 4 4-4\'/></svg>'); background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 1.5em 1.5em; padding-right: 2.5rem;">
+                        <option value="">Sélectionner une langue</option>
+                        @foreach($langues as $code => $langue)
+                            <option value="{{ $code }}" {{ old('langue_enseignement') == $code ? 'selected' : '' }} class="text-gray-900">
+                                {{ $langue }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('langue_enseignement')
+                        <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                    @enderror
+                </div>
+                
                 <!-- Nom du père -->
                 <div>
                     <label for="nom_pere" class="block text-sm font-medium text-gray-300 mb-1">Nom du père <span class="text-red-500">*</span></label>

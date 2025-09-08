@@ -29,6 +29,14 @@
 @endpush
 
 @section('content')
+@php
+    \Log::info('Données reçues dans la vue', [
+        'eleves_count' => $eleves->count(),
+        'eleves_total' => $eleves->total(),
+        'niveaux_count' => count($niveaux),
+        'stats' => $stats
+    ]);
+@endphp
 <div x-data="{ sidebarOpen: false, darkMode: false, toggleDarkMode() { this.darkMode = !this.darkMode; localStorage.setItem('darkMode', this.darkMode); document.documentElement.classList.toggle('dark', this.darkMode) } }" x-init="() => { darkMode = localStorage.getItem('darkMode') === 'true' || (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches); document.documentElement.classList.toggle('dark', darkMode) }">
     <!-- Sidebar -->
     @include('admin.partials.sidebar')
@@ -171,9 +179,9 @@
                                         </th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                             <div class="flex items-center">
-                                                <span>CNE</span>
-                                                <a href="{{ request()->fullUrlWithQuery(['sort' => 'cne', 'direction' => request('direction') === 'asc' ? 'desc' : 'asc']) }}" class="ml-1">
-                                                    <i class="fas fa-sort {{ request('sort') === 'cne' ? 'text-primary-600' : 'text-gray-400' }}"></i>
+                                                <span>CNI</span>
+                                                <a href="{{ request()->fullUrlWithQuery(['sort' => 'cni', 'direction' => request('direction') === 'asc' ? 'desc' : 'asc']) }}" class="ml-1">
+                                                    <i class="fas fa-sort {{ request('sort') === 'cni' ? 'text-primary-600' : 'text-gray-400' }}"></i>
                                                 </a>
                                             </div>
                                         </th>
@@ -203,10 +211,7 @@
                                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="flex items-center">
-                                                    <div class="flex-shrink-0 h-10 w-10">
-                                                        <img class="h-10 w-10 rounded-full object-cover" src="{{ $eleve->photo_url ?? asset('images/default-avatar.png') }}" alt="{{ $eleve->name }}">
-                                                    </div>
-                                                    <div class="ml-4">
+                                                    <div>
                                                         <div class="text-sm font-medium text-gray-900 dark:text-white">
                                                             {{ $eleve->name }}
                                                         </div>
@@ -217,7 +222,7 @@
                                                 </div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm text-gray-900 dark:text-white">{{ $eleve->cne ?? 'Non renseigné' }}</div>
+                                                <div class="text-sm text-gray-900 dark:text-white">{{ $eleve->cni ?? 'Non renseigné' }}</div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 @if($eleve->niveau)
@@ -286,7 +291,11 @@
                         <!-- Pagination -->
                         @if($eleves->hasPages())
                             <div class="bg-white dark:bg-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700 sm:px-6">
-                                {{ $eleves->withQueryString()->links() }}
+                                {{ $eleves->appends([
+                                    'search' => request('search'),
+                                    'status' => request('status'),
+                                    'niveau_id' => request('niveau_id')
+                                ])->links() }}
                             </div>
                         @endif
                     </div>

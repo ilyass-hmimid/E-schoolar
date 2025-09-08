@@ -16,17 +16,21 @@ class Authenticate extends Middleware
      */
     protected function redirectTo($request)
     {
-        // Si la requête attend une réponse JSON, retourner null
+        // Si la requête attend une réponse JSON, retourner une réponse 401
         if ($request->expectsJson()) {
             return null;
         }
 
-        // Si l'utilisateur essaie d'accéder à une route d'administration
-        if ($request->is('admin*') || $request->is('admin/*')) {
-            return route('login', ['redirect' => $request->url()]);
+        // Stocker l'URL actuelle pour redirection après connexion
+        if (!$request->is('login') && !$request->is('logout') && !$request->is('admin*')) {
+            // Utiliser put() au lieu de session() pour s'assurer que la session est sauvegardée
+            $request->session()->put('url.intended', $request->fullUrl());
         }
 
-        // Pour toutes les autres routes non authentifiées, rediriger vers la page de connexion
+        // Ajouter un message flash pour informer l'utilisateur
+        session()->flash('status', 'Veuillez vous connecter pour accéder à cette page.');
+
+        // Rediriger vers la page de connexion
         return route('login');
     }
 }

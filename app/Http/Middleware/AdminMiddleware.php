@@ -7,31 +7,29 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-class EnsureUserIsActive
+class AdminMiddleware
 {
     /**
      * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Si l'utilisateur n'est pas connecté, rediriger vers la page de connexion
         if (!Auth::check()) {
-            return $next($request);
+            // Si c'est une requête API, retourner une erreur 401
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Non authentifié.'], 401);
+            }
+            return redirect()->guest(route('login'));
         }
 
         $user = Auth::user();
         
-        // Si l'utilisateur n'est pas actif
-        if (!$user->is_active) {
+        // Vérifier si l'utilisateur est un administrateur
+        if (!$user->is_admin) {
             // Si c'est une requête API, retourner une erreur 403
             if ($request->expectsJson()) {
-                return response()->json(['error' => 'Votre compte a été désactivé.'], 403);
-            }
-            
-            // Si l'utilisateur essaie d'accéder à la page de connexion, laisser passer
-            if ($request->is('login') || $request->is('admin/login')) {
-                return $next($request);
+                return response()->json(['error' => 'Accès non autorisé. Seul un administrateur peut accéder à cette ressource.'], 403);
             }
 
             // Déconnexion et redirection vers la page de connexion avec un message d'erreur
@@ -39,8 +37,8 @@ class EnsureUserIsActive
             $request->session()->invalidate();
             $request->session()->regenerateToken();
             
-            return redirect()->guest(route('login'))
-                ->with('error', 'Votre compte a été désactivé. Contactez l\'administrateur.');
+            return redirect()->route('login')
+                ->with('error', 'Accès non autorisé. Seul un administrateur peut accéder à cette page.');
         }
 
         return $next($request);

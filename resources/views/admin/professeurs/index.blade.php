@@ -42,6 +42,9 @@
                                         <th>Email</th>
                                         <th>Téléphone</th>
                                         <th>Matières</th>
+                                        <th>Élèves</th>
+                                        <th>Salaire mensuel</th>
+                                        <th>Statut</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -49,27 +52,34 @@
                                     @forelse($professeurs as $professeur)
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
-                                            <td>{{ $professeur->name }}</td>
-                                            <td>{{ $professeur->email }}</td>
-                                            <td>{{ $professeur->telephone ?? 'Non renseigné' }}</td>
                                             <td>
-                                                @forelse($professeur->matieres as $matiere)
-                                                    <span class="badge bg-primary">{{ $matiere->nom }}</span>
-                                                @empty
-                                                    <span class="text-muted">Aucune matière</span>
-                                                @endforelse
+                                                <a href="{{ route('admin.professeurs.show', $professeur) }}">
+                                                    {{ $professeur->nom }} {{ $professeur->prenom }}
+                                                </a>
+                                            </td>
+                                            <td>{{ $professeur->email }}</td>
+                                            <td>{{ $professeur->telephone }}</td>
+                                            <td>{{ $professeur->matieres_count }}</td>
+                                            <td>{{ $professeur->matieres->sum('eleves_count') }}</td>
+                                            <td>{{ number_format($professeur->salaire_mensuel, 2, ',', ' ') }} DH</td>
+                                            <td>
+                                                @if($professeur->est_actif)
+                                                    <span class="badge bg-success">Actif</span>
+                                                @else
+                                                    <span class="badge bg-danger">Inactif</span>
+                                                @endif
                                             </td>
                                             <td class="text-nowrap">
-                                                <a href="{{ route('admin.professeurs.show', $professeur) }}" class="btn btn-sm btn-info" title="Voir">
+                                                <a href="{{ route('admin.professeurs.show', $professeur) }}" class="btn btn-info btn-sm" title="Voir">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
-                                                <a href="{{ route('admin.professeurs.edit', $professeur) }}" class="btn btn-sm btn-primary" title="Modifier">
+                                                <a href="{{ route('admin.professeurs.edit', $professeur) }}" class="btn btn-primary btn-sm" title="Modifier">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
                                                 <form action="{{ route('admin.professeurs.destroy', $professeur) }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce professeur ?');">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-danger" title="Supprimer">
+                                                    <button type="submit" class="btn btn-danger btn-sm" title="Supprimer">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </form>
@@ -77,7 +87,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="6" class="text-center">Aucun professeur trouvé</td>
+                                            <td colspan="9" class="text-center">Aucun professeur trouvé</td>
                                         </tr>
                                     @endforelse
                                 </tbody>

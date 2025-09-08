@@ -7,6 +7,7 @@ use App\Models\Absence;
 use App\Models\User;
 use App\Models\Matiere;
 use App\Models\Classe;
+use App\Models\Cours;
 use App\Enums\RoleType;
 use App\Events\AbsenceCreated;
 use Carbon\Carbon;
@@ -152,6 +153,9 @@ class AbsenceController extends BaseAdminController
 
         $query = Absence::with(['eleve:id,name,email', 'matiere:id,nom', 'professeur:id,name']);
         
+        // Récupération des classes pour le filtre
+        $classes = Classe::orderBy('nom')->get();
+        
         // Apply role-based filtering
         $user = auth()->user();
         if ($user->role === RoleType::PROFESSEUR) {
@@ -245,17 +249,13 @@ class AbsenceController extends BaseAdminController
             'unjustified' => $statsQuery->clone()->where('statut', 'non_justifiee')->count(),
         ];
         
-        // For traditional Blade views
-        if (!class_exists('Inertia\Inertia')) {
-            $absences = $query->paginate($perPage);
-            $viewData = compact('absences', 'eleves', 'professeurs', 'matieres');
-            return view('admin.absences.index', $viewData);
-        }
-        
-        // Prepare data for the response
+        // Prepare response data
         $data = [
             'absences' => $absences,
             'filters' => $filters,
+            'sort' => $sort,
+            'direction' => $direction,
+            'classes' => $classes, // Ajout de la variable classes
             'eleves' => $eleves,
             'professeurs' => $professeurs,
             'matieres' => $matieres,
@@ -292,10 +292,16 @@ class AbsenceController extends BaseAdminController
             
         $matieres = Matiere::orderBy('nom')->get(['id', 'nom']);
         
+        // Récupération des cours avec les relations nécessaires
+        $cours = Cours::with(['matiere', 'professeur'])
+            ->orderBy('created_at', 'desc') // Utilisation de created_at au lieu de date_debut
+            ->get();
+        
         $data = [
             'eleves' => $eleves,
             'professeurs' => $professeurs,
             'matieres' => $matieres,
+            'cours' => $cours,
             'defaults' => [
                 'date_absence' => now()->format('Y-m-d'),
                 'heure_debut' => '08:00',
@@ -713,6 +719,145 @@ class AbsenceController extends BaseAdminController
         return back()->with('success', 'L\'absence a été marquée comme non justifiée.');
     }
 
+    /**
+     * Exporte les absences au format CSV
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Symfony\Component\HttpFoundation\StreamedResponse
+     */
+    public function export(Request $request)
+    {
+        $query = $this->getFilteredAbsences($request);
+        
+        $headers = [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename=absences_' . now()->format('Y-m-d') . '.csv',
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0'
+        ];
+
+        $callback = function() use ($query) {
+            $handle = fopen('php://output', 'w');
+            
+            // En-têtes
+            fputcsv($handle, [
+                'ID',
+                'Élève',
+                'Classe',
+                'Matière',
+                'Professeur',
+                'Date absence',
+                'Heure début',
+                'Heure fin',
+                'Heures manquées',
+                'Statut',
+                'Motif',
+                'Date de création'
+            ]);
+
+            // Données
+            $query->chunk(200, function($absences) use ($handle) {
+                foreach ($absences as $absence) {
+                    fputcsv($handle, [
+                        $absence->id,
+                        $absence->eleve->name,
+                        $absence->eleve->classe->nom ?? 'N/A',
+                        $absence->matiere->nom,
+                        $absence->professeur->name,
+                        $absence->date_absence->format('d/m/Y'),
+                        $absence->heure_debut,
+                        $absence->heure_fin,
+                        $absence->heures_manquees,
+                        $this->getStatusBadge($absence->statut),
+                        $absence->motif,
+                        $absence->created_at->format('d/m/Y H:i')
+                    ]);
+                }
+            });
+
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+    
+    /**
+     * Filtre les absences selon les critères de recherche
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    protected function getFilteredAbsences(Request $request)
+    {
+        $query = Absence::with(['eleve', 'matiere', 'professeur', 'eleve.classe'])
+            ->orderBy('date_absence', 'desc')
+            ->orderBy('heure_debut', 'desc');
+
+        // Filtre par élève
+        if ($request->filled('eleve_id')) {
+            $query->where('eleve_id', $request->eleve_id);
+        }
+
+        // Filtre par matière
+        if ($request->filled('matiere_id')) {
+            $query->where('matiere_id', $request->matiere_id);
+        }
+
+        // Filtre par professeur
+        if ($request->filled('professeur_id')) {
+            $query->where('professeur_id', $request->professeur_id);
+        }
+
+        // Filtre par date de début
+        if ($request->filled('date_debut')) {
+            $query->where('date_absence', '>=', $request->date_debut);
+        }
+
+        // Filtre par date de fin
+        if ($request->filled('date_fin')) {
+            $query->where('date_absence', '<=', $request->date_fin);
+        }
+
+        // Filtre par statut
+        if ($request->filled('statut') && $request->statut !== 'tous') {
+            $query->where('statut', $request->statut);
+        }
+
+        // Filtre par motif
+        if ($request->filled('motif')) {
+            $query->where('motif', 'like', '%' . $request->motif . '%');
+        }
+
+        // Filtre par classe
+        if ($request->filled('classe_id')) {
+            $query->whereHas('eleve', function($q) use ($request) {
+                $q->where('classe_id', $request->classe_id);
+            });
+        }
+
+        return $query;
+    }
+
+    /**
+     * Convertit le statut en libellé lisible
+     *
+     * @param  string  $status
+     * @return string
+     */
+    protected function getStatusBadge($status)
+    {
+        $statuses = [
+            'non_justifiee' => 'Non justifiée',
+            'en_attente' => 'En attente',
+            'justifiee' => 'Justifiée',
+            'refusee' => 'Refusée',
+            'validee' => 'Validée'
+        ];
+        
+        return $statuses[$status] ?? $status;
+    }
+    
     /**
      * Supprime une absence
      *
