@@ -3,126 +3,251 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Carbon\Carbon;
 use App\Models\Cours;
 use App\Models\Classe;
 use App\Models\Absence;
 use App\Models\Paiement;
 use App\Models\Eleve;
 use App\Models\Professeur;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\JsonResponse;
 
 class DashboardController extends Controller
 {
     /**
      * Create a new controller instance.
-     *
-     * @return void
      */
     public function __construct()
     {
-        // Appliquer les middlewares auth et admin à toutes les méthodes
         $this->middleware('auth');
         $this->middleware('admin');
+    }
+
+    /**
+     * Calcule l'évolution d'une métrique par rapport au mois précédent
+     */
+    private function calculateEvolution($metric) {
+        $currentMonth = now()->startOfMonth();
+        $previousMonth = now()->subMonth()->startOfMonth();
         
-        // Désactiver le middleware pour les méthodes spécifiques si nécessaire
-        // $this->middleware('admin')->except(['method1', 'method2']);
+        $currentCount = 0;
+        $previousCount = 0;
+        
+        switch ($metric) {
+            case 'eleves':
+                $currentCount = Eleve::where('created_at', '<=', $currentMonth->copy()->endOfMonth())->count();
+                $previousCount = Eleve::where('created_at', '<=', $previousMonth->copy()->endOfMonth())
+                    ->where('created_at', '>=', $previousMonth->startOfMonth())
+                    ->count();
+                break;
+            // Ajouter d'autres cas pour d'autres métriques si nécessaire
+        }
+        
+        if ($previousCount === 0) {
+            return 0;
+        }
+        
+        return round((($currentCount - $previousCount) / $previousCount) * 100, 1);
     }
 
     /**
      * Affiche le tableau de bord
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\View\View|\Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
      */
     public function index(Request $request)
     {
         try {
-            // Vérification redondante (déjà fait par le middleware, mais c'est une sécurité supplémentaire)
-            if (!auth()->check() || !auth()->user()->is_admin) {
-                return redirect()->route('login')
-                    ->with('error', 'Vous devez être connecté en tant qu\'administrateur pour accéder à cette page.');
-            }
-
-            // Récupérer l'utilisateur connecté
-            $user = auth()->user();
-            
-            // Initialiser les statistiques avec des valeurs par défaut sécurisées
+            // Récupérer les statistiques de base
             $stats = [
-                'total_eleves' => 0,
-                'total_professeurs' => 0,
-                'total_classes' => 0,
-                'total_cours' => 0,
-                'taux_absences' => 0
+                'total_eleves' => Eleve::count(),
+                'total_professeurs' => Professeur::count(),
+                'total_classes' => Classe::count(),
+                'total_cours' => Cours::count(),
+                'taux_absences' => 0,
+                'total_paiements_mois' => 0,
+                'evolution_eleves' => $this->calculateEvolution('eleves')
             ];
-
-            // Initialiser les statistiques de paiement
-            $paiementsStats = [
-                'total_mois' => 0,
-                'total_annee' => 0,
-                'impayes' => 0,
-            ];
-
-            // Initialiser les statistiques d'absences
-            $absencesStats = [
-                'total_mois' => 0,
-                'non_justifiees' => 0,
-            ];
-
-            // Initialiser les tableaux vides pour éviter les erreurs
-            $recentAbsences = collect([]); // Utilisation d'une collection vide
-            $recentPaiements = collect([]); // Utilisation d'une collection vide
-            $absencesChartData = array_fill(0, 12, 0);
-
-            // Si vous souhaitez charger des données réelles, décommentez et adaptez ce code :
-            /*
-            try {
-                $recentAbsences = \App\Models\Absence::with(['eleve', 'seance'])
-                    ->latest('date')
-                    ->take(5)
-                    ->get();
-
-                $recentPaiements = \App\Models\Paiement::with(['eleve'])
-                    ->latest('date_paiement')
-                    ->take(5)
-                    ->get();
-
-                // Mise à jour des statistiques avec des données réelles
-                $stats['total_eleves'] = \App\Models\Eleve::count();
-                $stats['total_professeurs'] = \App\Models\Professeur::count();
-                $stats['total_classes'] = \App\Models\Classe::count();
-                $stats['total_cours'] = \App\Models\Cours::count();
+            
+            // Récupérer les données pour les graphiques
+            $absencesChartData = $this->getAbsencesChartData();
+            $paiementsChartData = $this->getPaiementsChartData();
+            
+            // Récupérer les dernières absences et paiements
+            $recentAbsences = Absence::with(['eleve', 'matiere'])
+                ->with(['eleve' => function($query) {
+                    $query->select('id', 'name', 'prenom');
+                }])
+                ->latest('date_absence')
+                ->take(5)
+                ->get();
                 
-                // Calculer le taux d'absences (exemple)
-                $totalEleves = $stats['total_eleves'] > 0 ? $stats['total_eleves'] : 1;
-                $totalAbsences = \App\Models\Absence::count();
-                $stats['taux_absences'] = ($totalAbsences / ($totalEleves * 30)) * 100; // Exemple de calcul
-
-            } catch (\Exception $e) {
-                // En cas d'erreur, on garde les valeurs par défaut
-                \Log::error('Erreur lors du chargement des données du tableau de bord: ' . $e->getMessage());
+            $recentPaiements = Paiement::with(['eleve'])
+                ->where('statut', 'paye')
+                ->latest('date_paiement')
+                ->take(5)
+                ->get();
+            
+            // Calculer les statistiques de paiement
+            $currentMonth = now()->month;
+            $currentYear = now()->year;
+            $previousMonth = $currentMonth === 1 ? 12 : $currentMonth - 1;
+            $previousYear = $currentMonth === 1 ? $currentYear - 1 : $currentYear;
+            
+            $paiementsMois = Paiement::where('statut', 'paye')
+                ->whereMonth('date_paiement', $currentMonth)
+                ->whereYear('date_paiement', $currentYear)
+                ->sum('montant');
+                
+            $paiementsMoisPrecedent = Paiement::where('statut', 'paye')
+                ->whereMonth('date_paiement', $previousMonth)
+                ->whereYear('date_paiement', $previousYear)
+                ->sum('montant');
+                
+            $evolution = $paiementsMoisPrecedent > 0 
+                ? round((($paiementsMois - $paiementsMoisPrecedent) / $paiementsMoisPrecedent) * 100, 1)
+                : ($paiementsMois > 0 ? 100 : 0);
+                
+            $paiementsStats = [
+                'total_mois' => $paiementsMois,
+                'total_annee' => Paiement::where('statut', 'paye')
+                    ->whereYear('date_paiement', $currentYear)
+                    ->sum('montant'),
+                'impayes' => User::where('role', 'eleve')->count() - 
+                    Paiement::where('statut', 'paye')
+                        ->whereMonth('date_paiement', $currentMonth)
+                        ->whereYear('date_paiement', $currentYear)
+                        ->distinct('eleve_id')
+                        ->count('eleve_id'),
+                'evolution' => $evolution
+            ];
+            
+            // Calculer les statistiques d'absences
+            $absencesMois = Absence::whereMonth('date_absence', $currentMonth)
+                ->whereYear('date_absence', $currentYear)
+                ->count();
+                
+            $absencesMoisPrecedent = Absence::whereMonth('date_absence', $previousMonth)
+                ->whereYear('date_absence', $previousYear)
+                ->count();
+                
+            $evolution = $absencesMoisPrecedent > 0 
+                ? round((($absencesMois - $absencesMoisPrecedent) / $absencesMoisPrecedent) * 100, 1)
+                : ($absencesMois > 0 ? 100 : 0);
+                
+            $absencesStats = [
+                'total_mois' => $absencesMois,
+                'non_justifiees' => Absence::where('statut', '!=', 'justifiee')
+                    ->whereMonth('date_absence', $currentMonth)
+                    ->whereYear('date_absence', $currentYear)
+                    ->count(),
+                'taux_justification' => $absencesMois > 0 ? 
+                    round((Absence::where('statut', 'justifiee')
+                        ->whereMonth('date_absence', $currentMonth)
+                        ->whereYear('date_absence', $currentYear)
+                        ->count() / $absencesMois) * 100) : 0,
+                'evolution' => $evolution
+            ];
+            
+            // Préparer les données pour les graphiques
+            $absencesData = [];
+            $paiementsData = [];
+            $currentYear = now()->year;
+            
+            for ($i = 1; $i <= 12; $i++) {
+                $monthName = Carbon::createFromDate($currentYear, $i, 1)->monthName;
+                
+                $absencesData[] = [
+                    'month' => $monthName,
+                    'count' => $absencesChartData[$i - 1] ?? 0
+                ];
+                
+                $paiementsData[] = [
+                    'month' => $monthName,
+                    'amount' => $paiementsChartData[$i - 1] ?? 0
+                ];
             }
-            */
-
-            // Charger la vue du tableau de bord avec les données
+            
+            // Afficher la vue du tableau de bord avec les données
             return view('admin.dashboard', [
-                'user' => $user,
-                'stats' => (object)$stats, // Conversion en objet pour éviter les erreurs dans la vue
+                'user' => auth()->user(),
+                'stats' => (object)$stats,
                 'paiementsStats' => (object)$paiementsStats,
                 'absencesStats' => (object)$absencesStats,
                 'recentAbsences' => $recentAbsences,
                 'recentPaiements' => $recentPaiements,
-                'absencesChartData' => $absencesChartData,
-                'currentYear' => now()->year,
+                'absencesData' => $absencesData,
+                'paiementsData' => $paiementsData,
+                'currentYear' => $currentYear,
             ]);
+            
         } catch (\Exception $e) {
-            // En cas d'erreur, afficher l'erreur directement pour le débogage
-            return response()->view('errors.minimal', [
-                'title' => 'Erreur',
-                'code' => 500,
-                'message' => 'Erreur lors du chargement du tableau de bord: ' . $e->getMessage(),
+            // En cas d'erreur, retourner un message d'erreur détaillé
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Erreur lors du chargement du tableau de bord',
+                'error' => [
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ]
             ], 500);
         }
+    }
+    
+    /**
+     * Récupère les données pour le graphique des absences
+     */
+    private function getAbsencesChartData()
+    {
+        $data = [];
+        $currentYear = now()->year;
+        
+        for ($i = 1; $i <= 12; $i++) {
+            $data[] = Absence::whereMonth('date_absence', $i)
+                ->whereYear('date_absence', $currentYear)
+                ->count();
+        }
+        
+        return $data;
+    }
+    
+    /**
+     * Récupère les données pour le graphique des paiements
+     */
+    private function getPaiementsChartData()
+    {
+        $data = [];
+        $currentYear = now()->year;
+        
+        for ($i = 1; $i <= 12; $i++) {
+            $data[] = Paiement::where('statut', 'paye')
+                ->whereMonth('date_paiement', $i)
+                ->whereYear('date_paiement', $currentYear)
+                ->sum('montant');
+        }
+        
+        return $data;
+    }
+    
+    /**
+     * Récupère les données pour le graphique des inscriptions
+     */
+    private function getInscriptionsChartData()
+    {
+        $data = [];
+        $currentYear = now()->year;
+        
+        for ($i = 1; $i <= 12; $i++) {
+            $data[] = [
+                'month' => Carbon::createFromDate($currentYear, $i, 1)->monthName,
+                'count' => User::where('role', 'eleve')
+                    ->whereMonth('created_at', $i)
+                    ->whereYear('created_at', $currentYear)
+                    ->count()
+            ];
+        }
+        
+        return $data;
     }
 }

@@ -55,6 +55,24 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Autres routes administratives...
 });
 
+// Configuration des salaires
+Route::middleware(['auth', 'admin'])
+    ->prefix('admin/configuration/salaires')
+    ->name('admin.configuration.salaires.')
+    ->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\ConfigurationSalaireController::class, 'index'])
+            ->name('index');
+            
+        Route::post('/matieres/{matiereId}/prix', 
+            [\App\Http\Controllers\Admin\ConfigurationSalaireController::class, 'updateMatierePrix'])
+            ->name('matieres.update-prix')
+            ->where('matiereId', '[0-9]+');
+            
+        Route::post('/professeurs/pourcentage', 
+            [\App\Http\Controllers\Admin\ConfigurationSalaireController::class, 'updateProfesseurPourcentage'])
+            ->name('professeurs.update-pourcentage');
+    });
+
 /*
 // Anciennes routes d'administration (commentées pour le moment)
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {

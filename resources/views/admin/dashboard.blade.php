@@ -4,30 +4,61 @@
 
 @push('styles')
 <style>
-    /* Cartes de statistiques */
+    /* Cartes de statistiques améliorées */
     .stat-card {
-        @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 transition-all duration-200 hover:shadow-md border border-gray-100 dark:border-gray-700;
+        @apply bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 transition-all duration-300 hover:shadow-lg border-0 overflow-hidden relative;
         height: 100%;
     }
-    .stat-card.primary { @apply border-l-4 border-blue-500; }
-    .stat-card.success { @apply border-l-4 border-green-500; }
-    .stat-card.warning { @apply border-l-4 border-yellow-500; }
-    .stat-card.danger { @apply border-l-4 border-red-500; }
-    
-    /* Badges d'état */
-    .status-badge {
-        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    .stat-card::before {
+        content: '';
+        @apply absolute top-0 left-0 w-1 h-full;
     }
-    .justified { @apply bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300; }
-    .unjustified { @apply bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300; }
-    .pending { @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300; }
+    .stat-card.primary { 
+        @apply bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-900/10;
+    }
+    .stat-card.primary::before { @apply bg-blue-500; }
+    .stat-card.success { 
+        @apply bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-900/10;
+    }
+    .stat-card.success::before { @apply bg-green-500; }
+    .stat-card.warning { 
+        @apply bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-900/10;
+    }
+    .stat-card.warning::before { @apply bg-yellow-500; }
+    .stat-card.danger { 
+        @apply bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-900/10;
+    }
+    .stat-card.danger::before { @apply bg-red-500; }
+    
+    /* Badges d'état améliorés */
+    .status-badge {
+        @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium shadow-sm;
+        transition: all 0.2s ease-in-out;
+    }
+    .justified { 
+        @apply bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200 border border-green-200 dark:border-green-800;
+    }
+    .unjustified { 
+        @apply bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200 border border-red-200 dark:border-red-800;
+    }
+    .pending { 
+        @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-800;
+    }
+    
+    /* Effets de survol pour les cartes */
+    .hover-scale {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .hover-scale:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
     
     /* Amélioration de la mise en page générale */
     .main-content {
-        @apply bg-gray-50 dark:bg-gray-900 transition-colors duration-200;
-        min-height: calc(100vh - 4rem);
-        padding: 1rem;
-        margin-top: 4rem;
+        @apply bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-200;
+        min-height: 100vh;
+        padding: 1.5rem;
         width: 100%;
         box-sizing: border-box;
         overflow-x: hidden;
@@ -69,10 +100,30 @@
         margin-bottom: 5px;
     }
     
-    /* Styles pour les graphiques */
+    /* Styles améliorés pour les graphiques */
     .chart-container {
-        @apply bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md;
-        min-height: 300px;
+        @apply bg-white dark:bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-lg border border-gray-100 dark:border-gray-700/50;
+        min-height: 350px;
+    }
+    
+    /* Style pour les cartes de statistiques */
+    .stat-icon {
+        @apply p-3 rounded-xl shadow-sm;
+        transition: all 0.3s ease;
+    }
+    .stat-card:hover .stat-icon {
+        transform: scale(1.1);
+    }
+    
+    /* Style pour les tableaux */
+    .data-table {
+        @apply min-w-full divide-y divide-gray-200 dark:divide-gray-700;
+    }
+    .data-table thead th {
+        @apply px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider;
+    }
+    .data-table tbody td {
+        @apply px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200;
     }
 </style>
 @endpush
@@ -80,12 +131,34 @@
 @section('content')
 <div class="main-content">
     <div class="w-full mx-auto max-w-7xl">
-        <!-- En-tête de page -->
-        <div class="mb-6">
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Tableau de bord</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Vue d'ensemble des activités et statistiques
-            </p>
+        <!-- En-tête de page amélioré -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+            <div>
+                <div class="flex items-center">
+                    <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent dark:from-blue-400 dark:to-blue-300">Tableau de bord</h1>
+                    <span class="ml-3 px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200">
+                        {{ now()->locale('fr')->isoFormat('dddd D MMMM YYYY') }}
+                    </span>
+                </div>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    <span class="font-medium text-gray-700 dark:text-gray-300">Bonjour {{ auth()->user()->name }},</span> voici un aperçu de votre activité.
+                </p>
+            </div>
+            <div class="mt-4 md:mt-0">
+                <div class="relative">
+                    <select class="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-2 pl-4 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
+                        <option>Aujourd'hui</option>
+                        <option>Cette semaine</option>
+                        <option>Ce mois-ci</option>
+                        <option>Cette année</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
         </div>
                     <!-- En-tête de page -->
                     <div class="mb-8">
@@ -95,91 +168,260 @@
                         </p>
                     </div>
                     
-                    <!-- Contenu principal -->
-                    <div class="space-y-6">
-                        <!-- Section des statistiques -->
-                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 w-full mb-6">
-                            <!-- Carte des paiements -->
-                            <div class="stat-card primary">
-                                <div class="flex items-center">
-                                    <div class="flex-shrink-0 p-3 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="ml-4 overflow-hidden">
-                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Paiements du mois</p>
-                                        <p class="text-2xl font-semibold text-gray-900 dark:text-white truncate">{{ number_format($paiementsStats->total_mois ?? 0, 0, ',', ' ') }} DH</p>
-                                        <p class="text-xs text-green-600 dark:text-green-400 truncate">+12% par rapport au mois dernier</p>
-                                    </div>
-                                </div>
-                            </div>
+        <!-- Section des statistiques améliorée -->
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+            <!-- Carte des paiements -->
+            <div class="stat-card primary hover-scale group">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Paiements du mois</p>
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ number_format($paiementsStats->total_mois ?? 0, 0, ',', ' ') }} DH</h3>
+                        <div class="mt-2 flex items-center">
+                            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200">
+                                +12% vs mois dernier
+                            </span>
+                        </div>
+                    </div>
+                    <div class="stat-icon bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/50">
+                    <div class="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                        <span class="flex items-center">
+                            <span class="w-2 h-2 rounded-full bg-blue-500 mr-1"></span>
+                            {{ $paiementsStats->total_paiements ?? 0 }} transactions
+                        </span>
+                        <span class="mx-2">•</span>
+                        <span class="text-green-500 dark:text-green-400">
+                            <svg class="w-3 h-3 inline-block mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+                            </svg>
+                            {{ $paiementsStats->taux_paiements ?? 0 }}%
+                        </span>
+                    </div>
+                </div>
+            </div>
 
-                            <!-- Carte des élèves -->
-                            <div class="stat-card success">
-                                <div class="flex items-center">
-                                    <div class="p-3 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
-                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="ml-4">
-                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Élèves inscrits</p>
-                                        <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $stats->total_eleves ?? 0 }}</p>
-                                        <p class="text-xs text-green-600 dark:text-green-400">+5% cette année</p>
-                                    </div>
-                                </div>
-                            </div>
+            <!-- Carte des élèves -->
+            <div class="stat-card success hover-scale group">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Élèves inscrits</p>
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $stats->total_eleves ?? 0 }}</h3>
+                        <div class="mt-2 flex items-center">
+                            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200">
+                                +5% cette année
+                            </span>
+                        </div>
+                    </div>
+                    <div class="stat-icon bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/50">
+                    <div class="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                        <span class="flex items-center">
+                            <span class="w-2 h-2 rounded-full bg-green-500 mr-1"></span>
+                            {{ $stats->nouvelles_inscriptions ?? 0 }} nouvelles inscriptions
+                        </span>
+                    </div>
+                </div>
+            </div>
 
-                            <!-- Carte des absences -->
-                            <div class="stat-card warning">
-                                <div class="flex items-center">
-                                    <div class="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400">
-                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="ml-4">
-                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Absences ce mois</p>
-                                        <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ is_countable($recentAbsences) ? $recentAbsences->count() : 0 }}</p>
-                                        <p class="text-xs text-yellow-600 dark:text-yellow-400">Taux: {{ number_format($stats->taux_absences ?? 0, 2) }}%</p>
-                                    </div>
-                                </div>
-                            </div>
+            <!-- Carte des absences -->
+            <div class="stat-card warning hover-scale group">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Absences ce mois</p>
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ is_countable($recentAbsences) ? $recentAbsences->count() : 0 }}</h3>
+                        <div class="mt-2">
+                            <span class="text-xs font-medium px-2 py-0.5 rounded-full {{ $stats->taux_absences > 5 ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200' }}">
+                                Taux: {{ number_format($stats->taux_absences ?? 0, 1) }}%
+                            </span>
+                        </div>
+                    </div>
+                    <div class="stat-icon bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/50">
+                    <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                        <span class="flex items-center">
+                            <span class="w-2 h-2 rounded-full bg-yellow-500 mr-1"></span>
+                            {{ $stats->absences_justifiees ?? 0 }} justifiées
+                        </span>
+                        <span class="flex items-center">
+                            <span class="w-2 h-2 rounded-full bg-red-500 mr-1"></span>
+                            {{ $stats->absences_non_justifiees ?? 0 }} non justifiées
+                        </span>
+                    </div>
+                </div>
+            </div>
 
-                            <!-- Carte des professeurs -->
-                            <div class="stat-card danger">
-                                <div class="flex items-center">
-                                    <div class="p-3 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">
-                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="ml-4">
-                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Professeurs</p>
-                                        <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $stats->total_professeurs ?? 0 }}</p>
-                                        <p class="text-xs text-red-600 dark:text-red-400">-2% cette année</p>
-                                    </div>
-                                </div>
-                            </div>
+            <!-- Carte des professeurs -->
+            <div class="stat-card danger hover-scale group">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Professeurs</p>
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $stats->total_professeurs ?? 0 }}</h3>
+                        <div class="mt-2">
+                            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200">
+                                {{ $stats->professeurs_actifs ?? 0 }} actifs
+                            </span>
+                        </div>
+                    </div>
+                    <div class="stat-icon bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/50">
+                    <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                        <span class="flex items-center">
+                            <span class="w-2 h-2 rounded-full bg-purple-500 mr-1"></span>
+                            {{ $stats->total_matieres ?? 0 }} matières
+                        </span>
+                        <span class="flex items-center">
+                            <span class="w-2 h-2 rounded-full bg-blue-500 mr-1"></span>
+                            {{ $stats->total_classes ?? 0 }} classes
+                        </span>
+                    </div>
+                </div>
+            </div>
                         </div>
 
-                        <!-- Welcome Card -->
-                        <div class="relative overflow-hidden bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg dark:from-blue-700 dark:to-blue-800">
-                            <div class="absolute top-0 right-0 w-32 h-32 -mt-6 -mr-6 bg-blue-500 rounded-full opacity-20"></div>
-                            <div class="absolute bottom-0 right-0 w-64 h-64 -mb-12 -mr-12 bg-blue-500 rounded-full opacity-20"></div>
-                            <div class="relative px-8 py-6">
-                                <div class="flex items-center">
-                                    <div class="flex-shrink-0">
-                                        <img class="w-16 h-16 rounded-full border-4 border-white border-opacity-25" src="{{ auth()->user()->photo_url ?? 'https://ui-avatars.com/api/?name='.urlencode(auth()->user()->name).'&background=EBF4FF&color=7F9CF5' }}" alt="{{ auth()->user()->name }}">
-                                    </div>
-                                    <div class="ml-6
-                                        <h2 class="text-2xl font-bold text-white">Bienvenue, {{ auth()->user()->name }}!</h2>
-                                        <p class="mt-1 text-blue-100">Voici un aperçu de votre activité aujourd'hui.</p>
-                                    </div>
-                                </div>
+        <!-- Section des graphiques -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Graphique des inscriptions -->
+            <div class="chart-container hover-scale">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Inscriptions</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Évolution sur 12 mois</p>
+                        </div>
+                        <div class="relative">
+                            <select class="appearance-none bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg py-1.5 pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
+                                <option>2023-2024</option>
+                                <option>2022-2023</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
                             </div>
                         </div>
+                    </div>
+                    <div id="inscriptionsChart" style="min-height: 280px;"></div>
+                </div>
+            </div>
+
+            <!-- Graphique des paiements -->
+            <div class="chart-container hover-scale">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Paiements</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Répartition par type</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200">Mensuel</button>
+                            <button class="px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300">Annuel</button>
+                        </div>
+                    </div>
+                    <div id="paiementsChart" style="min-height: 280px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section des activités récentes -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Dernières absences -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Dernières absences</h3>
+                        <a href="#" class="text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">Voir tout</a>
+                    </div>
+                </div>
+                <div class="divide-y divide-gray-100 dark:divide-gray-700">
+                    @forelse($recentAbsences as $absence)
+                    <div class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                                <span class="text-gray-500 dark:text-gray-300 text-sm font-medium">{{ substr($absence->eleve->prenom ?? '?', 0, 1) }}{{ substr($absence->eleve->name ?? '?', 0, 1) }}</span>
+                            </div>
+                            <div class="ml-4 flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $absence->eleve->prenom ?? 'Élève inconnu' }} {{ $absence->eleve->name ?? '' }}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">{{ $absence->matiere->nom ?? 'Matière non spécifiée' }}</p>
+                            </div>
+                            <div class="ml-4 flex flex-col items-end">
+                                <span class="text-xs font-medium {{ $absence->justifie ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
+                                    {{ $absence->justifie ? 'Justifiée' : 'Non justifiée' }}
+                                </span>
+                                <span class="text-xs text-gray-400 mt-1">{{ $absence->date_absence->format('d/m/Y') }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    @empty
+                    <div class="px-6 py-8 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Aucune absence récente</h3>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Tout est en ordre pour le moment.</p>
+                    </div>
+                    @endforelse
+                </div>
+            </div>
+
+            <!-- Derniers paiements -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Derniers paiements</h3>
+                        <a href="#" class="text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">Voir tout</a>
+                    </div>
+                </div>
+                <div class="divide-y divide-gray-100 dark:divide-gray-700">
+                    @forelse($recentPaiements as $paiement)
+                    <div class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                <svg class="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4 flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $paiement->eleve->prenom ?? 'Élève inconnu' }} {{ $paiement->eleve->name ?? '' }}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">{{ $paiement->type_paiement }}</p>
+                            </div>
+                            <div class="ml-4 flex flex-col items-end">
+                                <span class="text-sm font-medium text-green-600 dark:text-green-400">{{ number_format($paiement->montant, 2, ',', ' ') }} DH</span>
+                                <span class="text-xs text-gray-400 mt-1">{{ $paiement->date_paiement->format('d/m/Y') }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    @empty
+                    <div class="px-6 py-8 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Aucun paiement récent</h3>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Aucune transaction n'a été enregistrée.</p>
+                    </div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
 
                         <!-- Graphiques et tableaux -->
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
@@ -326,6 +568,8 @@
     <!-- Load Tippy.js with Popper.js -->
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     <script src="https://unpkg.com/tippy.js@6"></script>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -336,6 +580,308 @@
                     animation: 'shift-away',
                     theme: 'material',
                     placement: 'top',
+                });
+            }
+
+            // Fonction pour détecter le thème actuel
+            function getCurrentTheme() {
+                if (document.documentElement.classList.contains('dark')) {
+                    return 'dark';
+                }
+                return 'light';
+            }
+
+            // Options communes pour les graphiques
+            const chartOptions = {
+                chart: {
+                    type: 'line',
+                    height: '100%',
+                    fontFamily: 'Inter, sans-serif',
+                    toolbar: {
+                        show: false
+                    },
+                    zoom: {
+                        enabled: false
+                    },
+                    foreColor: getCurrentTheme() === 'dark' ? '#E5E7EB' : '#374151',
+                    background: 'transparent'
+                },
+                theme: {
+                    mode: getCurrentTheme(),
+                    palette: 'palette1'
+                },
+                stroke: {
+                    width: 3,
+                    curve: 'smooth'
+                },
+                grid: {
+                    borderColor: getCurrentTheme() === 'dark' ? '#374151' : '#E5E7EB',
+                    strokeDashArray: 4,
+                    xaxis: {
+                        lines: {
+                            show: true
+                        }
+                    },
+                    yaxis: {
+                        lines: {
+                            show: true
+                        }
+                    }
+                },
+                tooltip: {
+                    theme: getCurrentTheme(),
+                    x: {
+                        format: 'dd/MM/yyyy'
+                    }
+                },
+                xaxis: {
+                    type: 'datetime',
+                    labels: {
+                        format: 'MMM yyyy',
+                        style: {
+                            colors: getCurrentTheme() === 'dark' ? '#9CA3AF' : '#6B7280'
+                        }
+                    },
+                    axisBorder: {
+                        show: false
+                    },
+                    axisTicks: {
+                        show: false
+                    }
+                },
+                yaxis: {
+                    labels: {
+                        style: {
+                            colors: getCurrentTheme() === 'dark' ? '#9CA3AF' : '#6B7280'
+                        }
+                    }
+                },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shade: 'dark',
+                        gradientToColors: ['#3B82F6'],
+                        shadeIntensity: 1,
+                        type: 'vertical',
+                        opacityFrom: 0.7,
+                        opacityTo: 0.1,
+                        stops: [0, 100]
+                    }
+                }
+            };
+
+            // Graphique des inscriptions
+            function initInscriptionsChart() {
+                const chartElement = document.getElementById('inscriptionsChart');
+                if (!chartElement) return;
+
+                // Données simulées - à remplacer par des données réelles du contrôleur
+                const currentDate = new Date();
+                const months = [];
+                const data = [];
+                
+                // Générer des données pour les 12 derniers mois
+                for (let i = 12; i >= 0; i--) {
+                    const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+                    months.push(date);
+                    data.push(Math.floor(Math.random() * 50) + 10); // Nombres aléatoires entre 10 et 60
+                }
+
+                const options = {
+                    ...chartOptions,
+                    series: [{
+                        name: 'Inscriptions',
+                        data: months.map((date, index) => ({
+                            x: date.getTime(),
+                            y: data[index]
+                        }))
+                    }],
+                    colors: ['#3B82F6'],
+                    stroke: {
+                        ...chartOptions.stroke,
+                        width: 3
+                    },
+                    markers: {
+                        size: 5,
+                        strokeWidth: 0,
+                        hover: {
+                            size: 7
+                        }
+                    },
+                    tooltip: {
+                        ...chartOptions.tooltip,
+                        y: {
+                            formatter: function(value) {
+                                return value + ' élèves';
+                            }
+                        }
+                    },
+                    yaxis: {
+                        ...chartOptions.yaxis,
+                        min: 0,
+                        max: Math.max(...data) * 1.2, // 20% d'espace supplémentaire
+                        tickAmount: 5
+                    }
+                };
+
+                const chart = new ApexCharts(chartElement, options);
+                chart.render();
+                window.inscriptionsChart = chart;
+            }
+
+            // Graphique des paiements
+            function initPaiementsChart() {
+                const chartElement = document.getElementById('paiementsChart');
+                if (!chartElement) return;
+
+                // Données simulées - à remplacer par des données réelles du contrôleur
+                const data = [
+                    { label: 'Mensualités', value: 45, color: '#3B82F6' },
+                    { label: 'Inscription', value: 25, color: '#10B981' },
+                    { label: 'Activités', value: 15, color: '#F59E0B' },
+                    { label: 'Fournitures', value: 10, color: '#8B5CF6' },
+                    { label: 'Autres', value: 5, color: '#EC4899' }
+                ];
+
+                const options = {
+                    ...chartOptions,
+                    chart: {
+                        ...chartOptions.chart,
+                        type: 'donut'
+                    },
+                    series: data.map(item => item.value),
+                    labels: data.map(item => item.label),
+                    colors: data.map(item => item.color),
+                    stroke: {
+                        width: 0
+                    },
+                    plotOptions: {
+                        pie: {
+                            donut: {
+                                size: '70%',
+                                labels: {
+                                    show: true,
+                                    total: {
+                                        show: true,
+                                        showAlways: true,
+                                        label: 'Total',
+                                        fontSize: '16px',
+                                        fontWeight: 600,
+                                        color: getCurrentTheme() === 'dark' ? '#E5E7EB' : '#111827',
+                                        formatter: function(w) {
+                                            return w.globals.seriesTotals.reduce((a, b) => a + b, 0) + '%';
+                                        }
+                                    },
+                                    value: {
+                                        offsetY: 0,
+                                        fontSize: '20px',
+                                        fontWeight: 700,
+                                        color: getCurrentTheme() === 'dark' ? '#E5E7EB' : '#111827',
+                                        formatter: function(value) {
+                                            return value + '%';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    dataLabels: {
+                        enabled: false
+                    },
+                    legend: {
+                        position: 'right',
+                        horizontalAlign: 'center',
+                        labels: {
+                            colors: getCurrentTheme() === 'dark' ? '#E5E7EB' : '#374151'
+                        }
+                    },
+                    tooltip: {
+                        ...chartOptions.tooltip,
+                        y: {
+                            formatter: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                };
+
+                const chart = new ApexCharts(chartElement, options);
+                chart.render();
+                window.paiementsChart = chart;
+            }
+
+            // Initialiser les graphiques
+            initInscriptionsChart();
+            initPaiementsChart();
+
+            // Mettre à jour les graphiques lors du changement de thème
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.attributeName === 'class') {
+                        const theme = getCurrentTheme();
+                        const options = {
+                            chart: {
+                                foreColor: theme === 'dark' ? '#E5E7EB' : '#374151'
+                            },
+                            theme: {
+                                mode: theme
+                            },
+                            grid: {
+                                borderColor: theme === 'dark' ? '#374151' : '#E5E7EB'
+                            },
+                            xaxis: {
+                                labels: {
+                                    style: {
+                                        colors: theme === 'dark' ? '#9CA3AF' : '#6B7280'
+                                    }
+                                }
+                            },
+                            yaxis: {
+                                labels: {
+                                    style: {
+                                        colors: theme === 'dark' ? '#9CA3AF' : '#6B7280'
+                                    }
+                                }
+                            },
+                            legend: {
+                                labels: {
+                                    colors: theme === 'dark' ? '#E5E7EB' : '#374151'
+                                }
+                            }
+                        };
+
+                        if (window.inscriptionsChart) {
+                            window.inscriptionsChart.updateOptions(options);
+                        }
+                        if (window.paiementsChart) {
+                            window.paiementsChart.updateOptions(options);
+                        }
+                    }
+                });
+            });
+
+            observer.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['class']
+            });
+
+            // Redimensionner les graphiques lorsque la fenêtre est redimensionnée
+            window.addEventListener('resize', function() {
+                if (window.inscriptionsChart) {
+                    window.inscriptionsChart.updateOptions({
+                        chart: {
+                            height: '100%'
+                        }
+                    });
+                }
+                if (window.paiementsChart) {
+                    window.paiementsChart.updateOptions({
+                        chart: {
+                            height: '100%'
+                        }
+                    });
+                }
+            });
                     arrow: true,
                     delay: [100, 0],
                     duration: [200, 150],

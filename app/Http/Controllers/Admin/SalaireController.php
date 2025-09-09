@@ -130,7 +130,7 @@ class SalaireController extends Controller
         // Liste des professeurs pour le filtre
         $professeurs = User::where('role', 'professeur')
             ->where('status', 'actif')
-            ->orderBy('nom')
+            ->orderBy('name')
             ->orderBy('prenom')
             ->get();
         
@@ -158,11 +158,11 @@ class SalaireController extends Controller
     {
         $professeurs = User::where('role', 'professeur')
             ->where('status', 'actif')
-            ->orderBy('nom')
+            ->orderBy('name')
             ->orderBy('prenom')
             ->get()
             ->map(function($professeur) {
-                $professeur->nom_complet = $professeur->nom . ' ' . $professeur->prenom;
+                $professeur->nom_complet = $professeur->name . ' ' . $professeur->prenom;
                 return $professeur;
             });
             
@@ -545,11 +545,11 @@ class SalaireController extends Controller
     {
         $professeurs = User::where('role', 'professeur')
             ->where('status', 'actif')
-            ->orderBy('nom')
+            ->orderBy('name')
             ->orderBy('prenom')
             ->get()
             ->map(function($professeur) {
-                $professeur->nom_complet = $professeur->nom . ' ' . $professeur->prenom;
+                $professeur->nom_complet = $professeur->name . ' ' . $professeur->prenom;
                 return $professeur;
             });
             
@@ -866,7 +866,7 @@ class SalaireController extends Controller
         // Liste des professeurs pour le filtre
         $professeurs = User::where('role', 'professeur')
             ->where('status', 'actif')
-            ->orderBy('nom')
+            ->orderBy('name')
             ->orderBy('prenom')
             ->get();
             
